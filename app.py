@@ -124,26 +124,43 @@ def show_games(area_id):
     area_games = {g_id: GAMES_CONFIG[g_id] for g_id in area_data["games"] if g_id in GAMES_CONFIG}
     return render_template('games.html', area_name=area_data["name"], games=area_games, monitor_name=session['monitor_name'])
 
-# مسار الفحص (تم تعديله لمعرفة اللعبة التالية)
-@app.route('/check/<game_id>')
+# مسار الفحص (معدل لاستقبال البيانات والانتقال للعبة التالية)
+@app.route('/check/<game_id>', methods=['GET', 'POST'])
 def check_game(game_id):
     game_data = GAMES_CONFIG.get(game_id)
-    
     if not game_data:
         return "هذه اللعبة غير موجودة في النظام!"
 
-    # --- الكود الجديد: حساب اللعبة اللي عليها الدور ---
+    # حساب اللعبة اللي عليها الدور
     next_game_id = None
-    area_id = session.get('area_id') # بنجيب المنطقة بتاعت الموظف
+    area_id = session.get('area_id')
     
     if area_id and area_id in AREAS_CONFIG:
-        area_games = AREAS_CONFIG[area_id]['games'] # دي قايمة الألعاب
+        area_games = AREAS_CONFIG[area_id]['games']
         if game_id in area_games:
-            current_index = area_games.index(game_id) # رقم اللعبة الحالية في القايمة
-            # لو اللعبة دي مش آخر لعبة، هات اللي بعدها
+            current_index = area_games.index(game_id)
             if current_index + 1 < len(area_games):
                 next_game_id = area_games[current_index + 1]
-    # ------------------------------------------------
+
+    # --- الكود الجديد: لو الموظف داس على أي زرار حفظ (إرسال الفورمة) ---
+    if request.method == 'POST':
+        # (هنا هنكتب كود حفظ بيانات اللعبة الحالية في الـ Session الخطوة الجاية)
+        
+        # بنعرف الموظف داس على أنهي زرار بالظبط
+        user_action = request.form.get('action')
+        
+        if user_action == 'next' and next_game_id:
+            # لو داس التالي وفيه لعبة تالية، وديه عليها
+            return redirect(url_for('check_game', game_id=next_game_id))
+            
+        elif user_action == 'submit_all':
+            # لو دي آخر لعبة وداس إرسال نهائي
+            return "تم إرسال تقرير المنطقة بنجاح! 🎉"
+            
+        else:
+            # لو داس "حفظ والرجوع للقائمة" أو أي حالة تانية، رجعه لصفحة ألعاب منطقته
+            return redirect(url_for('show_games', area_id=session.get('area_id')))
+    # ------------------------------------------------------------------
 
     # بنبعت next_game_id للصفحة عشان تعرض الزرار
     return render_template('form.html', game=game_data, next_game_id=next_game_id)
