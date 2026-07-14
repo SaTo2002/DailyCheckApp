@@ -12,12 +12,37 @@
     
     <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
         {% for game_id, game_info in games.items() %}
-            <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">{{ game_info.name }}</a>
+            
+            {% if game_id in completed_games %}
+                <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
+                    {{ game_info.name }} ✅ (تم الفحص)
+                </a>
+            {% else %}
+                <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
+                    {{ game_info.name }}
+                </a>
+            {% endif %}
+
         {% endfor %}
     </div>
 
+    <div style="margin-top: 40px; text-align: center;">
+        <hr style="width: 80%; border: 0; border-top: 1px solid #ccc; margin-bottom: 20px;">
+        
+        {% if all_completed %}
+            <button id="finalSubmitBtn" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+                إرسال تقرير المنطقة بالكامل 🚀
+            </button>
+        {% else %}
+            <button disabled id="finalSubmitBtn" style="width: 80%; max-width: 300px; padding: 15px; background-color: #6c757d; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: not-allowed; opacity: 0.6;">
+                إرسال تقرير المنطقة بالكامل 🚀
+            </button>
+            <p style="color: #dc3545; font-size: 14px; margin-top: 10px; font-weight: bold;">(يجب فحص جميع الألعاب أولاً لتفعيل الإرسال)</p>
+        {% endif %}
+    </div>
+
     <br><br>
-    <a href="/" style="color: #dc3545; text-decoration: none; font-size: 16px;">تسجيل خروج (تغيير الموظف/المنطقة)</a>
+    <a href="/" style="color: #dc3545; text-decoration: none; font-size: 16px; margin-bottom: 30px; display: inline-block;">تسجيل خروج (تغيير الموظف/المنطقة)</a>
 
 </body>
 </html>

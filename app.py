@@ -104,15 +104,17 @@ def home():
         # --- السطر الجديد: حفظ المنطقة في الجلسة عشان نرجع لها بعدين ---
         session['area_id'] = selected_area 
         
+        # --- تصفير الألعاب اللي اتفحصت ---
+        session['completed_games'] = []
+        
         # توجيهه لصفحة الألعاب الخاصة بالمنطقة اللي اختارها
         return redirect(url_for('show_games', area_id=selected_area))
     
     return render_template('index.html', areas=AREAS_CONFIG)
 
-# مسار جديد لعرض الألعاب بناءً على المنطقة المختارة
+# مسار عرض الألعاب بناءً على المنطقة المختارة
 @app.route('/games/<area_id>')
 def show_games(area_id):
-    # حماية: لو الموظف مدخلش اسمه نرجعه للصفحة الرئيسية
     if 'monitor_name' not in session:
         return redirect(url_for('home'))
         
@@ -120,9 +122,16 @@ def show_games(area_id):
     if not area_data:
         return "هذه المنطقة غير موجودة!"
         
-    # بنفلتر ونجيب الألعاب اللي تبع المنطقة دي بس
     area_games = {g_id: GAMES_CONFIG[g_id] for g_id in area_data["games"] if g_id in GAMES_CONFIG}
-    return render_template('games.html', area_name=area_data["name"], games=area_games, monitor_name=session['monitor_name'])
+    
+    # --- الكود الجديد: حساب الألعاب اللي خلصت ---
+    completed = session.get('completed_games', [])
+    # بنتأكد إن كل ألعاب المنطقة موجودة في قايمة الألعاب اللي اتفحصت
+    all_completed = all(g_id in completed for g_id in area_games.keys())
+    # ---------------------------------------------
+
+    # بنبعت حالة الألعاب للصفحة عشان تغير الألوان
+    return render_template('games.html', area_name=area_data["name"], games=area_games, monitor_name=session['monitor_name'], completed_games=completed, all_completed=all_completed)
 
 # مسار الفحص (معدل لاستقبال البيانات والانتقال للعبة التالية)
 @app.route('/check/<game_id>', methods=['GET', 'POST'])
@@ -142,23 +151,22 @@ def check_game(game_id):
             if current_index + 1 < len(area_games):
                 next_game_id = area_games[current_index + 1]
 
-    # --- الكود الجديد: لو الموظف داس على أي زرار حفظ (إرسال الفورمة) ---
+    # لو الموظف داس على أي زرار حفظ (إرسال الفورمة)
     if request.method == 'POST':
-        # (هنا هنكتب كود حفظ بيانات اللعبة الحالية في الـ Session الخطوة الجاية)
         
-        # بنعرف الموظف داس على أنهي زرار بالظبط
+        # --- السطر الجديد: تسجيل إن اللعبة دي خلصت ---
+        if 'completed_games' not in session:
+            session['completed_games'] = []
+        if game_id not in session['completed_games']:
+            session['completed_games'].append(game_id)
+            session.modified = True # ضروري عشان فلاسك يحفظ التعديل
+        # ---------------------------------------------
+        
         user_action = request.form.get('action')
         
         if user_action == 'next' and next_game_id:
-            # لو داس التالي وفيه لعبة تالية، وديه عليها
             return redirect(url_for('check_game', game_id=next_game_id))
-            
-        elif user_action == 'submit_all':
-            # لو دي آخر لعبة وداس إرسال نهائي
-            return "تم إرسال تقرير المنطقة بنجاح! 🎉"
-            
         else:
-            # لو داس "حفظ والرجوع للقائمة" أو أي حالة تانية، رجعه لصفحة ألعاب منطقته
             return redirect(url_for('show_games', area_id=session.get('area_id')))
     # ------------------------------------------------------------------
 
