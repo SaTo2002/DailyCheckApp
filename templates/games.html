@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختر اللعبة</title>
+</head>
+<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 30px;">
+
+    <p style="color: #6c757d; font-size: 18px;">الموظف الحالي: <strong>{{ monitor_name }}</strong></p>
+    <h1>ألعاب: <span style="color: #28a745;">{{ area_name }}</span></h1>
+    
+    <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+        {% for game_id, game_info in games.items() %}
+            <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">{{ game_info.name }}</a>
+        {% endfor %}
+    </div>
+
+    <br><br>
+    <a href="/" style="color: #dc3545; text-decoration: none; font-size: 16px;">تسجيل خروج (تغيير الموظف/المنطقة)</a>
+
+</body>
+</html>

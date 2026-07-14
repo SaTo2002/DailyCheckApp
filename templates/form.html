@@ -4,18 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>فحص اللعبة</title>
-</head>
+    
+    <style>
+        /* التحكم في عرض وارتفاع شريط التمرير نفسه */
+        #canvasWrapper::-webkit-scrollbar {
+            height: 18px; /* تخنينا الشريط الأفقي جداً عشان صباع الموظف يقدر يمسكه */
+            width: 18px;  /* تخنينا الشريط الرأسي */
+        }
+        /* التحكم في مسار الشريط (الخلفية اللي بيتحرك عليها) */
+        #canvasWrapper::-webkit-scrollbar-track {
+            background: #e9ecef; 
+            border-radius: 10px;
+        }
+        /* التحكم في الجزء المتحرك من الشريط (المقبض) */
+        #canvasWrapper::-webkit-scrollbar-thumb {
+            background: #6c757d; 
+            border-radius: 10px;
+            border: 3px solid #e9ecef; /* إطار حوالين المقبض بيدي شكل جمالي */
+        }
+        /* شكل المقبض لما الموظف يلمسه أو يقف عليه */
+        #canvasWrapper::-webkit-scrollbar-thumb:hover {
+            background: #495057;
+        }
+    </style>
+    </head>
 <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20px;">
 
     <h1>تقرير الفحص اليومي: <span style="color: #007bff;">{{ game.name }}</span></h1>
     
-    <div style="margin-top: 20px; border: 1px solid #ccc; padding: 20px; width: 90%; max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 10px; text-align: right;">
+    <form method="POST" enctype="multipart/form-data" style="margin-top: 20px; border: 1px solid #ccc; padding: 20px; width: 90%; max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 10px; text-align: right;">
         <h3 style="text-align: center;">قائمة الفحص المطلوبة</h3>
-        
+        <!-- هنا قايمة الفصح بنظبط الشكل بتاعها وغير كدة برضو ممكن اغير الحاجات الي هتتكتب هنا -->
         {% for item in game.checks %}
-        <label style="display: block; margin: 15px; font-size: 18px;">
-            <input type="checkbox" style="width: 20px; height: 20px;"> {{ item }}
-        </label>
+        <div style="margin: 15px 0; padding: 10px; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; align-items: center; font-size: 18px;">
+            <span style="font-weight: bold; text-align: right; width: 45%;">{{ item }}</span>
+            <div style="display: flex; gap: 20px; direction: rtl;">
+                <label style="color: #28a745; cursor: pointer;">
+                    <input type="radio" name="check_{{ loop.index }}" value="OK" required style="width: 18px; height: 18px; vertical-align: middle;"> سليم ✅
+                </label>
+                <label style="color: #dc3545; cursor: pointer;">
+                    <input type="radio" name="check_{{ loop.index }}" value="NOT_OK" style="width: 18px; height: 18px; vertical-align: middle;"> فيه مشكلة ❌
+                </label>
+            </div>
+        </div>
         {% endfor %}
 
         <hr style="margin-top: 30px; margin-bottom: 20px;">
@@ -24,35 +55,57 @@
         <div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
             <h4 style="color: #333;">حدد مكان المشكلة على المخطط</h4>
             
-            <canvas id="mapCanvas" width="500" height="250" style="border: 2px solid #000; border-radius: 5px; cursor: crosshair; background-color: white; max-width: 100%; touch-action: none;"></canvas>
+            <div style="position: relative; width: 100%; max-width: 500px; margin: 0 auto; border: 2px solid #000; border-radius: 5px; overflow: auto; background-color: #fff;" id="canvasWrapper">
+                
+                <div style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; gap: 8px;">
+                    <button type="button" id="zoomInBtn" style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.9); border: 1px solid #333; border-radius: 5px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">➕</button>
+                    <button type="button" id="zoomOutBtn" style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.9); border: 1px solid #333; border-radius: 5px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">➖</button>
+                </div>
+
+                <canvas id="mapCanvas" width="500" height="250" style="cursor: crosshair; touch-action: none; width: 100%; height: auto; display: block;"></canvas>
+            </div>
             <br>
             
             <div style="margin-top: 15px;">
-                <button type="button" id="toggleModeBtn" style="padding: 10px 15px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">وضع الزووم والحركة 🔍</button>
                 <button type="button" id="clearBtn" style="padding: 10px 15px; background-color: #ffc107; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px;">مسح الرسمة 🧹</button>
             </div>
         </div>
         {% endif %}
+
+        <!-- هنا الجزء الخاص بتصوير الأعطال -->
+        <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px dashed #ccc;">
+            <h4 style="color: #333; margin-bottom: 15px;">📸 صور الأعطال (تقدر تضيف أكتر من صورة)</h4>
+            
+            <input type="file" id="cameraInput" name="issue_photos" accept="image/*" multiple style="display: none;">
+            
+            <button type="button" id="triggerCameraBtn" style="padding: 10px 20px; background-color: #6f42c1; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
+                التقط أو اختر صور المشكلة 📷
+            </button>
+
+            <div id="previewContainer" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;"></div>
+        </div>
         
         <div style="text-align: center; margin-top: 20px;">
-            <textarea placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;"></textarea>
+            <textarea name="notes" placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;"></textarea>
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
             <button style="padding: 12px 30px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 90%;">إرسال التقرير</button>
         </div>
-    </div>
+    </form>
 
     <br>
-    <a href="/" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 30px;">رجوع للقائمة الرئيسية</a>
+    <a href="/games/{{ session['area_id'] }}" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 30px;">رجوع لقائمة الألعاب 🔙</a>
 
+    {% if next_game_id %}
+    <a href="/check/{{ next_game_id }}" style="padding: 10px 20px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 30px; margin-right: 10px;">اللعبة التالية ➡️</a>
+    {% endif %}
     <script>
         const canvas = document.getElementById('mapCanvas');
-        // التأكد من وجود الخريطة في الصفحة لتجنب أخطاء الكود في الألعاب التي لا تحتوي على خريطة
+        // التأكد من وجود الخريطة في الصفحة لتجنب أخطاء الكود
         if (canvas) {
             const ctx = canvas.getContext('2d');
             let isDrawing = false; // حالة الرسم الحالية
-            let isDrawingMode = true; // وضع الشاشة (رسم أم زووم)
 
             // تحميل وتعيين صورة المخطط كخلفية للرسم
             const img = new Image();
@@ -62,24 +115,29 @@
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             };
 
-            // برمجة زرار التبديل بين وضع الرسم ووضع الحركة/الزووم
-            const toggleBtn = document.getElementById('toggleModeBtn');
-            toggleBtn.addEventListener('click', () => {
-                isDrawingMode = !isDrawingMode;
-                if (isDrawingMode) {
-                    toggleBtn.innerHTML = 'وضع الزووم والحركة 🔍';
-                    toggleBtn.style.backgroundColor = '#17a2b8';
-                    canvas.style.touchAction = 'none'; // منع الحركة للسماح بالرسم
-                } else {
-                    toggleBtn.innerHTML = 'وضع الرسم ✏️';
-                    toggleBtn.style.backgroundColor = '#007bff';
-                    canvas.style.touchAction = 'auto'; // السماح بالحركة والزووم
-                }
-            });
+            // ---- برمجة زراير الزووم (التكبير والتصغير) ----
+            let currentZoom = 1; // المتغير المسؤول عن حفظ نسبة الزووم الحالية
+            const zoomInBtn = document.getElementById('zoomInBtn');
+            const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+            if (zoomInBtn && zoomOutBtn) {
+                // عند الضغط على زرار التكبير
+                zoomInBtn.addEventListener('click', () => {
+                    currentZoom += 0.5; // زيادة النسبة بـ 50%
+                    canvas.style.width = (currentZoom * 100) + '%'; // تطبيق التكبير على عرض الكانفاس
+                });
+
+                // عند الضغط على زرار التصغير
+                zoomOutBtn.addEventListener('click', () => {
+                    currentZoom -= 0.5; // تقليل النسبة بـ 50%
+                    if (currentZoom < 1) currentZoom = 1; // منع تصغير الصورة عن حجمها الأصلي
+                    canvas.style.width = (currentZoom * 100) + '%';
+                });
+            }
+            // ------------------------------------
 
             // دالة بدء الرسم عند لمس الشاشة أو الضغط بالماوس
             const startPosition = (e) => {
-                if (!isDrawingMode) return; // تعطيل الرسم إذا كان المستخدم في وضع الزووم
                 isDrawing = true;
                 draw(e);
             };
@@ -92,7 +150,7 @@
 
             // الدالة الرئيسية لرسم الخطوط
             const draw = (e) => {
-                if (!isDrawing || !isDrawingMode) return;
+                if (!isDrawing) return; // الخروج من الدالة إذا كان المستخدم لا يرسم
                 e.preventDefault(); // منع المتصفح من عمل Scroll أثناء الرسم
 
                 // حساب الأبعاد بدقة لضمان تطابق مكان اللمس مع مكان الرسم على الشاشات المختلفة
@@ -104,7 +162,7 @@
                 const clientX = e.clientX || (e.touches && e.touches[0].clientX);
                 const clientY = e.clientY || (e.touches && e.touches[0].clientY);
                 
-                // تطبيق النسبة (Scale) على الإحداثيات
+                // تطبيق النسبة (Scale) على الإحداثيات لضمان دقة القلم حتى مع التكبير
                 const x = (clientX - rect.left) * scaleX;
                 const y = (clientY - rect.top) * scaleY;
 
@@ -136,6 +194,46 @@
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             });
         }
+
+        // --- برمجة زرار الكاميرا ومعاينة الصور ---
+        const cameraInput = document.getElementById('cameraInput');
+        const triggerCameraBtn = document.getElementById('triggerCameraBtn');
+        const previewContainer = document.getElementById('previewContainer');
+
+        if(triggerCameraBtn && cameraInput) {
+            // ربط الزرار الشيك بالزرار المخفي
+            triggerCameraBtn.addEventListener('click', () => {
+                cameraInput.click();
+            });
+
+            // لما الموظف يصور أو يختار صور، الكود ده بيقراها ويعرضها مصغرة
+            cameraInput.addEventListener('change', function(event) {
+                previewContainer.innerHTML = ''; // مسح الصور القديمة لو قرر يصور من أول وجديد
+                const files = event.target.files;
+                
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    // التأكد إن الملف صورة
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            // إنشاء عنصر صورة جديد
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.style.width = '80px';
+                            img.style.height = '80px';
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '5px';
+                            img.style.border = '1px solid #ccc';
+                            // إضافة الصورة للمربع بتاع المعاينة
+                            previewContainer.appendChild(img);
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                }
+            });
+        }
+        // ------------------------------------------
     </script>
 </body>
 </html>
