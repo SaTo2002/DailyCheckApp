@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>فحص اللعبة</title>
+</head>
+<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20px;">
+
+    <h1>تقرير الفحص اليومي: <span style="color: #007bff;">{{ game.name }}</span></h1>
+    
+    <div style="margin-top: 20px; border: 1px solid #ccc; padding: 20px; width: 90%; max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 10px; text-align: right;">
+        <h3 style="text-align: center;">قائمة الفحص المطلوبة</h3>
+        
+        {% for item in game.checks %}
+        <label style="display: block; margin: 15px; font-size: 18px;">
+            <input type="checkbox" style="width: 20px; height: 20px;"> {{ item }}
+        </label>
+        {% endfor %}
+
+        <hr style="margin-top: 30px; margin-bottom: 20px;">
+
+        {% if game.has_map %}
+        <div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+            <h4 style="color: #333;">حدد مكان المشكلة على المخطط</h4>
+            
+            <canvas id="mapCanvas" width="500" height="250" style="border: 2px solid #000; border-radius: 5px; cursor: crosshair; background-color: white; max-width: 100%; touch-action: none;"></canvas>
+            <br>
+            
+            <div style="margin-top: 15px;">
+                <button type="button" id="toggleModeBtn" style="padding: 10px 15px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;">وضع الزووم والحركة 🔍</button>
+                <button type="button" id="clearBtn" style="padding: 10px 15px; background-color: #ffc107; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px;">مسح الرسمة 🧹</button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <textarea placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;"></textarea>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px;">
+            <button style="padding: 12px 30px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 90%;">إرسال التقرير</button>
+        </div>
+    </div>
+
+    <br>
+    <a href="/" style="padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-bottom: 30px;">رجوع للقائمة الرئيسية</a>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        // التأكد من وجود الخريطة في الصفحة لتجنب أخطاء الكود في الألعاب التي لا تحتوي على خريطة
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false; // حالة الرسم الحالية
+            let isDrawingMode = true; // وضع الشاشة (رسم أم زووم)
+
+            // تحميل وتعيين صورة المخطط كخلفية للرسم
+            const img = new Image();
+            img.src = '/static/{{ game.map_image }}'; 
+            
+            img.onload = () => {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+
+            // برمجة زرار التبديل بين وضع الرسم ووضع الحركة/الزووم
+            const toggleBtn = document.getElementById('toggleModeBtn');
+            toggleBtn.addEventListener('click', () => {
+                isDrawingMode = !isDrawingMode;
+                if (isDrawingMode) {
+                    toggleBtn.innerHTML = 'وضع الزووم والحركة 🔍';
+                    toggleBtn.style.backgroundColor = '#17a2b8';
+                    canvas.style.touchAction = 'none'; // منع الحركة للسماح بالرسم
+                } else {
+                    toggleBtn.innerHTML = 'وضع الرسم ✏️';
+                    toggleBtn.style.backgroundColor = '#007bff';
+                    canvas.style.touchAction = 'auto'; // السماح بالحركة والزووم
+                }
+            });
+
+            // دالة بدء الرسم عند لمس الشاشة أو الضغط بالماوس
+            const startPosition = (e) => {
+                if (!isDrawingMode) return; // تعطيل الرسم إذا كان المستخدم في وضع الزووم
+                isDrawing = true;
+                draw(e);
+            };
+
+            // دالة إنهاء الرسم عند رفع الإصبع أو الماوس
+            const endPosition = () => {
+                isDrawing = false;
+                ctx.beginPath(); // إعادة تعيين المسار لمنع اتصال الخطوط ببعضها
+            };
+
+            // الدالة الرئيسية لرسم الخطوط
+            const draw = (e) => {
+                if (!isDrawing || !isDrawingMode) return;
+                e.preventDefault(); // منع المتصفح من عمل Scroll أثناء الرسم
+
+                // حساب الأبعاد بدقة لضمان تطابق مكان اللمس مع مكان الرسم على الشاشات المختلفة
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+
+                // استخراج إحداثيات الماوس أو اللمس
+                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+                
+                // تطبيق النسبة (Scale) على الإحداثيات
+                const x = (clientX - rect.left) * scaleX;
+                const y = (clientY - rect.top) * scaleY;
+
+                // إعدادات وشكل القلم (اللون والسمك)
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                ctx.strokeStyle = 'red';
+
+                // رسم الخط
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            };
+
+            // ربط أحداث الماوس (للكمبيوتر)
+            canvas.addEventListener('mousedown', startPosition);
+            canvas.addEventListener('mouseup', endPosition);
+            canvas.addEventListener('mousemove', draw);
+
+            // ربط أحداث اللمس (للموبايل والتابلت)
+            canvas.addEventListener('touchstart', startPosition, {passive: false});
+            canvas.addEventListener('touchend', endPosition);
+            canvas.addEventListener('touchmove', draw, {passive: false});
+
+            // برمجة زرار مسح الرسمة واستعادة الصورة الأصلية
+            document.getElementById('clearBtn').addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            });
+        }
+    </script>
+</body>
+</html>
