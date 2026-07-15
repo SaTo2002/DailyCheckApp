@@ -31,7 +31,13 @@
 <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20px;">
     <!-- رابط للرجوع لقائمة الألعاب -->
     <div style="width: 90%; max-width: 600px; margin: 0 auto; text-align: right; margin-bottom: -10px;">
-        <a href="/cancel_game/{{ game_id }}" onclick="return confirm('تأكيد الإلغاء؟ سيتم مسح أي صور أو بيانات قمت بإدخالها الآن.');" style="display: inline-block; padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ إلغاء والرجوع</a>
+        
+        {% if game_id in session.get('completed_games', []) %}
+            <a href="/cancel_game/{{ game_id }}" style="display: inline-block; padding: 8px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🔙 رجوع (تم الفحص مسبقاً)</a>
+        {% else %}
+            <a href="/cancel_game/{{ game_id }}" onclick="return confirm('تأكيد الإلغاء؟ سيتم مسح أي صور أو بيانات قمت بإدخالها الآن.');" style="display: inline-block; padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ إلغاء والرجوع</a>
+        {% endif %}
+        
     </div>
 
     <h1>تقرير الفحص اليومي: <span style="color: #007bff;">{{ game.name }}</span></h1>

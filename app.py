@@ -535,7 +535,16 @@ def admin_logout():
 # مسار إلغاء الفحص وحذف الصور المعلقة فوراً
 @app.route('/cancel_game/<game_id>')
 def cancel_game(game_id):
-    # نجيب الصور اللي الموظف كان رافعها في اللعبة دي
+    # ==========================================
+    # --- التعديل الجديد: حماية الألعاب المكتملة ---
+    # ==========================================
+    completed = session.get('completed_games', [])
+    if game_id in completed:
+        # لو اللعبة أصلاً خلصانة ومحفوظة، نرجعه بس من غير أي مسح عشان ميفقدش شغله
+        return redirect(url_for('show_games', area_id=session.get('area_id')))
+    # ==========================================
+
+    # لو اللعبة لسه جديدة (أول مرة يدخلها ومحفظهاش):
     game_data = session.get('game_data', {}).get(game_id, {})
     photos = game_data.get('photos', [])
     map_drawing = game_data.get('map_drawing', '')
@@ -552,13 +561,69 @@ def cancel_game(game_id):
         if os.path.exists(filepath):
             os.remove(filepath)
 
-    # مسح بيانات اللعبة دي من الجلسة (عشان لما يدخلها تاني تبدأ على نظافة)
+    # مسح بيانات اللعبة دي من الجلسة
     if 'game_data' in session and game_id in session['game_data']:
         del session['game_data'][game_id]
         session.modified = True
 
-    # نرجعه لصفحة اختيار الألعاب
     return redirect(url_for('show_games', area_id=session.get('area_id')))
+
+# مسار إلغاء فحص المنطقة بالكامل والعودة للرئيسية
+@app.route('/cancel_area')
+def cancel_area():
+    # 1. جلب كل بيانات الألعاب اللي اتسجلت في الجلسة الحالية
+    game_data = session.get('game_data', {})
+    
+    # 2. اللف على الألعاب لمسح أي صور أو رسومات اترفعوا لتوفير المساحة
+    for game_id, data in game_data.items():
+        photos = data.get('photos', [])
+        map_drawing = data.get('map_drawing', '')
+        
+        # مسح الصور
+        for photo in photos:
+            filepath = photo.lstrip('/')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
+        # مسح الخريطة
+        if map_drawing and map_drawing.startswith('/static/'):
+            filepath = map_drawing.lstrip('/')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
+    # 3. مسح بيانات الفحص بالكامل من الجلسة
+    session.pop('completed_games', None)
+    session.pop('game_data', None)
+    session.pop('area_id', None)
+    
+    # 4. توجيه الموظف للصفحة الرئيسية
+    return redirect(url_for('home'))
+
+# مسار تسجيل الخروج للمونيتور (تغيير الموظف/المنطقة)
+@app.route('/logout')
+def logout():
+    # 1. اللف على أي صور أو رسومات في الجلسة الحالية ومسحها من الهارد
+    game_data = session.get('game_data', {})
+    for game_id, data in game_data.items():
+        photos = data.get('photos', [])
+        map_drawing = data.get('map_drawing', '')
+        
+        for photo in photos:
+            filepath = photo.lstrip('/')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
+        if map_drawing and map_drawing.startswith('/static/'):
+            filepath = map_drawing.lstrip('/')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
+    # 2. مسح كل بيانات الجلسة بالكامل (الاسم، المنطقة، الألعاب المحفوظة)
+    # استخدام session.clear() بينضف المتصفح من جذوره
+    session.clear()
+    
+    # 3. توجيه الموظف لصفحة الدخول كأنه بيفتح الموقع لأول مرة
+    return redirect(url_for('home'))
 
 # مسار لوحة تحكم الإدارة (Dashboard) لعرض التقارير
 @app.route('/dashboard', methods=['GET'])

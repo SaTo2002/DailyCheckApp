@@ -44,7 +44,15 @@
     </div>
 
     <br><br>
-    <a href="/" style="color: #dc3545; text-decoration: none; font-size: 16px; margin-bottom: 30px; display: inline-block;">تسجيل خروج (تغيير الموظف/المنطقة)</a>
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 40px;">
+        
+        <a href="/cancel_area" onclick="return confirm('⚠️ تحذير: هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ \n\nسيتم مسح جميع البيانات والصور التي أدخلتها ولن يمكنك استرجاعها!');" style="width: 80%; max-width: 300px; padding: 12px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            إلغاء الفحص بالكامل 🗑️
+        </a>
+        
+        <a href="/logout" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟ سيتم مسح أي فحص لم تقم بإرساله.');" style="color: #6c757d; text-decoration: none; font-size: 16px; font-weight: bold;">تسجيل خروج (تغيير الموظف)</a>
+        
+    </div>
 
 </body>
 </html>

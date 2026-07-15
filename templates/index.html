@@ -12,7 +12,7 @@
     <form method="POST" style="margin-top: 30px; background: white; padding: 20px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
         
         <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right;">اسم الموظف (المونيتور):</label>
-        <input type="text" name="monitor_name" required placeholder="اكتب اسمك هنا..." style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;">
+        <input type="text" name="monitor_name" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;">
         
         <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right;">اختر المنطقة (Area):</label>
         <select name="area" required style="width: 100%; padding: 10px; margin-bottom: 30px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;">
