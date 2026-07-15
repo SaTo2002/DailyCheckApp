@@ -6,6 +6,7 @@ import uuid
 from datetime import datetime
 from flask import Flask, render_template, request, session, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
+import time
 
 app = Flask(__name__)
 # الكلمة السرية دي ضرورية عشان الـ session يشتغل
@@ -155,6 +156,38 @@ MASTER_ADMIN_HASH = "scrypt:32768:8:1$o2sRQJ3CVeIvLBFk$630226ad3aa44801001362c89
 # مسار شاشة الدخول (إدخال الاسم واختيار المنطقة)
 @app.route('/', methods=['GET', 'POST'])
 def home():
+    # ==========================================
+    # --- عامل النظافة الصامت (Silent Janitor) ---
+    # بيمسح أي صور متعلّقة (Orphaned Files) من الهارد 
+    # لو عدى عليها 24 ساعة ومتمش إرسالها في تقرير نهائي
+    # ==========================================
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT map_image_path, photos_paths FROM game_reports")
+        rows = cursor.fetchall()
+        
+        # تجميع أسماء كل الصور المعتمدة في قاعدة البيانات
+        valid_filenames = set()
+        for row in rows:
+            if row[0]: valid_filenames.add(os.path.basename(row[0]))
+            if row[1]:
+                for p in json.loads(row[1]):
+                    valid_filenames.add(os.path.basename(p))
+        conn.close()
+
+        current_time = time.time()
+        # اللف على كل الملفات في مجلد الـ uploads
+        for filename in os.listdir(UPLOAD_FOLDER):
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            # لو الملف أقدم من 24 ساعة (86400 ثانية)
+            if os.path.isfile(filepath) and (current_time - os.path.getmtime(filepath)) > 86400:
+                # لو اسمه مش موجود في الداتابيز، يبقى ده ملف مهجور يتمسح
+                if filename not in valid_filenames:
+                    os.remove(filepath)
+    except Exception as e:
+        pass
+    # ==========================================
     if request.method == 'POST':
         # حفظ اسم الموظف والمنطقة لما يدوس دخول
         session['monitor_name'] = request.form.get('monitor_name')
@@ -498,6 +531,34 @@ def admin_logout():
     session.pop('is_admin', None)
     session.pop('admin_role', None)
     return redirect(url_for('home'))
+
+# مسار إلغاء الفحص وحذف الصور المعلقة فوراً
+@app.route('/cancel_game/<game_id>')
+def cancel_game(game_id):
+    # نجيب الصور اللي الموظف كان رافعها في اللعبة دي
+    game_data = session.get('game_data', {}).get(game_id, {})
+    photos = game_data.get('photos', [])
+    map_drawing = game_data.get('map_drawing', '')
+
+    # مسح الصور من الهارد
+    for photo in photos:
+        filepath = photo.lstrip('/')
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            
+    # مسح رسمة الخريطة لو كان رسمها
+    if map_drawing and map_drawing.startswith('/static/'):
+        filepath = map_drawing.lstrip('/')
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+    # مسح بيانات اللعبة دي من الجلسة (عشان لما يدخلها تاني تبدأ على نظافة)
+    if 'game_data' in session and game_id in session['game_data']:
+        del session['game_data'][game_id]
+        session.modified = True
+
+    # نرجعه لصفحة اختيار الألعاب
+    return redirect(url_for('show_games', area_id=session.get('area_id')))
 
 # مسار لوحة تحكم الإدارة (Dashboard) لعرض التقارير
 @app.route('/dashboard', methods=['GET'])

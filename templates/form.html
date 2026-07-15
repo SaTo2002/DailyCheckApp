@@ -31,7 +31,7 @@
 <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20px;">
     <!-- رابط للرجوع لقائمة الألعاب -->
     <div style="width: 90%; max-width: 600px; margin: 0 auto; text-align: right; margin-bottom: -10px;">
-        <a href="/games/{{ session['area_id'] }}" style="display: inline-block; padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ إلغاء والرجوع</a>
+        <a href="/cancel_game/{{ game_id }}" onclick="return confirm('تأكيد الإلغاء؟ سيتم مسح أي صور أو بيانات قمت بإدخالها الآن.');" style="display: inline-block; padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ إلغاء والرجوع</a>
     </div>
 
     <h1>تقرير الفحص اليومي: <span style="color: #007bff;">{{ game.name }}</span></h1>
@@ -87,11 +87,18 @@
         <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px dashed #ccc;">
             <h4 style="color: #333; margin-bottom: 15px;">📸 صور الأعطال (تقدر تضيف أكتر من صورة)</h4>
             
-            <input type="file" id="cameraInput" accept="image/*" multiple style="display: none;">
+            <input type="file" id="directCameraInput" accept="image/*" capture="environment" style="display: none;">
             
-            <button type="button" id="triggerCameraBtn" style="padding: 10px 20px; background-color: #6f42c1; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
-                التقط أو اختر صور المشكلة 📷
-            </button>
+            <input type="file" id="galleryInput" accept="image/*" multiple style="display: none;">
+            
+            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+                <button type="button" id="btnDirectCamera" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    تصوير مباشر 📸
+                </button>
+                <button type="button" id="btnGallery" style="padding: 10px 20px; background-color: #6f42c1; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                    من المعرض 🖼️
+                </button>
+            </div>
 
             <div id="previewContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 15px;">
                 
@@ -239,74 +246,76 @@
         }
 
         // ==========================================
-        // --- برمجة زرار الكاميرا ومعاينة الصور (AJAX) ---
+        // --- برمجة زراير الكاميرا والمعرض (AJAX) ---
         // ==========================================
-        const cameraInput = document.getElementById('cameraInput');
-        const triggerCameraBtn = document.getElementById('triggerCameraBtn');
+        const directCameraInput = document.getElementById('directCameraInput');
+        const galleryInput = document.getElementById('galleryInput');
+        const btnDirectCamera = document.getElementById('btnDirectCamera');
+        const btnGallery = document.getElementById('btnGallery');
         const previewContainer = document.getElementById('previewContainer');
 
-        if(triggerCameraBtn && cameraInput) {
-            // 1. ربط الزرار الشيك بالزرار المخفي الخاص بالمتصفح
-            triggerCameraBtn.addEventListener('click', () => {
-                cameraInput.click();
-            });
+        // 1. ربط كل زرار بالمدخل المخفي بتاعه
+        if(btnDirectCamera && directCameraInput) {
+            btnDirectCamera.addEventListener('click', () => directCameraInput.click());
+        }
+        if(btnGallery && galleryInput) {
+            btnGallery.addEventListener('click', () => galleryInput.click());
+        }
 
-            // 2. الاستماع لحدث اختيار الصور أو التقاطها
-            cameraInput.addEventListener('change', function(event) {
-                const files = event.target.files;
-                if (files.length === 0) return; // لو الموظف قفل الكاميرا ومصورش حاجة نوقف الكود
+        // 2. دالة موحدة لرفع الصور للسيرفر (سواء من الكاميرا أو المعرض)
+        function handleImageUpload(event, triggerBtn) {
+            const files = event.target.files;
+            if (files.length === 0) return;
 
-                // تجهيز حزمة البيانات (FormData) لإرسالها للسيرفر
-                const formData = new FormData();
-                formData.append('game_id', '{{ game_id }}');
-                for (let i = 0; i < files.length; i++) {
-                    formData.append('issue_photos', files[i]);
+            const formData = new FormData();
+            formData.append('game_id', '{{ game_id }}');
+            for (let i = 0; i < files.length; i++) {
+                formData.append('issue_photos', files[i]);
+            }
+
+            const originalBtnText = triggerBtn.innerHTML;
+            triggerBtn.innerHTML = "جاري الرفع... ⏳";
+            triggerBtn.disabled = true;
+
+            fetch('/upload_photo_ajax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                triggerBtn.innerHTML = originalBtnText;
+                triggerBtn.disabled = false;
+
+                if(data.status === 'success') {
+                    data.photos.forEach((photoUrl, index) => {
+                        const uniqueId = 'saved_photo_' + Date.now() + '_' + index;
+                        const photoDiv = document.createElement('div');
+                        photoDiv.style.cssText = "position: relative; display: inline-block;";
+                        photoDiv.id = uniqueId;
+                        photoDiv.innerHTML = `
+                            <img src="${photoUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '${photoUrl}', '${uniqueId}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
+                        `;
+                        previewContainer.appendChild(photoDiv);
+                    });
+                    event.target.value = ''; // تفريغ المدخل
+                } else {
+                    alert('حصلت مشكلة في رفع الصور يا هندسة.');
                 }
-
-                // تغيير شكل الزرار لتنبيه الموظف بعملية الرفع
-                const originalBtnText = triggerCameraBtn.innerHTML;
-                triggerCameraBtn.innerHTML = "جاري الرفع والسحر... ⏳";
-                triggerCameraBtn.disabled = true;
-
-                // إرسال الصور في الخلفية (Asynchronous Fetch)
-                fetch('/upload_photo_ajax', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // إرجاع الزرار لشكله الطبيعي بعد نجاح الرفع
-                    triggerCameraBtn.innerHTML = originalBtnText;
-                    triggerCameraBtn.disabled = false;
-
-                    if(data.status === 'success') {
-                        // رسم الصور المصغرة على الشاشة فوراً
-                        data.photos.forEach((photoUrl, index) => {
-                            const uniqueId = 'saved_photo_' + Date.now() + '_' + index; // ID فريد لكل صورة
-                            
-                            const photoDiv = document.createElement('div');
-                            photoDiv.style.cssText = "position: relative; display: inline-block;";
-                            photoDiv.id = uniqueId;
-                            
-                            photoDiv.innerHTML = `
-                                <img src="${photoUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '${photoUrl}', '${uniqueId}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
-                            `;
-                            
-                            previewContainer.appendChild(photoDiv);
-                        });
-                        
-                        cameraInput.value = ''; // تفريغ المدخل لتجنب تكرار نفس الصورة
-                    } else {
-                        alert('حصلت مشكلة في رفع الصور يا هندسة.');
-                    }
-                })
-                .catch(error => {
-                    triggerCameraBtn.innerHTML = originalBtnText;
-                    triggerCameraBtn.disabled = false;
-                    alert('خطأ في الاتصال بالسيرفر، تأكد من شبكة الواي فاي.');
-                });
+            })
+            .catch(error => {
+                triggerBtn.innerHTML = originalBtnText;
+                triggerBtn.disabled = false;
+                alert('خطأ في الاتصال بالسيرفر، تأكد من شبكة الواي فاي.');
             });
+        }
+
+        // 3. تشغيل دالة الرفع أول ما الموظف يصور أو يختار صورة
+        if(directCameraInput) {
+            directCameraInput.addEventListener('change', (e) => handleImageUpload(e, btnDirectCamera));
+        }
+        if(galleryInput) {
+            galleryInput.addEventListener('change', (e) => handleImageUpload(e, btnGallery));
         }
 
         // ==========================================
