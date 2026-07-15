@@ -238,54 +238,51 @@
             });
         }
 
-        // --- برمجة زرار الكاميرا ومعاينة الصور ---
+        // ==========================================
+        // --- برمجة زرار الكاميرا ومعاينة الصور (AJAX) ---
+        // ==========================================
         const cameraInput = document.getElementById('cameraInput');
         const triggerCameraBtn = document.getElementById('triggerCameraBtn');
         const previewContainer = document.getElementById('previewContainer');
 
         if(triggerCameraBtn && cameraInput) {
-            // ربط الزرار الشيك بالزرار المخفي
+            // 1. ربط الزرار الشيك بالزرار المخفي الخاص بالمتصفح
             triggerCameraBtn.addEventListener('click', () => {
                 cameraInput.click();
             });
 
-            if(triggerCameraBtn && cameraInput) {
-            triggerCameraBtn.addEventListener('click', () => {
-                cameraInput.click();
-            });
-
+            // 2. الاستماع لحدث اختيار الصور أو التقاطها
             cameraInput.addEventListener('change', function(event) {
                 const files = event.target.files;
-                if (files.length === 0) return;
+                if (files.length === 0) return; // لو الموظف قفل الكاميرا ومصورش حاجة نوقف الكود
 
-                // 1. نجهز الصور عشان نبعتها للسيرفر
+                // تجهيز حزمة البيانات (FormData) لإرسالها للسيرفر
                 const formData = new FormData();
                 formData.append('game_id', '{{ game_id }}');
                 for (let i = 0; i < files.length; i++) {
                     formData.append('issue_photos', files[i]);
                 }
 
-                // تغيير نص الزرار عشان الموظف يعرف إنها بتترفع
+                // تغيير شكل الزرار لتنبيه الموظف بعملية الرفع
                 const originalBtnText = triggerCameraBtn.innerHTML;
-                triggerCameraBtn.innerHTML = "جاري رفع الصور... ⏳";
+                triggerCameraBtn.innerHTML = "جاري الرفع والسحر... ⏳";
                 triggerCameraBtn.disabled = true;
 
-                // 2. إرسال الصور في الخلفية (AJAX)
+                // إرسال الصور في الخلفية (Asynchronous Fetch)
                 fetch('/upload_photo_ajax', {
                     method: 'POST',
                     body: formData
                 })
                 .then(response => response.json())
                 .then(data => {
-                    // رجع الزرار لشكله الطبيعي
+                    // إرجاع الزرار لشكله الطبيعي بعد نجاح الرفع
                     triggerCameraBtn.innerHTML = originalBtnText;
                     triggerCameraBtn.disabled = false;
 
                     if(data.status === 'success') {
-                        // 3. عرض الصور اللي اترفعت فوراً بداخلها زرار الحذف
+                        // رسم الصور المصغرة على الشاشة فوراً
                         data.photos.forEach((photoUrl, index) => {
-                            // عمل ID فريد للصورة عشان نقدر نمسحها بسهولة
-                            const uniqueId = 'saved_photo_' + Date.now() + '_' + index;
+                            const uniqueId = 'saved_photo_' + Date.now() + '_' + index; // ID فريد لكل صورة
                             
                             const photoDiv = document.createElement('div');
                             photoDiv.style.cssText = "position: relative; display: inline-block;";
@@ -296,49 +293,43 @@
                                 <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '${photoUrl}', '${uniqueId}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
                             `;
                             
-                            // إضافة الصورة للمربع من غير ما نمسح القديم
-                            document.getElementById('previewContainer').appendChild(photoDiv);
+                            previewContainer.appendChild(photoDiv);
                         });
                         
-                        // تفريغ المدخل تحسباً لو حب يصور نفس الصورة تاني
-                        cameraInput.value = '';
+                        cameraInput.value = ''; // تفريغ المدخل لتجنب تكرار نفس الصورة
                     } else {
-                        alert('حصلت مشكلة في رفع الصور.');
+                        alert('حصلت مشكلة في رفع الصور يا هندسة.');
                     }
                 })
                 .catch(error => {
                     triggerCameraBtn.innerHTML = originalBtnText;
                     triggerCameraBtn.disabled = false;
-                    alert('خطأ في الاتصال بالسيرفر.');
+                    alert('خطأ في الاتصال بالسيرفر، تأكد من شبكة الواي فاي.');
                 });
             });
         }
-        }
 
-        // دالة الجافاسكريبت اللي بتبعت أمر للسيرفر يمسح الصورة بدون ما الصفحة تحمل
+        // ==========================================
+        // --- دالة حذف الصور ديناميكياً (AJAX Delete) ---
+        // ==========================================
         function deleteSavedPhoto(gameId, photoUrl, elementId) {
-            // سؤال تأكيدي للموظف قبل ما نمسح
             if(confirm("متأكد إنك عاوز تمسح الصورة دي؟")) {
                 fetch('/delete_photo', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ game_id: gameId, photo_url: photoUrl })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if(data.status === 'success') {
-                        // لو السيرفر مسحها بنجاح، بنخفيها من الشاشة فوراً
-                        document.getElementById(elementId).remove();
+                        document.getElementById(elementId).remove(); // إخفاء الصورة من الشاشة فوراً
                     } else {
-                        alert('حصلت مشكلة أثناء مسح الصورة.');
+                        alert('مشكلة في مسح الصورة من السيرفر.');
                     }
                 });
             }
         }
-
-        // ------------------------------------------
+        
     </script>
 </body>
 </html>

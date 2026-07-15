@@ -199,8 +199,14 @@ def check_game(game_id):
 
     # استرجاع البيانات القديمة لو اللعبة اتفحصت قبل كده
     saved_data = session.get('game_data', {}).get(game_id, {})
-
+        
     if request.method == 'POST':
+        # ==========================================
+        # --- استراتيجية الحفاظ على الجلسة (Session State) ---
+        # بما إننا رفعنا الصور بالـ AJAX، لازم نأكد على السيرفر هنا 
+        # إنه ياخد نفس الصور من الـ Session يحطها في الحفظ الجديد 
+        # عشان متضيعش وتتمسح لما الموظف يدوس "حفظ والانتقال"
+        # ==========================================
         # 1. تسجيل اللعبة في قايمة المنتهين
         if 'completed_games' not in session:
             session['completed_games'] = []
@@ -358,10 +364,12 @@ def submit_report():
         map_drawing = data.get('map_drawing', '')
         photos = data.get('photos', [])
         
-        # بنفصل الاختيارات (سليم/فيه مشكلة) ونحولها لـ JSON
+        # فصل الاختيارات (check_1, check_2) عن باقي البيانات وحفظها في قاموس منفصل
         checks = {k: v for k, v in data.items() if k.startswith('check_')}
+        
+        # تحويل القواميس لـ JSON Strings عشان الداتابيز (SQLite) مبتقبلش قواميس مباشرة
+        # ensure_ascii=False بتضمن إن الحروف العربي تتخزن صح ومتبقاش رموز غريبة
         checks_json = json.dumps(checks, ensure_ascii=False)
-        # بنحول قائمة مسارات الصور لـ JSON عشان تتخزن في عمود واحد
         photos_json = json.dumps(photos, ensure_ascii=False)
 
         # رمي الداتا جوه الداتابيز
@@ -397,7 +405,12 @@ def dashboard():
     conn.row_factory = sqlite3.Row 
     cursor = conn.cursor()
     
-    # التنظيف التلقائي للتقارير الأقدم من 30 يوم
+# ==========================================
+    # --- نظام التنظيف الذكي (Smart Cleanup System) ---
+    # بيشتغل أوتوماتيك أول ما أي مدير يفتح الداشبورد
+    # بيمسح أي تقرير والصور بتاعته لو عدى عليهم أكتر من 30 يوم
+    # عشان الهارد بتاع السيرفر ميتمليش ويوقع السيستم
+    # ==========================================    
     cursor.execute("SELECT map_image_path, photos_paths FROM game_reports WHERE timestamp <= datetime('now', '-30 days')")
     old_rows = cursor.fetchall()
     for row in old_rows:
