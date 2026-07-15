@@ -72,8 +72,10 @@
             </div>
             <br>
             
-            <div style="margin-top: 15px;">
-                <button type="button" id="clearBtn" style="padding: 10px 15px; background-color: #ffc107; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-right: 10px;">مسح الرسمة 🧹</button>
+            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
+                <button type="button" id="penBtn" style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">قلم ✏️</button>
+                <button type="button" id="eraserBtn" style="padding: 10px 15px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">أستيكة 🧽</button>
+                <button type="button" id="clearBtn" style="padding: 10px 15px; background-color: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">مسح الكل 🧹</button>
             </div>
         </div>
         {% endif %}
@@ -110,96 +112,94 @@
     
     <script>
         const canvas = document.getElementById('mapCanvas');
-        // التأكد من وجود الخريطة في الصفحة لتجنب أخطاء الكود
         if (canvas) {
             const ctx = canvas.getContext('2d');
-            let isDrawing = false; // حالة الرسم الحالية
+            let isDrawing = false;
+            let isEraser = false; // متغير جديد عشان نعرف هو ماسك قلم ولا أستيكة
 
-            // تحميل وتعيين صورة المخطط كخلفية للرسم
-            const img = new Image();
-            img.src = '/static/{{ game.map_image }}'; 
-            
-            img.onload = () => {
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            };
+            // الخدعة: وضع المخطط كخلفية للكانفاس عشان الأستيكة متمسحوش
+            canvas.style.backgroundImage = `url('/static/{{ game.map_image }}')`;
+            canvas.style.backgroundSize = '100% 100%';
+            canvas.style.backgroundRepeat = 'no-repeat';
 
-            // ---- برمجة زراير الزووم (التكبير والتصغير) ----
-            let currentZoom = 1; // المتغير المسؤول عن حفظ نسبة الزووم الحالية
+            // ---- برمجة زراير الزووم ----
+            let currentZoom = 1; 
             const zoomInBtn = document.getElementById('zoomInBtn');
             const zoomOutBtn = document.getElementById('zoomOutBtn');
 
             if (zoomInBtn && zoomOutBtn) {
-                // عند الضغط على زرار التكبير
                 zoomInBtn.addEventListener('click', () => {
-                    currentZoom += 0.5; // زيادة النسبة بـ 50%
-                    canvas.style.width = (currentZoom * 100) + '%'; // تطبيق التكبير على عرض الكانفاس
+                    currentZoom += 0.5; 
+                    canvas.style.width = (currentZoom * 100) + '%'; 
                 });
-
-                // عند الضغط على زرار التصغير
                 zoomOutBtn.addEventListener('click', () => {
-                    currentZoom -= 0.5; // تقليل النسبة بـ 50%
-                    if (currentZoom < 1) currentZoom = 1; // منع تصغير الصورة عن حجمها الأصلي
+                    currentZoom -= 0.5; 
+                    if (currentZoom < 1) currentZoom = 1; 
                     canvas.style.width = (currentZoom * 100) + '%';
                 });
             }
             // ------------------------------------
 
-            // دالة بدء الرسم عند لمس الشاشة أو الضغط بالماوس
             const startPosition = (e) => {
                 isDrawing = true;
                 draw(e);
             };
 
-            // دالة إنهاء الرسم عند رفع الإصبع أو الماوس
             const endPosition = () => {
                 isDrawing = false;
-                ctx.beginPath(); // إعادة تعيين المسار لمنع اتصال الخطوط ببعضها
+                ctx.beginPath(); 
             };
 
-            // الدالة الرئيسية لرسم الخطوط
             const draw = (e) => {
-                if (!isDrawing) return; // الخروج من الدالة إذا كان المستخدم لا يرسم
-                e.preventDefault(); // منع المتصفح من عمل Scroll أثناء الرسم
+                if (!isDrawing) return; 
+                e.preventDefault(); 
 
-                // حساب الأبعاد بدقة لضمان تطابق مكان اللمس مع مكان الرسم على الشاشات المختلفة
                 const rect = canvas.getBoundingClientRect();
                 const scaleX = canvas.width / rect.width;
                 const scaleY = canvas.height / rect.height;
 
-                // استخراج إحداثيات الماوس أو اللمس
                 const clientX = e.clientX || (e.touches && e.touches[0].clientX);
                 const clientY = e.clientY || (e.touches && e.touches[0].clientY);
                 
-                // تطبيق النسبة (Scale) على الإحداثيات لضمان دقة القلم حتى مع التكبير
                 const x = (clientX - rect.left) * scaleX;
                 const y = (clientY - rect.top) * scaleY;
 
-                // إعدادات وشكل القلم (اللون والسمك)
-                ctx.lineWidth = 3;
+                // لو ماسك أستيكة بنخلي الحجم أتخن شوية عشان يمسح أسهل
+                ctx.lineWidth = isEraser ? 15 : 3;
                 ctx.lineCap = 'round';
+                
+                // لون القلم أحمر
                 ctx.strokeStyle = 'red';
 
-                // رسم الخط
+                // الخاصية دي هي اللي بتخلي الكانفاس يمسح اللي اترسم (Destination-out) 
+                // أو يرسم عادي (Source-over)
+                ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+
                 ctx.lineTo(x, y);
                 ctx.stroke();
                 ctx.beginPath();
                 ctx.moveTo(x, y);
             };
 
-            // ربط أحداث الماوس (للكمبيوتر)
             canvas.addEventListener('mousedown', startPosition);
             canvas.addEventListener('mouseup', endPosition);
             canvas.addEventListener('mousemove', draw);
-
-            // ربط أحداث اللمس (للموبايل والتابلت)
             canvas.addEventListener('touchstart', startPosition, {passive: false});
             canvas.addEventListener('touchend', endPosition);
             canvas.addEventListener('touchmove', draw, {passive: false});
 
-            // برمجة زرار مسح الرسمة واستعادة الصورة الأصلية
+            // --- برمجة زراير القلم والأستيكة ومسح الكل ---
+            document.getElementById('penBtn').addEventListener('click', () => {
+                isEraser = false; // تفعيل القلم
+            });
+
+            document.getElementById('eraserBtn').addEventListener('click', () => {
+                isEraser = true; // تفعيل الأستيكة
+            });
+
             document.getElementById('clearBtn').addEventListener('click', () => {
+                // مسح كل الرسومات اللي على الكانفاس الشفاف (الخلفية هتفضل زي ما هي)
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             });
         }
 
