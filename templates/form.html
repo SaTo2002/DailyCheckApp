@@ -68,6 +68,9 @@
                     <button type="button" id="zoomOutBtn" style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.9); border: 1px solid #333; border-radius: 5px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">➖</button>
                 </div>
 
+                <!-- Base64 للصور  -->
+                <input type="hidden" id="mapDrawingData" name="map_drawing" value="{{ saved_data.get('map_drawing', '') }}">
+
                 <canvas id="mapCanvas" width="500" height="250" style="cursor: crosshair; touch-action: none; width: 100%; height: auto; display: block;"></canvas>
             </div>
             <br>
@@ -84,13 +87,24 @@
         <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px dashed #ccc;">
             <h4 style="color: #333; margin-bottom: 15px;">📸 صور الأعطال (تقدر تضيف أكتر من صورة)</h4>
             
-            <input type="file" id="cameraInput" name="issue_photos" accept="image/*" multiple style="display: none;">
+            <input type="file" id="cameraInput" accept="image/*" multiple style="display: none;">
             
             <button type="button" id="triggerCameraBtn" style="padding: 10px 20px; background-color: #6f42c1; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer;">
                 التقط أو اختر صور المشكلة 📷
             </button>
 
-            <div id="previewContainer" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 15px;"></div>
+            <div id="previewContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 15px;">
+                
+                {% if saved_data.get('photos') %}
+                    {% for photo_url in saved_data.get('photos') %}
+                        <div style="position: relative; display: inline-block;" id="saved_photo_{{ loop.index }}">
+                            <img src="{{ photo_url }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '{{ photo_url }}', 'saved_photo_{{ loop.index }}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+            </div>
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
@@ -122,6 +136,23 @@
             canvas.style.backgroundSize = '100% 100%';
             canvas.style.backgroundRepeat = 'no-repeat';
 
+            // --- جديد: استرجاع الرسمة القديمة لو الموظف رجع للعبة ---
+            const mapDrawingInput = document.getElementById('mapDrawingData');
+            if (mapDrawingInput.value) {
+                const savedImg = new Image();
+                savedImg.src = mapDrawingInput.value;
+                savedImg.onload = () => {
+                    ctx.drawImage(savedImg, 0, 0, canvas.width, canvas.height);
+                };
+            }
+            // -----------------------------------------------------
+
+            // --- جديد: دالة بتسجل الرسمة في الحقل المخفي ---
+            const updateHiddenInput = () => {
+                mapDrawingInput.value = canvas.toDataURL(); // بتحول الرسمة لنص
+            };
+            // ----------------------------------------------
+
             // ---- برمجة زراير الزووم ----
             let currentZoom = 1; 
             const zoomInBtn = document.getElementById('zoomInBtn');
@@ -147,7 +178,8 @@
 
             const endPosition = () => {
                 isDrawing = false;
-                ctx.beginPath(); 
+                ctx.beginPath();
+                updateHiddenInput(); // كل مرة الموظف يرفع صباعه أو يسيب الماوس، نسجل الرسمة في الحقل المخفي 
             };
 
             const draw = (e) => {
@@ -198,8 +230,11 @@
             });
 
             document.getElementById('clearBtn').addEventListener('click', () => {
-                // مسح كل الرسومات اللي على الكانفاس الشفاف (الخلفية هتفضل زي ما هي)
+                // مسح كل الرسومات اللي على الكانفاس الشفاف
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // --- التعديل هنا: بنخلي الحقل فاضي تماماً بدل ما يبعت صورة شفافة ---
+                mapDrawingInput.value = ''; 
             });
         }
 
@@ -214,33 +249,95 @@
                 cameraInput.click();
             });
 
-            // لما الموظف يصور أو يختار صور، الكود ده بيقراها ويعرضها مصغرة
+            if(triggerCameraBtn && cameraInput) {
+            triggerCameraBtn.addEventListener('click', () => {
+                cameraInput.click();
+            });
+
             cameraInput.addEventListener('change', function(event) {
-                previewContainer.innerHTML = ''; // مسح الصور القديمة لو قرر يصور من أول وجديد
                 const files = event.target.files;
-                
+                if (files.length === 0) return;
+
+                // 1. نجهز الصور عشان نبعتها للسيرفر
+                const formData = new FormData();
+                formData.append('game_id', '{{ game_id }}');
                 for (let i = 0; i < files.length; i++) {
-                    const file = files[i];
-                    // التأكد إن الملف صورة
-                    if (file.type.startsWith('image/')) {
-                        const reader = new FileReader();
-                        reader.onload = function(e) {
-                            // إنشاء عنصر صورة جديد
-                            const img = document.createElement('img');
-                            img.src = e.target.result;
-                            img.style.width = '80px';
-                            img.style.height = '80px';
-                            img.style.objectFit = 'cover';
-                            img.style.borderRadius = '5px';
-                            img.style.border = '1px solid #ccc';
-                            // إضافة الصورة للمربع بتاع المعاينة
-                            previewContainer.appendChild(img);
-                        }
-                        reader.readAsDataURL(file);
-                    }
+                    formData.append('issue_photos', files[i]);
                 }
+
+                // تغيير نص الزرار عشان الموظف يعرف إنها بتترفع
+                const originalBtnText = triggerCameraBtn.innerHTML;
+                triggerCameraBtn.innerHTML = "جاري رفع الصور... ⏳";
+                triggerCameraBtn.disabled = true;
+
+                // 2. إرسال الصور في الخلفية (AJAX)
+                fetch('/upload_photo_ajax', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // رجع الزرار لشكله الطبيعي
+                    triggerCameraBtn.innerHTML = originalBtnText;
+                    triggerCameraBtn.disabled = false;
+
+                    if(data.status === 'success') {
+                        // 3. عرض الصور اللي اترفعت فوراً بداخلها زرار الحذف
+                        data.photos.forEach((photoUrl, index) => {
+                            // عمل ID فريد للصورة عشان نقدر نمسحها بسهولة
+                            const uniqueId = 'saved_photo_' + Date.now() + '_' + index;
+                            
+                            const photoDiv = document.createElement('div');
+                            photoDiv.style.cssText = "position: relative; display: inline-block;";
+                            photoDiv.id = uniqueId;
+                            
+                            photoDiv.innerHTML = `
+                                <img src="${photoUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '${photoUrl}', '${uniqueId}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
+                            `;
+                            
+                            // إضافة الصورة للمربع من غير ما نمسح القديم
+                            document.getElementById('previewContainer').appendChild(photoDiv);
+                        });
+                        
+                        // تفريغ المدخل تحسباً لو حب يصور نفس الصورة تاني
+                        cameraInput.value = '';
+                    } else {
+                        alert('حصلت مشكلة في رفع الصور.');
+                    }
+                })
+                .catch(error => {
+                    triggerCameraBtn.innerHTML = originalBtnText;
+                    triggerCameraBtn.disabled = false;
+                    alert('خطأ في الاتصال بالسيرفر.');
+                });
             });
         }
+        }
+
+        // دالة الجافاسكريبت اللي بتبعت أمر للسيرفر يمسح الصورة بدون ما الصفحة تحمل
+        function deleteSavedPhoto(gameId, photoUrl, elementId) {
+            // سؤال تأكيدي للموظف قبل ما نمسح
+            if(confirm("متأكد إنك عاوز تمسح الصورة دي؟")) {
+                fetch('/delete_photo', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ game_id: gameId, photo_url: photoUrl })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.status === 'success') {
+                        // لو السيرفر مسحها بنجاح، بنخفيها من الشاشة فوراً
+                        document.getElementById(elementId).remove();
+                    } else {
+                        alert('حصلت مشكلة أثناء مسح الصورة.');
+                    }
+                });
+            }
+        }
+
         // ------------------------------------------
     </script>
 </body>
