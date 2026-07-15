@@ -43,11 +43,13 @@
         <div style="margin: 15px 0; padding: 10px; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; align-items: center; font-size: 18px;">
             <span style="font-weight: bold; text-align: right; width: 45%;">{{ item }}</span>
             <div style="display: flex; gap: 20px; direction: rtl;">
+                {% set check_name = 'check_' ~ loop.index %}
+                
                 <label style="color: #28a745; cursor: pointer;">
-                    <input type="radio" name="check_{{ loop.index }}" value="OK" required style="width: 18px; height: 18px; vertical-align: middle;"> سليم ✅
+                    <input type="radio" name="{{ check_name }}" value="OK" required style="width: 18px; height: 18px; vertical-align: middle;" {% if saved_data.get(check_name) == 'OK' %}checked{% endif %}> سليم ✅
                 </label>
                 <label style="color: #dc3545; cursor: pointer;">
-                    <input type="radio" name="check_{{ loop.index }}" value="NOT_OK" style="width: 18px; height: 18px; vertical-align: middle;"> فيه مشكلة ❌
+                    <input type="radio" name="{{ check_name }}" value="NOT_OK" style="width: 18px; height: 18px; vertical-align: middle;" {% if saved_data.get(check_name) == 'NOT_OK' %}checked{% endif %}> فيه مشكلة ❌
                 </label>
             </div>
         </div>
@@ -90,7 +92,7 @@
         </div>
         
         <div style="text-align: center; margin-top: 20px;">
-            <textarea name="notes" placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;"></textarea>
+            <textarea name="notes" placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;">{{ saved_data.get('notes', '') }}</textarea>
         </div>
         
         <div style="text-align: center; margin-top: 30px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center;">

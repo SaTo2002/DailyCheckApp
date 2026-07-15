@@ -107,6 +107,9 @@ def home():
         # --- تصفير الألعاب اللي اتفحصت ---
         session['completed_games'] = []
         
+        # تصفير بيانات الألعاب المحفوظة لموظف جديد
+        session['game_data'] = {}
+
         # توجيهه لصفحة الألعاب الخاصة بالمنطقة اللي اختارها
         return redirect(url_for('show_games', area_id=selected_area))
     
@@ -133,14 +136,13 @@ def show_games(area_id):
     # بنبعت حالة الألعاب للصفحة عشان تغير الألوان
     return render_template('games.html', area_name=area_data["name"], games=area_games, monitor_name=session['monitor_name'], completed_games=completed, all_completed=all_completed)
 
-# مسار الفحص (معدل لاستقبال البيانات والانتقال للعبة التالية)
+# مسار الفحص (معدل لحفظ واسترجاع البيانات)
 @app.route('/check/<game_id>', methods=['GET', 'POST'])
 def check_game(game_id):
     game_data = GAMES_CONFIG.get(game_id)
     if not game_data:
         return "هذه اللعبة غير موجودة في النظام!"
 
-    # حساب اللعبة اللي عليها الدور
     next_game_id = None
     area_id = session.get('area_id')
     
@@ -151,16 +153,29 @@ def check_game(game_id):
             if current_index + 1 < len(area_games):
                 next_game_id = area_games[current_index + 1]
 
-    # لو الموظف داس على أي زرار حفظ (إرسال الفورمة)
+    # --- الجديد: استرجاع البيانات القديمة لو اللعبة اتفحصت قبل كده ---
+    saved_data = session.get('game_data', {}).get(game_id, {})
+
     if request.method == 'POST':
-        
-        # --- السطر الجديد: تسجيل إن اللعبة دي خلصت ---
+        # 1. تسجيل اللعبة في قايمة المنتهين
         if 'completed_games' not in session:
             session['completed_games'] = []
         if game_id not in session['completed_games']:
             session['completed_games'].append(game_id)
-            session.modified = True # ضروري عشان فلاسك يحفظ التعديل
-        # ---------------------------------------------
+
+        # 2. حفظ إجابات الفورمة (الشيك ليست والملاحظات)
+        if 'game_data' not in session:
+            session['game_data'] = {}
+            
+        current_answers = {}
+        for i in range(1, len(game_data['checks']) + 1):
+            check_name = f'check_{i}'
+            current_answers[check_name] = request.form.get(check_name)
+        current_answers['notes'] = request.form.get('notes', '')
+
+        session['game_data'][game_id] = current_answers
+        session.modified = True
+        # -------------------------------------------------------------
         
         user_action = request.form.get('action')
         
@@ -168,10 +183,9 @@ def check_game(game_id):
             return redirect(url_for('check_game', game_id=next_game_id))
         else:
             return redirect(url_for('show_games', area_id=session.get('area_id')))
-    # ------------------------------------------------------------------
 
-    # بنبعت next_game_id للصفحة عشان تعرض الزرار
-    return render_template('form.html', game=game_data, next_game_id=next_game_id)
+    # إرسال البيانات المحفوظة لملف الـ HTML
+    return render_template('form.html', game=game_data, next_game_id=next_game_id, saved_data=saved_data)
 
 # نقطة تشغيل السيرفر
 if __name__ == '__main__':
