@@ -20,7 +20,7 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# دالة لإنشاء جداول قاعدة البيانات (هتشتغل مرة واحدة بس أول ما نفتح السيرفر)
+# دالة لإنشاء جداول قاعدة البيانات
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
@@ -36,10 +36,10 @@ def init_db():
             checks_data TEXT,      -- اختيارات (سليم/مشكلة) محفوظة كـ JSON
             notes TEXT,            -- الملاحظات
             map_image_path TEXT,   -- مسار صورة الرسمة اللي على الخريطة
+            photos_paths TEXT,     -- مسارات صور الكاميرا محفوظة كـ JSON
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    # (مستقبلاً هنضيف جدول لصور الكاميرا المتعددة)
     
     conn.commit()
     conn.close()
@@ -335,26 +335,253 @@ def upload_photo_ajax():
 @app.route('/submit_report', methods=['POST'])
 def submit_report():
     # حماية: التأكد إن الموظف مسجل الدخول
-    if 'monitor_name' not in session:
+    if 'monitor_name' not in session or 'area_id' not in session:
         return redirect(url_for('home'))
 
-    # (هنا مستقبلاً هنكتب كود حفظ البيانات في الداتابيز أو ملف إكسيل)
+    monitor_name = session['monitor_name']
+    area_id = session['area_id']
+    completed_games = session.get('completed_games', [])
+    game_data = session.get('game_data', {})
+
+    # إنشاء كود فريد للتقرير بالكامل (عشان التيم ليدر يعرف إن الألعاب دي بتاعت نفس الفحص)
+    session_id = uuid.uuid4().hex
+
+    # فتح الاتصال بقاعدة البيانات
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+
+    # اللف على كل لعبة الموظف فحصها عشان نسجلها في الجدول
+    for game_id in completed_games:
+        data = game_data.get(game_id, {})
+        
+        notes = data.get('notes', '')
+        map_drawing = data.get('map_drawing', '')
+        photos = data.get('photos', [])
+        
+        # بنفصل الاختيارات (سليم/فيه مشكلة) ونحولها لـ JSON
+        checks = {k: v for k, v in data.items() if k.startswith('check_')}
+        checks_json = json.dumps(checks, ensure_ascii=False)
+        # بنحول قائمة مسارات الصور لـ JSON عشان تتخزن في عمود واحد
+        photos_json = json.dumps(photos, ensure_ascii=False)
+
+        # رمي الداتا جوه الداتابيز
+        cursor.execute('''
+            INSERT INTO game_reports (session_id, monitor_name, area_id, game_id, checks_data, notes, map_image_path, photos_paths)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (session_id, monitor_name, area_id, game_id, checks_json, notes, map_drawing, photos_json))
+        
+    # تأكيد الحفظ وقفل الاتصال
+    conn.commit()
+    conn.close()
     
-    # بعد الإرسال بنجاح، بنمسح بيانات الفحص المؤقتة عشان لو حب يفحص منطقة جديدة
+    # بعد الإرسال بنجاح، بنمسح بيانات الفحص من المتصفح عشان يبدأ على نظافة
     session.pop('completed_games', None)
     session.pop('game_data', None)
-    session.pop('area_id', None) # بنمسح المنطقة عشان يختار من الأول
+    session.pop('area_id', None) 
 
-    # شاشة نجاح بسيطة مؤقتة
+    # شاشة النجاح
     success_html = f"""
     <div style='font-family: Arial; text-align: center; margin-top: 100px; direction: rtl;'>
         <h1 style='color: #28a745;'>تم إرسال تقرير المنطقة بنجاح! 🎉</h1>
-        <h3 style='color: #555;'>عاش يا {session.get('monitor_name')}، شكراً لمجهودك.</h3>
+        <h3 style='color: #555;'>عاش يا {monitor_name}، شكراً لمجهودك. التقرير اتحفظ في الداتابيز.</h3>
         <br>
         <a href='/' style='padding: 15px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;'>العودة للصفحة الرئيسية</a>
     </div>
     """
     return success_html
+
+# مسار لوحة تحكم الإدارة (Dashboard) لعرض التقارير
+@app.route('/dashboard', methods=['GET'])
+def dashboard():
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row 
+    cursor = conn.cursor()
+    
+    # التنظيف التلقائي للتقارير الأقدم من 30 يوم
+    cursor.execute("SELECT map_image_path, photos_paths FROM game_reports WHERE timestamp <= datetime('now', '-30 days')")
+    old_rows = cursor.fetchall()
+    for row in old_rows:
+        if row['map_image_path'] and row['map_image_path'].startswith('/static/'):
+            fp = row['map_image_path'].lstrip('/')
+            if os.path.exists(fp): os.remove(fp)
+        if row['photos_paths']:
+            try:
+                for p in json.loads(row['photos_paths']):
+                    if p.startswith('/static/'):
+                        fp = p.lstrip('/')
+                        if os.path.exists(fp): os.remove(fp)
+            except: pass
+    cursor.execute("DELETE FROM game_reports WHERE timestamp <= datetime('now', '-30 days')")
+    conn.commit()
+
+    # استلام الفلاتر من الرابط
+    selected_area = request.args.get('area', '')
+    selected_date = request.args.get('date', '')
+    selected_monitor = request.args.get('monitor_name', '')
+
+    # تجهيز الاستعلام الأساسي
+    query = 'SELECT * FROM game_reports WHERE 1=1'
+    params = []
+    
+    if selected_area:
+        query += ' AND area_id = ?'
+        params.append(selected_area)
+    if selected_date:
+        query += ' AND date(timestamp) = ?'
+        params.append(selected_date)
+    if selected_monitor:
+        query += ' AND monitor_name = ?'
+        params.append(selected_monitor)
+        
+    query += ' ORDER BY timestamp DESC'
+    
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+
+    # جلب القوائم للفلترة
+    cursor.execute('SELECT DISTINCT area_id FROM game_reports')
+    areas = [row['area_id'] for row in cursor.fetchall()]
+    
+    cursor.execute('SELECT DISTINCT date(timestamp) as rep_date FROM game_reports ORDER BY rep_date DESC')
+    dates = [row['rep_date'] for row in cursor.fetchall()]
+    
+    cursor.execute('SELECT DISTINCT monitor_name FROM game_reports')
+    monitors = [row['monitor_name'] for row in cursor.fetchall()]
+    
+    conn.close()
+
+    grouped_reports = {}
+    for row in rows:
+        s_id = row['session_id']
+        if s_id not in grouped_reports:
+            grouped_reports[s_id] = {
+                'monitor_name': row['monitor_name'],
+                'area_id': row['area_id'],
+                'timestamp': row['timestamp'],
+                'games': []
+            }
+        
+        checks = json.loads(row['checks_data']) if row['checks_data'] else {}
+        photos = json.loads(row['photos_paths']) if row['photos_paths'] else []
+        
+        game_id = row['game_id']
+        game_info = GAMES_CONFIG.get(game_id, {})
+        actual_check_names = game_info.get('checks', [])
+        base_map = game_info.get('map_image') 
+        
+        mapped_checks = {}
+        for k, v in checks.items():
+            if k.startswith('check_'):
+                try:
+                    idx = int(k.split('_')[1]) - 1
+                    name = actual_check_names[idx]
+                    mapped_checks[name] = v
+                except (IndexError, ValueError):
+                    mapped_checks[k] = v
+            else:
+                mapped_checks[k] = v
+
+        grouped_reports[s_id]['games'].append({
+            'game_id': game_id,
+            'checks': mapped_checks,
+            'notes': row['notes'],
+            'map_drawing': row['map_image_path'], 
+            'base_map': base_map,                 
+            'photos': photos
+        })
+
+    return render_template('dashboard.html', reports=grouped_reports, areas=areas, dates=dates, monitors=monitors, selected_area=selected_area, selected_date=selected_date, selected_monitor=selected_monitor)
+
+# مسار تجهيز التقرير للطباعة
+@app.route('/print_report/<session_id>')
+def print_report(session_id):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT * FROM game_reports WHERE session_id = ?', (session_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    if not rows:
+        return "التقرير غير موجود"
+        
+    report = {
+        'monitor_name': rows[0]['monitor_name'],
+        'area_id': rows[0]['area_id'],
+        'timestamp': rows[0]['timestamp'],
+        'games': []
+    }
+    
+    for row in rows:
+        checks = json.loads(row['checks_data']) if row['checks_data'] else {}
+        photos = json.loads(row['photos_paths']) if row['photos_paths'] else []
+        game_id = row['game_id']
+        game_info = GAMES_CONFIG.get(game_id, {})
+        actual_check_names = game_info.get('checks', [])
+        base_map = game_info.get('map_image') 
+        
+        mapped_checks = {}
+        for k, v in checks.items():
+            if k.startswith('check_'):
+                try:
+                    idx = int(k.split('_')[1]) - 1
+                    name = actual_check_names[idx]
+                    mapped_checks[name] = v
+                except:
+                    mapped_checks[k] = v
+            else:
+                mapped_checks[k] = v
+
+        report['games'].append({
+            'game_id': game_id,
+            'checks': mapped_checks,
+            'notes': row['notes'],
+            'map_drawing': row['map_image_path'], 
+            'base_map': base_map,                 
+            'photos': photos
+        })
+        
+    return render_template('print_report.html', report=report)
+
+# مسار لحذف تقرير بالكامل (يدوياً)
+@app.route('/delete_report/<session_id>', methods=['POST'])
+def delete_report(session_id):
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # 1. استخراج مسارات الصور والرسمة عشان نمسحها من الهارد أولاً
+    cursor.execute('SELECT map_image_path, photos_paths FROM game_reports WHERE session_id = ?', (session_id,))
+    rows = cursor.fetchall()
+    
+    for row in rows:
+        # مسح الرسمة (الخريطة)
+        map_path = row['map_image_path']
+        if map_path and map_path.startswith('/static/'):
+            filepath = map_path.lstrip('/')
+            if os.path.exists(filepath):
+                os.remove(filepath)
+                
+        # مسح صور الكاميرا
+        photos_json = row['photos_paths']
+        if photos_json:
+            try:
+                photos = json.loads(photos_json)
+                for photo in photos:
+                    if photo.startswith('/static/'):
+                        filepath = photo.lstrip('/')
+                        if os.path.exists(filepath):
+                            os.remove(filepath)
+            except:
+                pass
+
+    # 2. مسح التقرير من قاعدة البيانات
+    cursor.execute('DELETE FROM game_reports WHERE session_id = ?', (session_id,))
+    conn.commit()
+    conn.close()
+    
+    return redirect(url_for('dashboard'))
 
 # نقطة تشغيل السيرفر
 if __name__ == '__main__':
