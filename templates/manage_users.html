@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة المستخدمين - جرافيتي كود</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: #333; }
+        .form-group { margin-bottom: 15px; text-align: right; }
+        input, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: right; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; color: #333; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2>👥 إدارة الحسابات (الصيانة / التيم ليدر)</h2>
+            <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">العودة للوحة التحكم</a>
+        </div>
+
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd;">
+            <h3 style="margin-top: 0; color: #007bff;">➕ إضافة مستخدم جديد</h3>
+            <form method="POST" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label>اسم المستخدم (يستخدم للدخول):</label>
+                    <input type="text" name="username" required placeholder="مثال: ahmed_maint">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label>كلمة المرور:</label>
+                    <input type="password" name="password" required placeholder="••••••••">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label>الصلاحية:</label>
+                    <select name="role" required>
+                        <option value="Team Leader">قائد فريق (Team Leader)</option>
+                        <option value="Maintenance">تيم الصيانة (Maintenance)</option>
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">إنشاء حساب</button>
+                </div>
+            </form>
+        </div>
+
+        <h3 style="margin-top: 40px; color: #333;">📋 الحسابات المسجلة في النظام</h3>
+        <table>
+            <tr>
+                <th>اسم المستخدم</th>
+                <th>الصلاحية</th>
+                <th>إجراء</th>
+            </tr>
+            <tr>
+                <td><strong>admin</strong></td>
+                <td><span style="background: #dc3545; color: white; padding: 3px 8px; border-radius: 3px;">المدير العام</span></td>
+                <td><span style="color: #999;">أساسي (لا يحذف)</span></td>
+            </tr>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td><span style="background: #17a2b8; color: white; padding: 3px 8px; border-radius: 3px;">{{ user.role }}</span></td>
+                <td>
+                    <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirm('تأكيد حذف الحساب؟');" style="margin: 0;">
+                        <button type="submit" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">حذف 🗑️</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+</body>
+</html>

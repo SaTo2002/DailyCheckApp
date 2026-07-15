@@ -5,6 +5,7 @@ import base64
 import uuid
 from datetime import datetime
 from flask import Flask, render_template, request, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 # الكلمة السرية دي ضرورية عشان الـ session يشتغل
@@ -38,6 +39,15 @@ def init_db():
             map_image_path TEXT,   -- مسار صورة الرسمة اللي على الخريطة
             photos_paths TEXT,     -- مسارات صور الكاميرا محفوظة كـ JSON
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    # إنشاء جدول للمستخدمين (تيم ليدر / صيانة)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password_hash TEXT,
+            role TEXT
         )
     ''')
     
@@ -135,6 +145,11 @@ AREAS_CONFIG = {
         "games": [] # مكان جاهز لمتطلبات اللاونج
     }
 }
+
+# ==========================================
+# --- حساب الأدمن الأساسي (الوحيد اللي في الكود) ---
+# ==========================================
+MASTER_ADMIN_HASH = "scrypt:32768:8:1$o2sRQJ3CVeIvLBFk$630226ad3aa44801001362c89ca76753c7ae6900c4f8395cbe90cf89a657dd6d544988584d0ab9e667571be840294f8290e4c87cb47d5d4f6a2acb0075e2bb1e"  # حط شفرتك هنا
 
 # المسار الرئيسي للموقع (الصفحة الرئيسية)
 # مسار شاشة الدخول (إدخال الاسم واختيار المنطقة)
@@ -398,9 +413,98 @@ def submit_report():
     """
     return success_html
 
+# مسار تسجيل دخول الإدارة والصيانة
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # 1. فحص هل هو الأدمن الأساسي؟ (الموجود في الكود)
+        if username == 'admin' and check_password_hash(MASTER_ADMIN_HASH, password):
+            session['is_admin'] = True  
+            session['admin_role'] = 'admin'
+            return redirect(url_for('dashboard'))
+
+        # 2. لو مش الأدمن الأساسي، ندور في قاعدة البيانات
+        conn = sqlite3.connect(DB_NAME)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+        user = cursor.fetchone()
+        conn.close()
+
+        # لو المستخدم موجود والباسوورد صح
+        if user and check_password_hash(user['password_hash'], password):
+            session['is_admin'] = True
+            session['admin_role'] = user['role']
+            return redirect(url_for('dashboard'))
+        else:
+            return render_template('admin_login.html', error="اسم المستخدم أو كلمة المرور غير صحيحة!")
+            
+    return render_template('admin_login.html')
+
+# ==========================================
+# --- مسارات إدارة المستخدمين (للأدمن فقط) ---
+# ==========================================
+@app.route('/manage_users', methods=['GET', 'POST'])
+def manage_users():
+    # التأكد إن اللي داخل هو "الأدمن الأساسي" فقط، مش تيم ليدر ولا صيانة
+    if not session.get('is_admin') or session.get('admin_role') != 'admin':
+        return redirect(url_for('dashboard'))
+
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # لو الأدمن بيضيف مستخدم جديد
+    if request.method == 'POST':
+        new_username = request.form.get('username')
+        new_password = request.form.get('password')
+        new_role = request.form.get('role')
+
+        if new_username and new_password and new_role:
+            hashed_pw = generate_password_hash(new_password) # بنشفر باسوورده قبل ما نحفظه
+            try:
+                cursor.execute('INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)', (new_username, hashed_pw, new_role))
+                conn.commit()
+            except sqlite3.IntegrityError:
+                # لو اسم المستخدم موجود قبل كده
+                pass 
+                
+    # جلب كل المستخدمين لعرضهم
+    cursor.execute("SELECT * FROM users")
+    users = cursor.fetchall()
+    conn.close()
+
+    return render_template('manage_users.html', users=users)
+
+@app.route('/delete_user/<int:user_id>', methods=['POST'])
+def delete_user(user_id):
+    if not session.get('is_admin') or session.get('admin_role') != 'admin':
+        return redirect(url_for('dashboard'))
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+    return redirect(url_for('manage_users'))
+
+
+# مسار تسجيل خروج الإدارة
+@app.route('/admin_logout')
+def admin_logout():
+    session.pop('is_admin', None)
+    session.pop('admin_role', None)
+    return redirect(url_for('home'))
+
 # مسار لوحة تحكم الإدارة (Dashboard) لعرض التقارير
 @app.route('/dashboard', methods=['GET'])
 def dashboard():
+    # حماية المسار: التأكد إن المستخدم من الإدارة
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row 
     cursor = conn.cursor()
@@ -508,6 +612,9 @@ def dashboard():
 # مسار تجهيز التقرير للطباعة
 @app.route('/print_report/<session_id>')
 def print_report(session_id):
+    # حماية المسار: التأكد إن المستخدم من الإدارة
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -560,6 +667,10 @@ def print_report(session_id):
 # مسار لحذف تقرير بالكامل (يدوياً)
 @app.route('/delete_report/<session_id>', methods=['POST'])
 def delete_report(session_id):
+    # حماية المسار: التأكد إن المستخدم من الإدارة
+    if not session.get('is_admin'):
+        return redirect(url_for('admin_login'))
+
     conn = sqlite3.connect(DB_NAME)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
