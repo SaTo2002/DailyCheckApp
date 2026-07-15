@@ -187,6 +187,31 @@ def check_game(game_id):
     # إرسال البيانات المحفوظة لملف الـ HTML
     return render_template('form.html', game=game_data, next_game_id=next_game_id, saved_data=saved_data)
 
+# مسار الإرسال النهائي للتقرير
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    # حماية: التأكد إن الموظف مسجل الدخول
+    if 'monitor_name' not in session:
+        return redirect(url_for('home'))
+
+    # (هنا مستقبلاً هنكتب كود حفظ البيانات في الداتابيز أو ملف إكسيل)
+    
+    # بعد الإرسال بنجاح، بنمسح بيانات الفحص المؤقتة عشان لو حب يفحص منطقة جديدة
+    session.pop('completed_games', None)
+    session.pop('game_data', None)
+    session.pop('area_id', None) # بنمسح المنطقة عشان يختار من الأول
+
+    # شاشة نجاح بسيطة مؤقتة
+    success_html = f"""
+    <div style='font-family: Arial; text-align: center; margin-top: 100px; direction: rtl;'>
+        <h1 style='color: #28a745;'>تم إرسال تقرير المنطقة بنجاح! 🎉</h1>
+        <h3 style='color: #555;'>عاش يا {session.get('monitor_name')}، شكراً لمجهودك.</h3>
+        <br>
+        <a href='/' style='padding: 15px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;'>العودة للصفحة الرئيسية</a>
+    </div>
+    """
+    return success_html
+
 # نقطة تشغيل السيرفر
 if __name__ == '__main__':
     # host='0.0.0.0' تسمح للأجهزة الأخرى على نفس شبكة الواي فاي بالاتصال بالسيرفر
