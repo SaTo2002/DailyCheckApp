@@ -2,349 +2,98 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>فحص اللعبة</title>
-    
+    <title>فحص لعبة: {{ game.name }}</title>
+    <!-- حط ملفات الـ CSS بتاعتك هنا زي ما هي -->
     <style>
-        /* التحكم في عرض وارتفاع شريط التمرير نفسه */
-        #canvasWrapper::-webkit-scrollbar {
-            height: 18px; /* تخنينا الشريط الأفقي جداً عشان صباع الموظف يقدر يمسكه */
-            width: 18px;  /* تخنينا الشريط الرأسي */
-        }
-        /* التحكم في مسار الشريط (الخلفية اللي بيتحرك عليها) */
-        #canvasWrapper::-webkit-scrollbar-track {
-            background: #e9ecef; 
-            border-radius: 10px;
-        }
-        /* التحكم في الجزء المتحرك من الشريط (المقبض) */
-        #canvasWrapper::-webkit-scrollbar-thumb {
-            background: #6c757d; 
-            border-radius: 10px;
-            border: 3px solid #e9ecef; /* إطار حوالين المقبض بيدي شكل جمالي */
-        }
-        /* شكل المقبض لما الموظف يلمسه أو يقف عليه */
-        #canvasWrapper::-webkit-scrollbar-thumb:hover {
-            background: #495057;
-        }
+        body { font-family: Arial; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .btn { padding: 10px 15px; margin-top: 10px; cursor: pointer; }
     </style>
-    </head>
-<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 20px;">
-    <!-- رابط للرجوع لقائمة الألعاب -->
-    <div style="width: 90%; max-width: 600px; margin: 0 auto; text-align: right; margin-bottom: -10px;">
-        
-        {% if game_id in session.get('completed_games', []) %}
-            <a href="/cancel_game/{{ game_id }}" style="display: inline-block; padding: 8px 15px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">🔙 رجوع (تم الفحص مسبقاً)</a>
-        {% else %}
-            <a href="/cancel_game/{{ game_id }}" onclick="return confirm('تأكيد الإلغاء؟ سيتم مسح أي صور أو بيانات قمت بإدخالها الآن.');" style="display: inline-block; padding: 8px 15px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">❌ إلغاء والرجوع</a>
-        {% endif %}
-        
-    </div>
+</head>
+<body>
+    <h2>فحص: {{ game.name }}</h2>
 
-    <h1>تقرير الفحص اليومي: <span style="color: #007bff;">{{ game.name }}</span></h1>
-    
-    <form method="POST" enctype="multipart/form-data" style="margin-top: 20px; border: 1px solid #ccc; padding: 20px; width: 90%; max-width: 600px; margin-left: auto; margin-right: auto; border-radius: 10px; text-align: right;">
-        <h3 style="text-align: center;">قائمة الفحص المطلوبة</h3>
-        <!-- هنا قايمة الفصح بنظبط الشكل بتاعها وغير كدة برضو ممكن اغير الحاجات الي هتتكتب هنا -->
-        {% for item in game.checks %}
-        <div style="margin: 15px 0; padding: 10px; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; align-items: center; font-size: 18px;">
-            <span style="font-weight: bold; text-align: right; width: 45%;">{{ item }}</span>
-            <div style="display: flex; gap: 20px; direction: rtl;">
-                {% set check_name = 'check_' ~ loop.index %}
+    <!-- بداية الفورم اللي بيبعت الداتا للباك إند -->
+    <form action="/check/{{ game_id }}" method="POST" enctype="multipart/form-data">
+        
+        <!-- 1. قسم الفحوصات الديناميكية (الأسئلة اللي الإدارة ضافتها) -->
+        {% for check in checks %}
+        <div class="form-group" style="padding: 10px; background: #f9f9f9; border-radius: 5px;">
+            <label>
+                {{ check.name }} 
+                {% if check.is_mandatory %}
+                    <span style="color:red; font-weight:bold;" title="هذا الحقل إجباري">*</span>
+                {% endif %}
+            </label><br>
+            
+            <label>
+                <input type="radio" name="check_{{ loop.index }}" value="سليم" 
+                    {% if check.is_mandatory %}required{% endif %} 
+                    {% if saved_data.get('check_' ~ loop.index) == 'سليم' %}checked{% endif %}> 
+                سليم
+            </label>
                 
-                <label style="color: #28a745; cursor: pointer;">
-                    <input type="radio" name="{{ check_name }}" value="OK" required style="width: 18px; height: 18px; vertical-align: middle;" {% if saved_data.get(check_name) == 'OK' %}checked{% endif %}> سليم ✅
-                </label>
-                <label style="color: #dc3545; cursor: pointer;">
-                    <input type="radio" name="{{ check_name }}" value="NOT_OK" style="width: 18px; height: 18px; vertical-align: middle;" {% if saved_data.get(check_name) == 'NOT_OK' %}checked{% endif %}> فيه مشكلة ❌
-                </label>
-            </div>
+            <label style="margin-right: 15px;">
+                <input type="radio" name="check_{{ loop.index }}" value="تالف" 
+                    {% if saved_data.get('check_' ~ loop.index) == 'تالف' %}checked{% endif %}> 
+                تالف/يوجد مشكلة
+            </label>
         </div>
         {% endfor %}
 
-        <hr style="margin-top: 30px; margin-bottom: 20px;">
+        <hr>
 
+        <!-- 2. قسم الملاحظات -->
+        <div class="form-group">
+            <label>
+                ملاحظات إضافية 
+                {% if game.notes_mandatory %}
+                    <span style="color:red; font-weight:bold;">*</span>
+                {% endif %}
+            </label><br>
+            <textarea name="notes" rows="4" style="width: 100%; max-width: 500px;" 
+                      {% if game.notes_mandatory %}required{% endif %}>{{ saved_data.get('notes', '') }}</textarea>
+        </div>
+
+        <!-- 3. قسم الخريطة (لو متفعلة للعبة دي) -->
         {% if game.has_map %}
-        <div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
-            <h4 style="color: #333;">حدد مكان المشكلة على المخطط</h4>
+        <div class="form-group" style="margin-top: 20px;">
+            <h3>تحديد المشكلة على الخريطة {% if game.map_mandatory %}<span style="color:red;">(إجباري *)</span>{% endif %}</h3>
             
-            <div style="position: relative; width: 100%; max-width: 500px; margin: 0 auto; border: 2px solid #000; border-radius: 5px; overflow: auto; background-color: #fff;" id="canvasWrapper">
-                
-                <div style="position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; gap: 8px;">
-                    <button type="button" id="zoomInBtn" style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.9); border: 1px solid #333; border-radius: 5px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">➕</button>
-                    <button type="button" id="zoomOutBtn" style="width: 40px; height: 40px; background-color: rgba(255,255,255,0.9); border: 1px solid #333; border-radius: 5px; font-size: 20px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">➖</button>
-                </div>
-
-                <!-- Base64 للصور  -->
-                <input type="hidden" id="mapDrawingData" name="map_drawing" value="{{ saved_data.get('map_drawing', '') }}">
-
-                <canvas id="mapCanvas" width="500" height="250" style="cursor: crosshair; touch-action: none; width: 100%; height: auto; display: block;"></canvas>
-            </div>
-            <br>
+            <!-- حط هنا كود الـ Canvas بتاع الخريطة والرسم اللي كان موجود عندك في النسخة القديمة -->
+            <p><i>[كود رسم الخريطة يوضع هنا]</i></p>
             
-            <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px; flex-wrap: wrap;">
-                <button type="button" id="penBtn" style="padding: 10px 15px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">قلم ✏️</button>
-                <button type="button" id="eraserBtn" style="padding: 10px 15px; background-color: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">أستيكة 🧽</button>
-                <button type="button" id="clearBtn" style="padding: 10px 15px; background-color: #ffc107; color: black; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">مسح الكل 🧹</button>
-            </div>
+            <!-- حقل مخفي لحفظ الداتا بيز بتاعت الرسمة -->
+            <input type="hidden" name="map_drawing" id="map_drawing" value="{{ saved_data.get('map_drawing', '') }}" 
+                   {% if game.map_mandatory %}required{% endif %}>
         </div>
         {% endif %}
 
-        <!-- هنا الجزء الخاص بتصوير الأعطال -->
-        <div style="text-align: center; margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px dashed #ccc;">
-            <h4 style="color: #333; margin-bottom: 15px;">📸 صور الأعطال (تقدر تضيف أكتر من صورة)</h4>
-            
-            <input type="file" id="directCameraInput" accept="image/*" capture="environment" style="display: none;">
-            
-            <input type="file" id="galleryInput" accept="image/*" multiple style="display: none;">
-            
-            <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
-                <button type="button" id="btnDirectCamera" style="padding: 10px 20px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                    تصوير مباشر 📸
-                </button>
-                <button type="button" id="btnGallery" style="padding: 10px 20px; background-color: #6f42c1; color: white; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-                    من المعرض 🖼️
-                </button>
-            </div>
-
-            <div id="previewContainer" style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; margin-top: 15px;">
-                
-                {% if saved_data.get('photos') %}
-                    {% for photo_url in saved_data.get('photos') %}
-                        <div style="position: relative; display: inline-block;" id="saved_photo_{{ loop.index }}">
-                            <img src="{{ photo_url }}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '{{ photo_url }}', 'saved_photo_{{ loop.index }}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
-                        </div>
-                    {% endfor %}
+        <!-- 4. قسم الصور (يظهر فقط لو الإدارة سمحت بيه) -->
+        {% if game.allow_photos %}
+        <div class="photo-upload-section" style="border: 1px dashed #ccc; padding: 15px; margin-top: 20px; background: #fffafa;">
+            <h3>
+                إرفاق صور 
+                {% if game.requires_photo %}
+                    <span style="color:red; font-size: 16px;">(مطلوب إرفاق صورة على الأقل *)</span>
+                {% else %}
+                    <span style="color:gray; font-size: 14px;">(اختياري)</span>
                 {% endif %}
+            </h3>
+            <input type="file" id="issue_photos" name="issue_photos" multiple accept="image/*"
+                   {% if game.requires_photo and saved_data.get('photos', [])|length == 0 %}required{% endif %}>
+        </div>
+        {% endif %}
 
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <textarea name="notes" placeholder="اكتب أي ملاحظات أو مشاكل إضافية هنا..." style="width: 90%; height: 80px; padding: 10px; border-radius: 5px; font-size: 16px;">{{ saved_data.get('notes', '') }}</textarea>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
-            
+        <!-- 5. أزرار التنقل والحفظ -->
+        <div style="margin-top: 30px;">
             {% if next_game_id %}
-                <button type="submit" name="action" value="next" style="padding: 12px 30px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 90%;">حفظ والانتقال للعبة التالية ➡️</button>
+                <button type="submit" name="action" value="next" class="btn" style="background: #007bff; color: white; border: none;">حفظ والتالي</button>
             {% else %}
-                <button type="submit" name="action" value="back" style="padding: 12px 30px; background-color: #17a2b8; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 90%;">حفظ والرجوع لقائمة الألعاب 🔙</button>
+                <button type="submit" name="action" value="finish" class="btn" style="background: #28a745; color: white; border: none;">حفظ والعودة للقائمة</button>
             {% endif %}
-
-            <button type="submit" name="action" value="back" style="padding: 12px 30px; background-color: #6c757d; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; width: 90%;">حفظ والرجوع لقائمة الألعاب 🔙</button>
         </div>
-    </form> <br>
-
-    
-    <script>
-        const canvas = document.getElementById('mapCanvas');
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            let isDrawing = false;
-            let isEraser = false; // متغير جديد عشان نعرف هو ماسك قلم ولا أستيكة
-
-            // الخدعة: وضع المخطط كخلفية للكانفاس عشان الأستيكة متمسحوش
-            canvas.style.backgroundImage = `url('/static/{{ game.map_image }}')`;
-            canvas.style.backgroundSize = '100% 100%';
-            canvas.style.backgroundRepeat = 'no-repeat';
-
-            // --- جديد: استرجاع الرسمة القديمة لو الموظف رجع للعبة ---
-            const mapDrawingInput = document.getElementById('mapDrawingData');
-            if (mapDrawingInput.value) {
-                const savedImg = new Image();
-                savedImg.src = mapDrawingInput.value;
-                savedImg.onload = () => {
-                    ctx.drawImage(savedImg, 0, 0, canvas.width, canvas.height);
-                };
-            }
-            // -----------------------------------------------------
-
-            // --- جديد: دالة بتسجل الرسمة في الحقل المخفي ---
-            const updateHiddenInput = () => {
-                mapDrawingInput.value = canvas.toDataURL(); // بتحول الرسمة لنص
-            };
-            // ----------------------------------------------
-
-            // ---- برمجة زراير الزووم ----
-            let currentZoom = 1; 
-            const zoomInBtn = document.getElementById('zoomInBtn');
-            const zoomOutBtn = document.getElementById('zoomOutBtn');
-
-            if (zoomInBtn && zoomOutBtn) {
-                zoomInBtn.addEventListener('click', () => {
-                    currentZoom += 0.5; 
-                    canvas.style.width = (currentZoom * 100) + '%'; 
-                });
-                zoomOutBtn.addEventListener('click', () => {
-                    currentZoom -= 0.5; 
-                    if (currentZoom < 1) currentZoom = 1; 
-                    canvas.style.width = (currentZoom * 100) + '%';
-                });
-            }
-            // ------------------------------------
-
-            const startPosition = (e) => {
-                isDrawing = true;
-                draw(e);
-            };
-
-            const endPosition = () => {
-                isDrawing = false;
-                ctx.beginPath();
-                updateHiddenInput(); // كل مرة الموظف يرفع صباعه أو يسيب الماوس، نسجل الرسمة في الحقل المخفي 
-            };
-
-            const draw = (e) => {
-                if (!isDrawing) return; 
-                e.preventDefault(); 
-
-                const rect = canvas.getBoundingClientRect();
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-
-                const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-                const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-                
-                const x = (clientX - rect.left) * scaleX;
-                const y = (clientY - rect.top) * scaleY;
-
-                // لو ماسك أستيكة بنخلي الحجم أتخن شوية عشان يمسح أسهل
-                ctx.lineWidth = isEraser ? 15 : 3;
-                ctx.lineCap = 'round';
-                
-                // لون القلم أحمر
-                ctx.strokeStyle = 'red';
-
-                // الخاصية دي هي اللي بتخلي الكانفاس يمسح اللي اترسم (Destination-out) 
-                // أو يرسم عادي (Source-over)
-                ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
-
-                ctx.lineTo(x, y);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-            };
-
-            canvas.addEventListener('mousedown', startPosition);
-            canvas.addEventListener('mouseup', endPosition);
-            canvas.addEventListener('mousemove', draw);
-            canvas.addEventListener('touchstart', startPosition, {passive: false});
-            canvas.addEventListener('touchend', endPosition);
-            canvas.addEventListener('touchmove', draw, {passive: false});
-
-            // --- برمجة زراير القلم والأستيكة ومسح الكل ---
-            document.getElementById('penBtn').addEventListener('click', () => {
-                isEraser = false; // تفعيل القلم
-            });
-
-            document.getElementById('eraserBtn').addEventListener('click', () => {
-                isEraser = true; // تفعيل الأستيكة
-            });
-
-            document.getElementById('clearBtn').addEventListener('click', () => {
-                // مسح كل الرسومات اللي على الكانفاس الشفاف
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // --- التعديل هنا: بنخلي الحقل فاضي تماماً بدل ما يبعت صورة شفافة ---
-                mapDrawingInput.value = ''; 
-            });
-        }
-
-        // ==========================================
-        // --- برمجة زراير الكاميرا والمعرض (AJAX) ---
-        // ==========================================
-        const directCameraInput = document.getElementById('directCameraInput');
-        const galleryInput = document.getElementById('galleryInput');
-        const btnDirectCamera = document.getElementById('btnDirectCamera');
-        const btnGallery = document.getElementById('btnGallery');
-        const previewContainer = document.getElementById('previewContainer');
-
-        // 1. ربط كل زرار بالمدخل المخفي بتاعه
-        if(btnDirectCamera && directCameraInput) {
-            btnDirectCamera.addEventListener('click', () => directCameraInput.click());
-        }
-        if(btnGallery && galleryInput) {
-            btnGallery.addEventListener('click', () => galleryInput.click());
-        }
-
-        // 2. دالة موحدة لرفع الصور للسيرفر (سواء من الكاميرا أو المعرض)
-        function handleImageUpload(event, triggerBtn) {
-            const files = event.target.files;
-            if (files.length === 0) return;
-
-            const formData = new FormData();
-            formData.append('game_id', '{{ game_id }}');
-            for (let i = 0; i < files.length; i++) {
-                formData.append('issue_photos', files[i]);
-            }
-
-            const originalBtnText = triggerBtn.innerHTML;
-            triggerBtn.innerHTML = "جاري الرفع... ⏳";
-            triggerBtn.disabled = true;
-
-            fetch('/upload_photo_ajax', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                triggerBtn.innerHTML = originalBtnText;
-                triggerBtn.disabled = false;
-
-                if(data.status === 'success') {
-                    data.photos.forEach((photoUrl, index) => {
-                        const uniqueId = 'saved_photo_' + Date.now() + '_' + index;
-                        const photoDiv = document.createElement('div');
-                        photoDiv.style.cssText = "position: relative; display: inline-block;";
-                        photoDiv.id = uniqueId;
-                        photoDiv.innerHTML = `
-                            <img src="${photoUrl}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <button type="button" onclick="deleteSavedPhoto('{{ game_id }}', '${photoUrl}', '${uniqueId}')" style="position: absolute; top: -8px; right: -8px; background-color: #dc3545; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">✖</button>
-                        `;
-                        previewContainer.appendChild(photoDiv);
-                    });
-                    event.target.value = ''; // تفريغ المدخل
-                } else {
-                    alert('حصلت مشكلة في رفع الصور يا هندسة.');
-                }
-            })
-            .catch(error => {
-                triggerBtn.innerHTML = originalBtnText;
-                triggerBtn.disabled = false;
-                alert('خطأ في الاتصال بالسيرفر، تأكد من شبكة الواي فاي.');
-            });
-        }
-
-        // 3. تشغيل دالة الرفع أول ما الموظف يصور أو يختار صورة
-        if(directCameraInput) {
-            directCameraInput.addEventListener('change', (e) => handleImageUpload(e, btnDirectCamera));
-        }
-        if(galleryInput) {
-            galleryInput.addEventListener('change', (e) => handleImageUpload(e, btnGallery));
-        }
-
-        // ==========================================
-        // --- دالة حذف الصور ديناميكياً (AJAX Delete) ---
-        // ==========================================
-        function deleteSavedPhoto(gameId, photoUrl, elementId) {
-            if(confirm("متأكد إنك عاوز تمسح الصورة دي؟")) {
-                fetch('/delete_photo', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ game_id: gameId, photo_url: photoUrl })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if(data.status === 'success') {
-                        document.getElementById(elementId).remove(); // إخفاء الصورة من الشاشة فوراً
-                    } else {
-                        alert('مشكلة في مسح الصورة من السيرفر.');
-                    }
-                });
-            }
-        }
         
-    </script>
+    </form>
 </body>
 </html>

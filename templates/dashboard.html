@@ -35,10 +35,15 @@
 
     <div class="header">
         <h1>📊 لوحة تحكم الإدارة - تقارير الفحص اليومي</h1>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+            
+            <!-- الزرار الجديد لإدارة النظام (المناطق والألعاب) -->
+            <a href="/manage_system" style="text-decoration: none; background: #007bff; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold;">⚙️ إدارة النظام</a>
+            
             {% if session.get('admin_role') == 'admin' %}
                 <a href="/manage_users" style="text-decoration: none; background: #28a745; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold;">👥 إدارة الحسابات</a>
             {% endif %}
+            
             <a href="/admin_logout" style="text-decoration: none; background: #dc3545; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold;">تسجيل خروج 🔒</a>
         </div>
     </div>

@@ -1,0 +1,20 @@
+# --- الأساسيات والويب والحماية ---
+Flask==3.0.3
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+python-dotenv==1.0.1
+
+# --- قاعدة البيانات (MySQL) ---
+Flask-SQLAlchemy==3.1.1
+PyMySQL==1.1.1
+
+# --- معالجة الصور والملفات والـ PDF ---
+docxtpl==0.16.8
+Pillow
+WeasyPrint==62.3
+
+# --- الربط السحابي (Google Drive API) ---
+google-api-python-client==2.137.0
+google-auth-httplib2==0.2.0
+google-auth-oauthlib==1.2.1
+

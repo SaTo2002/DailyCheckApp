@@ -16,8 +16,8 @@
         
         <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right;">اختر المنطقة (Area):</label>
         <select name="area" required style="width: 100%; padding: 10px; margin-bottom: 30px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;">
-            {% for area_id, area_info in areas.items() %}
-                <option value="{{ area_id }}">{{ area_info.name }}</option>
+            {% for area in areas %}
+                <option value="{{ area.id }}">{{ area.name }}</option>
             {% endfor %}
         </select>
         

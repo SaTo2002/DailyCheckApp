@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>تعديل لعبة: {{ game.name }}</title>
+</head>
+<body style="font-family: Arial; padding: 20px;">
+    <h2>تعديل إعدادات اللعبة: {{ game.name }}</h2>
+    <a href="/manage_system">إلغاء والعودة</a>
+    <hr>
+    
+    <form method="POST" style="background:#f0f8ff; padding:15px; border-radius:8px;">
+        <p><input type="text" name="game_name" value="{{ game.name }}" required>
+        <select name="area_id" required>
+            {% for area in areas %} 
+            <option value="{{ area.id }}" {% if area.id == game.area_id %}selected{% endif %}>{{ area.name }}</option> 
+            {% endfor %}
+        </select></p>
+        
+        <h4>إعدادات الصور والملاحظات:</h4>
+        <label><input type="checkbox" name="allow_photos" value="1" {% if game.allow_photos %}checked{% endif %}> تفعيل زر رفع الصور؟</label><br>
+        <label><input type="checkbox" name="requires_photo" value="1" {% if game.requires_photo %}checked{% endif %}> الصورة إجبارية؟</label><br><br>
+        <label><input type="checkbox" name="notes_mandatory" value="1" {% if game.notes_mandatory %}checked{% endif %}> الملاحظات إجبارية؟</label><br><br>
+        
+        <h4>إعدادات الخريطة:</h4>
+        <label><input type="checkbox" name="has_map" value="1" {% if game.has_map %}checked{% endif %}> تفعيل الخريطة؟</label><br>
+        <label><input type="checkbox" name="map_mandatory" value="1" {% if game.map_mandatory %}checked{% endif %}> الرسم على الخريطة إجباري؟</label><br><br>
+
+        <h4>عناصر الفحص (الأسئلة):</h4>
+        <div id="checks_container">
+            {% for check in checks %}
+            <div style="margin-bottom:10px;">
+                <input type="text" name="check_names[]" value="{{ check.name }}" required>
+                <label><input type="checkbox" name="check_mandatory_{{ loop.index0 }}" value="1" {% if check.is_mandatory %}checked{% endif %}> إجباري؟</label>
+            </div>
+            {% endfor %}
+        </div>
+        <button type="button" onclick="addCheckRow()">+ إضافة فحص آخر</button><br><br>
+        
+        <button type="submit" style="padding:10px 20px; background:#007bff; color:white; border:none;">حفظ التعديلات</button>
+    </form>
+
+    <script>
+        let checkIndex = parseInt("{{ checks|length }}") || 0;
+        function addCheckRow() {
+            const container = document.getElementById('checks_container');
+            const div = document.createElement('div');
+            div.style.marginBottom = "10px";
+            div.innerHTML = `<input type="text" name="check_names[]" placeholder="اسم الفحص الجديد" required> 
+                             <label><input type="checkbox" name="check_mandatory_${checkIndex}" value="1" checked> إجباري؟</label>`;
+            container.appendChild(div);
+            checkIndex++;
+        }
+    </script>
+</body>
+</html>

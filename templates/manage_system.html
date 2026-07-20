@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة النظام - جرافيتي كود</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #f4f7f6; 
+            margin: 0; 
+            padding: 20px; 
+            color: #333; 
+        }
+        .container { 
+            max-width: 900px; 
+            margin: 0 auto; 
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+        .card { 
+            background: white; 
+            padding: 25px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+            margin-bottom: 30px; 
+        }
+        h2, h3, h4 { color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        input[type="text"], select { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            font-family: inherit; 
+        }
+        .btn { 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px; 
+            font-weight: bold; 
+            text-decoration: none; 
+            display: inline-block; 
+            transition: 0.3s; 
+        }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-primary:hover { background: #0056b3; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        
+        .checkbox-group { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            margin-bottom: 15px; 
+        }
+        .checkbox-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            font-size: 15px; 
+            cursor: pointer;
+        }
+        .checkbox-item input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .list-group { list-style: none; padding: 0; margin: 0; }
+        .list-group li { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 15px; 
+            border-bottom: 1px solid #eee; 
+            background: #fafafa;
+            margin-bottom: 5px;
+            border-radius: 5px;
+        }
+        .list-group li:last-child { border-bottom: none; }
+        .actions a { margin-right: 15px; font-size: 15px; font-weight: bold; }
+        hr { border: 0; border-top: 1px solid #eee; margin: 25px 0; }
+        
+        /* تنسيق قسم الفحوصات */
+        .check-row { 
+            display: flex; 
+            gap: 15px; 
+            align-items: center; 
+            margin-bottom: 10px; 
+            background: #f8f9fa; 
+            padding: 10px 15px; 
+            border-radius: 5px; 
+            border: 1px solid #ddd; 
+        }
+        .check-row input[type="text"] { flex: 1; margin: 0; padding: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>⚙️ إدارة النظام (المناطق والألعاب)</h2>
+            <a href="/dashboard" class="btn btn-secondary">🔙 العودة للوحة التحكم</a>
+        </div>
+
+        <!-- قسم إضافة وتعديل المناطق -->
+        <div class="card" style="border-top: 5px solid #28a745;">
+            <h3>📍 إضافة وتعديل المناطق</h3>
+            <form action="/add_area" method="POST" style="display: flex; gap: 10px; align-items: center; margin-bottom: 25px;">
+                <input type="text" name="area_name" placeholder="اكتب اسم المنطقة الجديدة..." required style="flex: 1; margin: 0;">
+                <button type="submit" class="btn btn-success">➕ إضافة منطقة</button>
+            </form>
+            
+            <h4 style="margin-bottom: 15px; color: #555;">المناطق المسجلة حالياً:</h4>
+            <ul class="list-group">
+                {% for area in areas %}
+                <li>
+                    <strong style="font-size: 18px; color: #333;">{{ area.name }}</strong> 
+                    <div class="actions">
+                        <a href="/edit_area/{{ area.id }}" style="color:#007bff; text-decoration: none;">✏️ تعديل</a>
+                        <a href="/delete_area/{{ area.id }}" style="color:#dc3545; text-decoration: none;" onclick="return confirm('⚠️ تحذير: مسح المنطقة سيؤدي إلى مسح جميع الألعاب المرتبطة بها! هل أنت متأكد؟');">🗑️ حذف</a>
+                    </div>
+                </li>
+                {% else %}
+                <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد مناطق مسجلة حتى الآن.</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- قسم إضافة لعبة جديدة -->
+        <div class="card" style="border-top: 5px solid #007bff;">
+            <h3>🎮 إضافة لعبة جديدة</h3>
+            <form action="/add_game" method="POST">
+                <div class="form-group" style="margin-top: 20px;">
+                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">اسم اللعبة:</label>
+                    <input type="text" name="game_name" placeholder="مثال: ترامبولين منطقة 1" required>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">اختر المنطقة التابعة لها:</label>
+                    <select name="area_id" required>
+                        <option value="">-- اضغط لاختيار المنطقة --</option>
+                        {% for area in areas %} 
+                            <option value="{{ area.id }}">{{ area.name }}</option> 
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; margin: 25px 0; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <h4 style="margin-top: 0; margin-bottom: 15px; color: #495057;">📸 إعدادات الصور والملاحظات</h4>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="allow_photos" value="1" checked> تفعيل زر رفع الصور لهذه اللعبة</label>
+                            <label class="checkbox-item"><input type="checkbox" name="requires_photo" value="1"> إرفاق صورة إجباري</label>
+                            <label class="checkbox-item"><input type="checkbox" name="notes_mandatory" value="1"> كتابة ملاحظات إجبارية</label>
+                        </div>
+                    </div>
+                    
+                    <div style="flex: 1; min-width: 250px;">
+                        <h4 style="margin-top: 0; margin-bottom: 15px; color: #495057;">🗺️ إعدادات الخريطة</h4>
+                        <div class="checkbox-group">
+                            <label class="checkbox-item"><input type="checkbox" name="has_map" value="1"> تفعيل الرسم على الخريطة</label>
+                            <label class="checkbox-item"><input type="checkbox" name="map_mandatory" value="1"> الرسم على الخريطة إجباري</label>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="margin-bottom: 15px; color: #495057;">📋 عناصر الفحص (الأسئلة):</h4>
+                <div id="checks_container">
+                    <div class="check-row">
+                        <input type="text" name="check_names[]" placeholder="مثال: فحص السوست" required>
+                        <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" name="check_mandatory_0" value="1" checked> إجباري؟</label>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="addCheckRow()" style="margin-top: 10px; margin-bottom: 30px; font-size: 15px;">➕ إضافة فحص آخر</button>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 18px;">💾 حفظ اللعبة الجديدة بالكامل</button>
+            </form>
+        </div>
+
+        <!-- قسم الألعاب المسجلة للتعديل والحذف -->
+        <div class="card" style="border-top: 5px solid #dc3545;">
+            <h3>🛠️ الألعاب المسجلة حالياً</h3>
+            <ul class="list-group" style="margin-top: 20px;">
+                {% for game in games %}
+                <li>
+                    <div>
+                        <strong style="font-size: 18px; color: #333;">{{ game.name }}</strong> 
+                        <br>
+                        <span style="color: #6c757d; font-size: 14px;">(مرتبطة بمنطقة: {{ game.area.name }})</span>
+                    </div>
+                    <div class="actions">
+                        <a href="/edit_game/{{ game.id }}" style="color:#007bff; text-decoration: none;">✏️ تعديل الإعدادات</a>
+                        <a href="/delete_game/{{ game.id }}" style="color:#dc3545; text-decoration: none;" onclick="return confirm('هل أنت متأكد من مسح اللعبة نهائياً؟');">🗑️ حذف</a>
+                    </div>
+                </li>
+                {% else %}
+                <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد ألعاب مسجلة حتى الآن.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let checkIndex = 1;
+        function addCheckRow() {
+            const container = document.getElementById('checks_container');
+            const div = document.createElement('div');
+            div.className = 'check-row';
+            div.innerHTML = `<input type="text" name="check_names[]" placeholder="اسم الفحص الجديد" required> 
+                             <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" name="check_mandatory_${checkIndex}" value="1" checked> إجباري؟</label>`;
+            container.appendChild(div);
+            checkIndex++;
+        }
+    </script>
+</body>
+</html>
