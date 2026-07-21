@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ألعاب منطقة: {{ area.name }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 25px; border-top: 5px solid #007bff; }
+        h2, h3, h4 { color: #2c3e50; margin-top: 0; }
+        input[type="text"], select { padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .main-input { width: 100%; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: bold; text-decoration: none; display: inline-block; transition: 0.3s; }
+        .btn-success { background: #28a745; color: white; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-outline { background: transparent; border: 2px solid #6c757d; color: #6c757d; }
+        
+        /* تصميم السكاشن الديناميكية */
+        .section-adder { display: flex; gap: 15px; align-items: center; background: #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed #adb5bd; }
+        .section-adder select { flex: 1; font-weight: bold; color: #495057; }
+        
+        .dynamic-section { background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #dee2e6; margin-bottom: 15px; position: relative; }
+        .section-title { margin-top: 0; margin-bottom: 15px; font-size: 16px; color: #007bff; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e9ecef; padding-bottom: 8px;}
+        .remove-btn { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
+        
+        .checkbox-group { display: flex; flex-direction: column; gap: 10px; }
+        .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+        .checkbox-item input { width: 18px; height: 18px; cursor: pointer; }
+        
+        .check-row { display: flex; gap: 15px; align-items: center; margin-bottom: 10px; background: white; padding: 10px; border-radius: 5px; border: 1px solid #ddd; }
+        .check-row input[type="text"] { flex: 1; margin: 0; padding: 8px; }
+
+        .list-group { list-style: none; padding: 0; margin: 0; }
+        .list-group li { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; margin-bottom: 8px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- الجزء اللي فوق زي ما هو -->
+        <div class="header">
+            <h2>🎮 ألعاب منطقة: <span style="color: #007bff;">{{ area.name }}</span></h2>
+            <a href="/manage_system" class="btn btn-secondary">🔙 العودة للمناطق</a>
+        </div>
+
+        <div class="card">
+            <h3>➕ إضافة لعبة جديدة داخل هذه المنطقة</h3>
+            <form action="/add_game_to_area/{{ area.id }}" method="POST" id="gameForm" onsubmit="prepareForm()" enctype="multipart/form-data" style="margin-top: 15px;">
+                
+                <!-- اسم اللعبة -->
+                <div style="margin-bottom: 25px;">
+                    <input type="text" name="game_name" class="main-input" placeholder="اسم اللعبة (اكتب اسم اللعبة أو المعدة)..." required>
+                </div>
+
+                <!-- شريط إضافة السيكشن (حسب الرسمة) -->
+                <div class="section-adder">
+                    <select id="section_dropdown">
+                        <option value="questions">📋 الأسئلة (سليم / غير سليم)</option>
+                        <option value="map">🗺️ الخريطة</option>
+                        <option value="notes">📸 الملاحظات والصور</option>
+                    </select>
+                    <button type="button" class="btn btn-outline" onclick="addSection()">➕ إضافة سيكشن</button>
+                </div>
+
+                <!-- المكان اللي هينزل فيه السكاشن -->
+                <div id="dynamic_sections_container"></div>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%; padding: 15px; font-size: 18px; margin-top: 10px;">💾 حفظ وإضافة اللعبة</button>
+            </form>
+        </div>
+
+        <!-- الألعاب المسجلة -->
+        <div class="card" style="border-top-color: #28a745;">
+            <h3>🛠️ الألعاب المسجلة في هذه المنطقة</h3>
+            <ul class="list-group" style="margin-top: 15px;">
+                {% for game in area.games %}
+                <li>
+                    <strong style="font-size: 17px;">{{ game.name }}</strong>
+                    <div style="display: flex; gap: 15px;">
+                        <a href="/edit_game/{{ game.id }}" style="color: #007bff; text-decoration: none; font-weight: bold;">✏️ تعديل الإعدادات</a>
+                        <a href="/delete_game_from_area/{{ area.id }}/{{ game.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('هل أنت متأكد من حذف هذه اللعبة؟');">🗑️ حذف</a>
+                    </div>
+                </li>
+                {% else %}
+                <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد ألعاب مضافة لهذه المنطقة حتى الآن.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // متغيرات عشان نمنع تكرار سيكشن الخريطة والملاحظات
+        let isMapAdded = false;
+        let isNotesAdded = false;
+
+        function addSection() {
+            const dropdown = document.getElementById('section_dropdown');
+            const selection = dropdown.value;
+            const container = document.getElementById('dynamic_sections_container');
+
+            if (selection === 'map') {
+                if (isMapAdded) { alert("سيكشن الخريطة تمت إضافته بالفعل!"); return; }
+                
+                const div = document.createElement('div');
+                div.className = 'dynamic-section';
+                div.innerHTML = `
+                    <h4 class="section-title">🗺️ إعدادات الخريطة <button type="button" class="remove-btn" onclick="removeSection(this, 'map')">حذف</button></h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item"><input type="checkbox" name="has_map" value="1"> تفعيل الرسم على الخريطة</label>
+                        <label class="checkbox-item"><input type="checkbox" name="map_mandatory" value="1"> الرسم إجباري</label>
+                    </div>
+                    
+                    // الجزء الجديد بعد التعديل
+                    <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 8px; font-size: 14px; color: #dc3545;">رفع صورة الخريطة الأساسية (إجباري):</label>
+                        <input type="file" name="map_image" accept="image/*" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; background: white; cursor: pointer;">
+                    </div>
+                `;
+                container.appendChild(div);
+                isMapAdded = true;
+
+            } else if (selection === 'notes') {
+                if (isNotesAdded) { alert("سيكشن الملاحظات تمت إضافته بالفعل!"); return; }
+
+                const div = document.createElement('div');
+                div.className = 'dynamic-section';
+                div.innerHTML = `
+                    <h4 class="section-title">📸 إعدادات الملاحظات والصور <button type="button" class="remove-btn" onclick="removeSection(this, 'notes')">حذف</button></h4>
+                    <div class="checkbox-group">
+                        <label class="checkbox-item"><input type="checkbox" name="allow_photos" value="1"> تفعيل زر رفع الصور</label>
+                        <label class="checkbox-item"><input type="checkbox" name="requires_photo" value="1"> إرفاق صورة إجباري</label>
+                        <label class="checkbox-item"><input type="checkbox" name="notes_mandatory" value="1"> كتابة ملاحظات إجبارية</label>
+                    </div>
+                `;
+                container.appendChild(div);
+                isNotesAdded = true;
+
+            } else if (selection === 'questions') {
+                // الأسئلة ينفع نضيف منها بلوكات كتير عادي
+                const div = document.createElement('div');
+                div.className = 'dynamic-section';
+                div.innerHTML = `
+                    <h4 class="section-title">📋 عناصر الفحص (الأسئلة) <button type="button" class="remove-btn" onclick="this.parentElement.parentElement.remove()">حذف البلوك</button></h4>
+                    <div class="questions-wrapper">
+                        <div class="check-row">
+                            <input type="text" name="check_names[]" placeholder="اكتب السؤال (مثال: سلامة الأمان والشاسيه)..." required>
+                            <!-- سبتلك دي متعلم عليها صح لأن غالباً السؤال بيكون إجباري، لو حابب تلغيها امسح كلمة checked منها هي كمان -->
+                            <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" class="question-mandatory" value="1" checked> إجباري؟</label>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" style="font-size: 13px; padding: 6px 12px; margin-top: 10px;" onclick="addSingleQuestion(this)">➕ إضافة سؤال آخر</button>
+                `;
+                container.appendChild(div);
+            }
+        }
+
+        function removeSection(btn, type) {
+            btn.parentElement.parentElement.remove();
+            if (type === 'map') isMapAdded = false;
+            if (type === 'notes') isNotesAdded = false;
+        }
+
+        function addSingleQuestion(btn) {
+            const wrapper = btn.previousElementSibling;
+            const div = document.createElement('div');
+            div.className = 'check-row';
+            div.innerHTML = `
+                <input type="text" name="check_names[]" placeholder="اكتب سؤالاً آخر..." required>
+                <!-- هنا كمان سبتلك الإجباري افتراضي للأسئلة المضافة جديد -->
+                <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" class="question-mandatory" value="1" checked> إجباري؟</label>
+                <button type="button" style="background: transparent; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" onclick="this.parentElement.remove()">🗑️</button>
+            `;
+            wrapper.appendChild(div);
+        }
+
+        // السكريبت ده مهم جداً عشان يرقم الشيك بوكس بتاعت الأسئلة صح قبل ما تروح للباك إند
+        function prepareForm() {
+            const mandatoryCheckboxes = document.querySelectorAll('.question-mandatory');
+            mandatoryCheckboxes.forEach((checkbox, index) => {
+                checkbox.name = 'check_mandatory_' + index;
+            });
+        }
+    </script>
+</body>
+</html>

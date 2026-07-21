@@ -11,15 +11,16 @@
     <h1>ألعاب: <span style="color: #28a745;">{{ area_name }}</span></h1>
     
     <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
-        {% for game_id, game_info in games.items() %}
+        <!-- التعديل هنا: لفينا على القائمة مباشرة واستخدمنا game.id و game.name -->
+        {% for game in games %}
             
-            {% if game_id in completed_games %}
-                <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
-                    {{ game_info.name }} ✅ (تم الفحص)
+            {% if game.id|string in completed_games %}
+                <a href="/check/{{ game.id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
+                    {{ game.name }} ✅ (تم الفحص)
                 </a>
             {% else %}
-                <a href="/check/{{ game_id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
-                    {{ game_info.name }}
+                <a href="/check/{{ game.id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
+                    {{ game.name }}
                 </a>
             {% endif %}
 
