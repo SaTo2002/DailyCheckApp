@@ -39,7 +39,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- الجزء اللي فوق زي ما هو -->
         <div class="header">
             <h2>🎮 ألعاب منطقة: <span style="color: #007bff;">{{ area.name }}</span></h2>
             <a href="/manage_system" class="btn btn-secondary">🔙 العودة للمناطق</a>
@@ -129,7 +128,6 @@
                         <label class="checkbox-item"><input type="checkbox" name="map_mandatory" value="1"> الرسم إجباري</label>
                     </div>
                     
-                    // الجزء الجديد بعد التعديل
                     <div style="margin-top: 15px; border-top: 1px dashed #ccc; padding-top: 15px;">
                         <label style="font-weight: bold; display: block; margin-bottom: 8px; font-size: 14px; color: #dc3545;">رفع صورة الخريطة الأساسية (إجباري):</label>
                         <input type="file" name="map_image" accept="image/*" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 5px; background: white; cursor: pointer;">
@@ -163,7 +161,6 @@
                     <div class="questions-wrapper">
                         <div class="check-row">
                             <input type="text" name="check_names[]" placeholder="اكتب السؤال (مثال: سلامة الأمان والشاسيه)..." required>
-                            <!-- سبتلك دي متعلم عليها صح لأن غالباً السؤال بيكون إجباري، لو حابب تلغيها امسح كلمة checked منها هي كمان -->
                             <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" class="question-mandatory" value="1" checked> إجباري؟</label>
                         </div>
                     </div>
@@ -185,7 +182,6 @@
             div.className = 'check-row';
             div.innerHTML = `
                 <input type="text" name="check_names[]" placeholder="اكتب سؤالاً آخر..." required>
-                <!-- هنا كمان سبتلك الإجباري افتراضي للأسئلة المضافة جديد -->
                 <label class="checkbox-item" style="margin: 0; width: auto;"><input type="checkbox" class="question-mandatory" value="1" checked> إجباري؟</label>
                 <button type="button" style="background: transparent; border: none; color: #dc3545; cursor: pointer; font-size: 16px;" onclick="this.parentElement.remove()">🗑️</button>
             `;

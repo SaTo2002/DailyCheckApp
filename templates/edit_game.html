@@ -188,7 +188,6 @@
 <div class="container">
     <div class="page-header">
         <h1>تعديل إعدادات اللعبة: <span style="color: var(--primary-color);">{{ game.name }}</span></h1>
-        <!-- هنا تم حل مشكلة زر العودة لتوجيهه للمنطقة الصحيحة -->
         <a href="/area_games/{{ game.area_id }}" class="btn-back">🔙 إلغاء والعودة</a>
     </div>
 
@@ -205,7 +204,6 @@
                 <div class="form-group">
                     <label>المنطقة</label>
                     <select name="area_id" class="form-control">
-                        <!-- استبدل المتغيرات دي بالداتا الحقيقية اللي بتبعتها من السيرفر -->
                         {% for area in areas %}
                         <option value="{{ area.id }}" {% if area.id == game.area_id %}selected{% endif %}>{{ area.name }}</option>
                         {% endfor %}
