@@ -69,6 +69,14 @@ with app.app_context():
     except Exception:
         pass  # العمود موجود بالفعل
 
+    # فحص وإضافة عمود صورة المنطقة (image) لجداول المناطق إن لم يكن موجوداً
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE areas ADD COLUMN image VARCHAR(255) DEFAULT NULL"))
+            conn.commit()
+    except Exception:
+        pass  # العمود موجود بالفعل
+
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

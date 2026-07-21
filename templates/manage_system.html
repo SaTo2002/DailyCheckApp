@@ -45,9 +45,13 @@
         {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
         <div class="card">
             <h3>➕ إضافة منطقة جديدة</h3>
-            <form action="/add_area" method="POST" class="add-area-form" style="display: flex; gap: 15px; margin-top: 15px;">
-                <input type="text" name="area_name" placeholder="اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)..." required style="flex: 1;">
-                <button type="submit" class="btn btn-success">حفظ المنطقة</button>
+            <form action="/add_area" method="POST" class="add-area-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;" enctype="multipart/form-data">
+                <input type="text" name="area_name" placeholder="اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)..." required style="width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-weight: bold; font-size: 14px; color: #475569;">🖼️ صورة غلاف المنطقة:</label>
+                    <input type="file" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #f8fafc;">
+                </div>
+                <button type="submit" class="btn btn-success" style="align-self: flex-start;">حفظ المنطقة</button>
             </form>
         </div>
         {% endif %}

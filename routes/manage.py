@@ -37,9 +37,20 @@ def manage_system():
 def add_area():
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     name = request.form.get('area_name')
+    
+    image_path = None
+    if 'area_image' in request.files:
+        file = request.files['area_image']
+        if file and file.filename != '':
+            ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+            filename = f"area_cover_{uuid.uuid4().hex}.{ext}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            image_path = f"/{filepath}".replace("\\", "/")
+
     if name:
         max_order = db.session.query(db.func.max(Area.sort_order)).scalar() or 0
-        db.session.add(Area(name=name, sort_order=max_order + 1))
+        db.session.add(Area(name=name, sort_order=max_order + 1, image=image_path))
         db.session.commit()
     return redirect(url_for('manage.manage_system'))
 
@@ -68,7 +79,26 @@ def edit_area(area_id):
         new_name = request.form.get('area_name')
         if new_name:
             area.name = new_name
-            db.session.commit()
+            
+        if 'area_image' in request.files:
+            file = request.files['area_image']
+            if file and file.filename != '':
+                # مسح الصورة القديمة إن وُجدت
+                if area.image:
+                    old_path = area.image.lstrip('/')
+                    if os.path.exists(old_path):
+                        try:
+                            os.remove(old_path)
+                        except Exception as e:
+                            print(f"Error deleting old area image: {e}")
+                
+                ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+                filename = f"area_cover_{uuid.uuid4().hex}.{ext}"
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                file.save(filepath)
+                area.image = f"/{filepath}".replace("\\", "/")
+                
+        db.session.commit()
         return redirect(url_for('manage.manage_system'))
     return render_template('edit_area.html', area=area)
 

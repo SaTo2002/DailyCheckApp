@@ -1,6 +1,6 @@
 <!-- ==============================================================================
   صفحة الدخول الرئيسية للمونيتور (index.html)
-  تتيح للموظف إدخال اسمه واختيار المنطقة التي سيبدأ بفحص ألعابها
+  تتيح للموظف اختيار المنطقة بصرياً بكروت مضيئة ثم إدخال اسمه لبدء الفحص
 ============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -10,30 +10,135 @@
     <title>تسجيل الدخول - فحص الألعاب</title>
     <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <style>
+        .area-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 25px;
+            margin-top: 15px;
+        }
+        
+        .area-card {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border-radius: 24px;
+            border: 5px solid #a0aec0; /* لون رمادي افتراضي */
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-sizing: border-box;
+            background: #edf2f7;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .area-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .area-card.selected {
+            border-color: #48bb78; /* لون أخضر عند التحديد */
+            box-shadow: 0 10px 15px -3px rgba(72, 187, 120, 0.3), 0 4px 6px -2px rgba(72, 187, 120, 0.2);
+        }
+        
+        .area-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .area-card-label-wrapper {
+            position: absolute;
+            bottom: 12px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            padding: 0 10px;
+        }
+        
+        .area-card-label {
+            background: rgba(255, 255, 255, 0.35); /* زجاجي شفاف مائل للبياض */
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #1a202c;
+            font-weight: 800;
+            font-size: 15px;
+            padding: 8px 24px;
+            border-radius: 9999px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            text-transform: uppercase;
+            width: 85%;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            box-sizing: border-box;
+            transition: all 0.25s ease;
+        }
+        
+        .area-card.selected .area-card-label {
+            background: rgba(72, 187, 120, 0.7); /* زجاجي أخضر شبه شفاف عند التحديد */
+            border-color: rgba(72, 187, 120, 0.5);
+            color: #ffffff; /* لون أبيض ناصع للتناسق مع اللون الأخضر */
+            box-shadow: 0 8px 32px 0 rgba(72, 187, 120, 0.25);
+        }
+        
+        @media (max-width: 480px) {
+            .area-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+            .area-card {
+                border-width: 4px;
+                border-radius: 20px;
+            }
+            .area-card-label {
+                font-size: 12px;
+                padding: 6px 16px;
+            }
+        }
+    </style>
 </head>
 <body>
 
     <!-- الكارت الرئيسي لنموذج تسجيل دخول المونيتور -->
     <div class="monitor-container" style="margin-top: 40px;">
         <h2 class="monitor-title">🎮 نظام الفحص اليومي للألعاب</h2>
-        <p class="sub-title">يرجى إدخال اسم الموظف واختيار المنطقة للبدء</p>
+        <p class="sub-title">اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء</p>
         
         <!-- نموذج اختيار اسم المراقب والمنطقة -->
-        <form method="POST">
-            <!-- حقل اسم المراقب (يحتفظ بالاسم الأخير المكتوب في Session) -->
-            <label class="form-label">👤 اسم الموظف (المونيتور):</label>
-            <input type="text" name="monitor_name" class="touch-input" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}">
-            
-            <!-- قائمة اختيار المنطقة الحالية من قاعدة البيانات -->
+        <form method="POST" id="loginForm">
+            <!-- قائمة اختيار المنطقة الحالية من قاعدة البيانات بصور وكروت -->
             <label class="form-label">📍 اختر المنطقة (Area):</label>
-            <select name="area" class="touch-select" required>
+            <div class="area-grid">
                 {% for area in areas %}
-                    <option value="{{ area.id }}">{{ area.name }}</option>
+                <div class="area-card" data-area-id="{{ area.id }}" onclick="selectArea(this)">
+                    {% if area.image %}
+                    <img src="{{ area.image }}" class="area-card-img" alt="{{ area.name }}">
+                    {% else %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #e2e8f0; color: #94a3b8; font-size: 30px;">🗺️</div>
+                    {% endif %}
+                    <div class="area-card-label-wrapper">
+                        <div class="area-card-label">{{ area.name }}</div>
+                    </div>
+                </div>
                 {% endfor %}
-            </select>
+            </div>
+
+            <!-- الحقل المخفي لحفظ معرف المنطقة المحددة -->
+            <input type="hidden" name="area" id="selected_area_input" required>
+
+            <!-- حقل اسم المراقب -->
+            <div id="nameInputSection">
+                <label class="form-label">👤 اسم الموظف (المونيتور):</label>
+                <input type="text" name="monitor_name" class="touch-input" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}">
+            </div>
             
             <!-- زر الانتقال لقائمة ألعاب المنطقة -->
-            <button type="submit" class="btn-touch btn-primary-touch" style="width: 100%; font-size: 18px; margin-top: 10px;">
+            <button type="submit" class="btn-touch btn-primary-touch" style="width: 100%; font-size: 18px; margin-top: 15px;">
                 🚀 بدء الفحص
             </button>
         </form>
@@ -43,6 +148,32 @@
             <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒 دخول الإدارة والصيانة</a>
         </div>
     </div>
+
+    <script>
+        function selectArea(cardElement) {
+            // إزالة التحديد عن الكروت الأخرى
+            document.querySelectorAll('.area-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // تحديد الكارت الحالي
+            cardElement.classList.add('selected');
+            
+            // تحديث القيمة في الحقل المخفي
+            const areaId = cardElement.getAttribute('data-area-id');
+            document.getElementById('selected_area_input').value = areaId;
+        }
+
+        // التأكد من اختيار منطقة قبل الإرسال
+        const form = document.getElementById('loginForm');
+        form.addEventListener('submit', function (e) {
+            const selectedArea = document.getElementById('selected_area_input').value;
+            if (!selectedArea) {
+                e.preventDefault();
+                alert('⚠️ يرجى اختيار المنطقة أولاً بالضغط على صورتها.');
+            }
+        });
+    </script>
 
 </body>
 </html>

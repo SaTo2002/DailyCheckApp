@@ -129,10 +129,22 @@
             <a href="/manage_system" class="btn-back">🔙 إلغاء والعودة</a>
         </div>
         
-        <form method="POST">
+        <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label>اسم المنطقة الجديد:</label>
                 <input type="text" name="area_name" value="{{ area.name }}" class="touch-input" placeholder="اكتب اسم المنطقة..." required>
+            </div>
+            
+            {% if area.image %}
+            <div class="form-group">
+                <label>🖼️ صورة غلاف المنطقة الحالية:</label>
+                <img src="{{ area.image }}" alt="Cover" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid var(--border-color); display: block;">
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label>🖼️ تحديث صورة غلاف المنطقة (اختياري):</label>
+                <input type="file" name="area_image" accept="image/*" class="touch-input" style="cursor: pointer;">
             </div>
             
             <button type="submit" class="btn-submit">💾 حفظ التعديلات</button>
