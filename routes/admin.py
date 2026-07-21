@@ -163,26 +163,6 @@ def dashboard():
     elif status_filter == 'has_issues':
         grouped_reports = {sid: rep for sid, rep in grouped_reports.items() if rep['has_issues']}
 
-    # حساب الإحصائيات الإجمالية
-    total_sessions = len(grouped_reports)
-    passed_sessions = sum(1 for rep in grouped_reports.values() if not rep['has_issues'])
-    issues_sessions = sum(1 for rep in grouped_reports.values() if rep['has_issues'])
-    pass_rate = round((passed_sessions / total_sessions * 100), 1) if total_sessions > 0 else 100.0
-    active_monitors_count = len(set(rep['monitor_name'] for rep in grouped_reports.values()))
-
-    # تجهيز بيانات الرسم البياني اليومي (Daily Trend Data)
-    date_counts = {}
-    for rep in grouped_reports.values():
-        d_str = rep['timestamp'].split(' ')[0]
-        date_counts[d_str] = date_counts.get(d_str, 0) + 1
-    
-    sorted_dates = sorted(date_counts.keys())
-    chart_dates_json = json.dumps(sorted_dates)
-    chart_counts_json = json.dumps([date_counts[d] for d in sorted_dates])
-    
-    # بيانات الرسم الدائري (Status Distribution Data)
-    chart_status_json = json.dumps([passed_sessions, issues_sessions])
-
     return render_template(
         'dashboard.html',
         reports=grouped_reports,
@@ -195,18 +175,7 @@ def dashboard():
         end_date=end_date,
         selected_monitor=selected_monitor,
         status_filter=status_filter,
-        search_query=search_query,
-        stats={
-            'total_sessions': total_sessions,
-            'passed_sessions': passed_sessions,
-            'issues_sessions': issues_sessions,
-            'pass_rate': pass_rate,
-            'total_issues_count': total_issues_count,
-            'active_monitors_count': active_monitors_count
-        },
-        chart_dates_json=chart_dates_json,
-        chart_counts_json=chart_counts_json,
-        chart_status_json=chart_status_json
+        search_query=search_query
     )
 
 # ------------------------------------------------------------------------------
