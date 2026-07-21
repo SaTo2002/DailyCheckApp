@@ -6,6 +6,7 @@
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>إدارة المستخدمين والصلاحيات - جرافيتي كود</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
@@ -21,14 +22,26 @@
         .badge-admin { background: #dc3545; }
         .badge-role { background: #17a2b8; }
         .note-box { background: #e9ecef; border-right: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; color: #495057; }
+
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .container { padding: 15px; }
+            .page-top-header { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+            .page-top-header a { text-align: center; }
+            .create-user-form { flex-direction: column; }
+            .create-user-form > div { width: 100% !important; min-width: 100% !important; }
+            button[type="submit"] { width: 100%; text-align: center; }
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <!-- الهيدر وزر العودة للداشبورد -->
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h2>👥 إدارة الحسابات والصلاحيات</h2>
+        <div class="page-top-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">👥 إدارة الحسابات والصلاحيات</h2>
             <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">العودة للوحة التحكم</a>
         </div>
 
@@ -41,7 +54,7 @@
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd;">
             <h3 style="margin-top: 0; color: #007bff;">➕ إضافة مستخدم جديد</h3>
             <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
-                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div class="create-user-form" style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
                         <label>اسم المستخدم (يستخدم للدخول):</label>
                         <input type="text" name="username" required placeholder="مثال: ahmed_maint">
@@ -70,7 +83,7 @@
                     </div>
                 </div>
 
-                <div style="align-self: flex-start;">
+                <div>
                     <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">إنشاء الحساب</button>
                 </div>
             </form>
@@ -78,6 +91,7 @@
 
         <!-- 2. جدول عرض وتعديل صلاحيات الحسابات المسجلة -->
         <h3 style="margin-top: 40px; color: #333;">📋 الحسابات المسجلة وإمكانيات التعديل</h3>
+        <div class="table-responsive">
         <table>
             <thead>
                 <tr>
@@ -121,6 +135,7 @@
                 {% endfor %}
             </tbody>
         </table>
+        </div>
     </div>
 
 </body>

@@ -81,6 +81,44 @@
         
         .toggle-icon { font-size: 16px; transition: transform 0.3s; color: #64748b; }
         .open .toggle-icon { transform: rotate(180deg); }
+
+        /* التنسيق المتجاوب التام للهواتف والتابلت */
+        @media (max-width: 768px) {
+            body { padding: 12px 10px; }
+            .header { flex-direction: column; align-items: stretch; text-align: center; gap: 14px; margin-bottom: 20px; }
+            .header h1 { font-size: 20px; }
+            .header div:last-child { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; width: 100%; }
+            .btn-filter { width: 100%; justify-content: center; padding: 12px 10px; font-size: 13px; box-sizing: border-box; }
+            
+            /* شبكة كروت الإحصائيات 2 في السطر متطابقة */
+            .stats-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; margin-bottom: 20px; }
+            .stat-card { padding: 14px 12px; }
+            .stat-card:last-child:nth-child(odd) { grid-column: span 2; }
+            .stat-value { font-size: 22px; text-align: right; }
+            .stat-label { font-size: 12px; text-align: right; }
+            
+            /* الرسوم البيانية في المنتصف */
+            .charts-grid { grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
+            .chart-card { padding: 14px; overflow: hidden; }
+            .chart-card canvas { max-width: 100% !important; }
+            
+            /* نموذج الفلترة والبحث */
+            .filter-card { padding: 16px; margin-bottom: 20px; }
+            .filter-form { grid-template-columns: 1fr; gap: 12px; }
+            .filter-form button, .filter-form a { width: 100%; box-sizing: border-box; }
+            
+            /* كروت تقارير الفحص */
+            .report-header { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px; text-align: right; }
+            .report-header > div:first-child { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .report-header > div:last-child { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 8px; border-top: 1px solid #f1f5f9; padding-top: 10px; }
+            .report-body { padding: 12px; }
+            .game-section { padding: 12px; }
+            .media-container img { width: 100%; max-width: 200px; height: auto; }
+        }
+        @media (max-width: 360px) {
+            .stats-grid { grid-template-columns: 1fr !important; }
+            .stat-card:last-child:nth-child(odd) { grid-column: span 1; }
+        }
     </style>
 </head>
 <body>
@@ -191,9 +229,9 @@
                 <input type="text" name="search" value="{{ search_query }}" placeholder="اسم اللعبة، الملاحظة...">
             </div>
 
-            <div style="display: flex; gap: 8px;">
-                <button type="submit" class="btn-filter btn-submit" style="flex: 1;">تطبيق 🎯</button>
-                <a href="/dashboard" class="btn-filter btn-reset" title="إعادة ضبط">✖</a>
+            <div style="display: flex; gap: 8px; margin-top: 5px;">
+                <button type="submit" class="btn-filter btn-submit" style="flex: 1; padding: 12px;">تطبيق 🎯</button>
+                <a href="/dashboard" class="btn-filter btn-reset" style="padding: 12px 18px;" title="إعادة ضبط">إلغاء ✖</a>
             </div>
         </form>
     </div>
