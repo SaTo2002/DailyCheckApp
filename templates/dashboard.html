@@ -8,8 +8,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة الإدارة - إحصائيات وتقارير الفحص</title>
-    <!-- مكتبة Chart.js للرسوم البيانية -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
             --primary: #0d6efd;
@@ -28,23 +26,6 @@
         
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px; }
         .header h1 { margin: 0; font-size: 24px; color: #1e293b; }
-
-        /* كروت الإحصائيات الرئيسية (KPI Cards) */
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .stat-card { background: var(--card-bg); padding: 18px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border-right: 5px solid var(--primary); transition: transform 0.2s; }
-        .stat-card:hover { transform: translateY(-3px); }
-        .stat-card.passed { border-right-color: var(--success); }
-        .stat-card.issues { border-right-color: var(--danger); }
-        .stat-card.rate { border-right-color: var(--info); }
-        .stat-card.count { border-right-color: var(--warning); }
-        .stat-value { font-size: 26px; font-weight: 800; color: #1e293b; margin: 5px 0 0 0; }
-        .stat-label { font-size: 13px; color: #64748b; font-weight: 600; }
-
-        /* شبكة الرسوم البيانية (Charts Grid) */
-        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 30px; }
-        @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
-        .chart-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); border: 1px solid var(--border); }
-        .chart-title { font-size: 16px; font-weight: 700; color: #334155; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px; }
 
         /* شريط الفلترة والبحث المتقدم */
         .filter-card { background: var(--card-bg); padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.04); margin-bottom: 30px; border: 1px solid var(--border); }
@@ -141,45 +122,7 @@
         </div>
     </div>
 
-    <!-- 1. كروت الإحصائيات السريعة (Summary KPIs) -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-label">📋 إجمالي عمليات الفحص</div>
-            <div class="stat-value">{{ stats.total_sessions }}</div>
-        </div>
-        <div class="stat-card passed">
-            <div class="stat-label">✅ فحوصات سليمة بالكامل</div>
-            <div class="stat-value" style="color: var(--success);">{{ stats.passed_sessions }}</div>
-        </div>
-        <div class="stat-card issues">
-            <div class="stat-label">❌ فحوصات بها أعطال/ملاحظات</div>
-            <div class="stat-value" style="color: var(--danger);">{{ stats.issues_sessions }}</div>
-        </div>
-        <div class="stat-card rate">
-            <div class="stat-label">📈 معدل السلامة العامة</div>
-            <div class="stat-value" style="color: #0284c7;">{{ stats.pass_rate }}%</div>
-        </div>
-        <div class="stat-card count">
-            <div class="stat-label">🛠️ عدد الأخطاء المكتشفة</div>
-            <div class="stat-value" style="color: #d97706;">{{ stats.total_issues_count }}</div>
-        </div>
-    </div>
 
-    <!-- 2. قسم الرسوم البيانية التفاعلية (Interactive Charts) -->
-    <div class="charts-grid">
-        <div class="chart-card">
-            <h3 class="chart-title">📈 معدل حركة الفحوصات اليومية</h3>
-            <div style="height: 220px; position: relative;">
-                <canvas id="dailyTrendChart"></canvas>
-            </div>
-        </div>
-        <div class="chart-card">
-            <h3 class="chart-title">🍩 نسبة سلامة الفحوصات</h3>
-            <div style="height: 220px; position: relative; display: flex; justify-content: center;">
-                <canvas id="statusDoughnutChart"></canvas>
-            </div>
-        </div>
-    </div>
 
     <!-- 3. شريط الفلترة والبحث المتقدم -->
     <div class="filter-card">
@@ -343,52 +286,7 @@
         }
     }
 
-    // 1. إعداد الرسم البياني الخطّي للحركة اليومية (Daily Trend Chart)
-    const dailyDates = JSON.parse('{{ chart_dates_json | safe }}');
-    const dailyCounts = JSON.parse('{{ chart_counts_json | safe }}');
-
-    const ctxTrend = document.getElementById('dailyTrendChart').getContext('2d');
-    new Chart(ctxTrend, {
-        type: 'bar',
-        data: {
-            labels: dailyDates.length > 0 ? dailyDates : ['لا توجد بيانات'],
-            datasets: [{
-                label: 'عدد الفحوصات',
-                data: dailyCounts.length > 0 ? dailyCounts : [0],
-                backgroundColor: '#0d6efd',
-                borderRadius: 6
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            }
-        }
-    });
-
-    // 2. إعداد الرسم الدائري لنسبة الفحوصات السليمة والأعطال (Doughnut Chart)
-    const statusData = JSON.parse('{{ chart_status_json | safe }}');
-    const ctxDoughnut = document.getElementById('statusDoughnutChart').getContext('2d');
-    new Chart(ctxDoughnut, {
-        type: 'doughnut',
-        data: {
-            labels: ['سليم ✅', 'بها أعطال ❌'],
-            datasets: [{
-                data: statusData,
-                backgroundColor: ['#198754', '#dc3545']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
-        }
-    });
+    // الرسوم البيانية تم إزالتها بناءً على طلب المستخدم
 </script>
 
 </body>
