@@ -70,55 +70,144 @@ def dashboard():
     # قراءة قيم الفلترة من رابط الرغبات (Query Parameters)
     selected_area = request.args.get('area', '')
     selected_date = request.args.get('date', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
     selected_monitor = request.args.get('monitor_name', '')
+    status_filter = request.args.get('status_filter', '')  # 'all', 'ok', 'has_issues'
+    search_query = request.args.get('search', '').strip()
     
     # بناء استعلام الفلترة
     query = GameReport.query
-    if selected_area: query = query.filter(GameReport.area_id == selected_area)
-    if selected_date: query = query.filter(func.date(GameReport.timestamp) == selected_date)
-    if selected_monitor: query = query.filter(GameReport.monitor_name == selected_monitor)
+    if selected_area:
+        query = query.filter(GameReport.area_id == selected_area)
+    if selected_date:
+        query = query.filter(func.date(GameReport.timestamp) == selected_date)
+    if start_date:
+        query = query.filter(func.date(GameReport.timestamp) >= start_date)
+    if end_date:
+        query = query.filter(func.date(GameReport.timestamp) <= end_date)
+    if selected_monitor:
+        query = query.filter(GameReport.monitor_name == selected_monitor)
+    if search_query:
+        query = query.filter(
+            (GameReport.notes.like(f"%{search_query}%")) |
+            (GameReport.area_id.like(f"%{search_query}%")) |
+            (GameReport.monitor_name.like(f"%{search_query}%"))
+        )
     
     reports = query.order_by(GameReport.timestamp.desc()).all()
     
     # جلب القوائم الفرعية المتاحة للفلترة
-    areas = [r[0] for r in db.session.query(GameReport.area_id).distinct().all()]
+    areas = [r[0] for r in db.session.query(GameReport.area_id).distinct().all() if r[0]]
     dates = [str(r[0]) for r in db.session.query(func.date(GameReport.timestamp)).distinct().all() if r[0]]
-    monitors = [r[0] for r in db.session.query(GameReport.monitor_name).distinct().all()]
+    monitors = [r[0] for r in db.session.query(GameReport.monitor_name).distinct().all() if r[0]]
     
-    # تجميع التقارير حسب session_id لتظهر المنطقة والفحوصات في كارت واحد مجمع
+    # تجميع التقارير حسب session_id وحساب الإحصائيات
     grouped_reports = {}
+    total_issues_count = 0
+    
     for r in reports:
         if r.session_id not in grouped_reports:
             grouped_reports[r.session_id] = {
+                'session_id': r.session_id,
                 'monitor_name': r.monitor_name,
                 'area_id': r.area_id,
                 'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-                'games': []
+                'games': [],
+                'has_issues': False,
+                'total_checks_count': 0,
+                'issue_checks_count': 0
             }
         
-        game_model = GameModel.query.get(r.game_id) if r.game_id.isdigit() else None
+        game_model = GameModel.query.get(r.game_id) if r.game_id and r.game_id.isdigit() else None
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
         checks = json.loads(r.checks_data) if r.checks_data else {}
         
         mapped_checks = {}
+        game_has_issue = False
+        
         for k, v in checks.items():
+            check_label = k
             if k.startswith('check_'):
                 try:
                     idx = int(k.split('_')[1]) - 1
-                    mapped_checks[actual_check_names[idx] if idx < len(actual_check_names) else k] = 'OK' if v == 'سليم' else 'Not OK'
-                except Exception: mapped_checks[k] = v
-            else: mapped_checks[k] = v
+                    check_label = actual_check_names[idx] if idx < len(actual_check_names) else k
+                except Exception:
+                    check_label = k
+            
+            is_ok = (v == 'سليم' or v == 'OK')
+            mapped_checks[check_label] = 'OK' if is_ok else 'Not OK'
+            
+            grouped_reports[r.session_id]['total_checks_count'] += 1
+            if not is_ok:
+                game_has_issue = True
+                total_issues_count += 1
+                grouped_reports[r.session_id]['issue_checks_count'] += 1
+        
+        if game_has_issue:
+            grouped_reports[r.session_id]['has_issues'] = True
             
         grouped_reports[r.session_id]['games'].append({
             'game_id': game_model.name if game_model else r.game_id,
             'checks': mapped_checks,
+            'has_issue': game_has_issue,
             'notes': r.notes,
             'map_drawing': r.map_image_path,
             'base_map': game_model.map_image if game_model else "",
             'photos': json.loads(r.photos_paths) if r.photos_paths else []
         })
-        
-    return render_template('dashboard.html', reports=grouped_reports, areas=areas, dates=dates, monitors=monitors, selected_area=selected_area, selected_date=selected_date, selected_monitor=selected_monitor)
+
+    # فلترة حسب حالة الفحص (كل الجلسة سليمة ✅ vs بها أعطال ❌)
+    if status_filter == 'ok':
+        grouped_reports = {sid: rep for sid, rep in grouped_reports.items() if not rep['has_issues']}
+    elif status_filter == 'has_issues':
+        grouped_reports = {sid: rep for sid, rep in grouped_reports.items() if rep['has_issues']}
+
+    # حساب الإحصائيات الإجمالية
+    total_sessions = len(grouped_reports)
+    passed_sessions = sum(1 for rep in grouped_reports.values() if not rep['has_issues'])
+    issues_sessions = sum(1 for rep in grouped_reports.values() if rep['has_issues'])
+    pass_rate = round((passed_sessions / total_sessions * 100), 1) if total_sessions > 0 else 100.0
+    active_monitors_count = len(set(rep['monitor_name'] for rep in grouped_reports.values()))
+
+    # تجهيز بيانات الرسم البياني اليومي (Daily Trend Data)
+    date_counts = {}
+    for rep in grouped_reports.values():
+        d_str = rep['timestamp'].split(' ')[0]
+        date_counts[d_str] = date_counts.get(d_str, 0) + 1
+    
+    sorted_dates = sorted(date_counts.keys())
+    chart_dates_json = json.dumps(sorted_dates)
+    chart_counts_json = json.dumps([date_counts[d] for d in sorted_dates])
+    
+    # بيانات الرسم الدائري (Status Distribution Data)
+    chart_status_json = json.dumps([passed_sessions, issues_sessions])
+
+    return render_template(
+        'dashboard.html',
+        reports=grouped_reports,
+        areas=areas,
+        dates=dates,
+        monitors=monitors,
+        selected_area=selected_area,
+        selected_date=selected_date,
+        start_date=start_date,
+        end_date=end_date,
+        selected_monitor=selected_monitor,
+        status_filter=status_filter,
+        search_query=search_query,
+        stats={
+            'total_sessions': total_sessions,
+            'passed_sessions': passed_sessions,
+            'issues_sessions': issues_sessions,
+            'pass_rate': pass_rate,
+            'total_issues_count': total_issues_count,
+            'active_monitors_count': active_monitors_count
+        },
+        chart_dates_json=chart_dates_json,
+        chart_counts_json=chart_counts_json,
+        chart_status_json=chart_status_json
+    )
 
 # ------------------------------------------------------------------------------
 # 4. طباعة التقرير المجمع للمنطقة (GET)
