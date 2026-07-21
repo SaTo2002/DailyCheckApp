@@ -55,7 +55,7 @@ def home():
         session['game_data'] = {}
         return redirect(url_for('monitor.show_games', area_id=selected_area))
     
-    areas = Area.query.all()
+    areas = Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all()
     return render_template('index.html', areas=areas)
 
 # ------------------------------------------------------------------------------

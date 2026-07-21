@@ -327,7 +327,6 @@
 
         function startPosition(e) {
             if (e.cancelable) e.preventDefault();
-            saveStateToHistory(); // حفظ الحالة قبل البدء بالرسم الجديد
             isDrawing = true;
             draw(e);
         }
@@ -339,6 +338,7 @@
             // حفظ الصورة المحدثة وإبراز التنبيه
             mapInput.value = canvas.toDataURL('image/png');
             if (drawingBadge) drawingBadge.style.display = 'inline';
+            saveStateToHistory(); // حفظ الحالة بعد الانتهاء من الرسم
         }
 
         function draw(e) {

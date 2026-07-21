@@ -60,8 +60,16 @@
             <form action="/add_game_to_area/{{ area.id }}" method="POST" id="gameForm" onsubmit="prepareForm()" enctype="multipart/form-data" style="margin-top: 15px;">
                 
                 <!-- اسم اللعبة -->
-                <div style="margin-bottom: 25px;">
+                <div style="margin-bottom: 15px;">
                     <input type="text" name="game_name" class="main-input" placeholder="اسم اللعبة (اكتب اسم اللعبة أو المعدة)..." required>
+                </div>
+
+                <!-- إعدادات الملاحظات الدائمة -->
+                <div style="margin-bottom: 20px; background: #f8fafc; padding: 12px 15px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 14px; font-weight: 600; color: #334155;">
+                        <input type="checkbox" name="notes_mandatory" value="1">
+                        <span>📝 كتابة ملاحظات الفحص إجبارية؟</span>
+                    </label>
                 </div>
 
                 <!-- شريط إضافة السيكشن (حسب الرسمة) -->
@@ -69,7 +77,7 @@
                     <select id="section_dropdown">
                         <option value="questions">📋 الأسئلة (سليم / غير سليم)</option>
                         <option value="map">🗺️ الخريطة</option>
-                        <option value="notes">📸 الملاحظات والصور</option>
+                        <option value="photos">📸 الصور</option>
                     </select>
                     <button type="button" class="btn btn-outline" onclick="addSection()">➕ إضافة سيكشن</button>
                 </div>
@@ -118,9 +126,9 @@
     </div>
 
     <script>
-        // متغيرات عشان نمنع تكرار سيكشن الخريطة والملاحظات
+        // متغيرات عشان نمنع تكرار سيكشن الخريطة والصور
         let isMapAdded = false;
-        let isNotesAdded = false;
+        let isPhotosAdded = false;
 
         function addSection() {
             const dropdown = document.getElementById('section_dropdown');
@@ -147,21 +155,20 @@
                 container.appendChild(div);
                 isMapAdded = true;
 
-            } else if (selection === 'notes') {
-                if (isNotesAdded) { alert("سيكشن الملاحظات تمت إضافته بالفعل!"); return; }
+            } else if (selection === 'photos') {
+                if (isPhotosAdded) { alert("سيكشن الصور تمت إضافته بالفعل!"); return; }
 
                 const div = document.createElement('div');
                 div.className = 'dynamic-section';
                 div.innerHTML = `
-                    <h4 class="section-title">📸 إعدادات الملاحظات والصور <button type="button" class="remove-btn" onclick="removeSection(this, 'notes')">حذف</button></h4>
+                    <h4 class="section-title">📸 إعدادات الصور <button type="button" class="remove-btn" onclick="removeSection(this, 'photos')">حذف</button></h4>
                     <div class="checkbox-group">
                         <label class="checkbox-item"><input type="checkbox" name="allow_photos" value="1"> تفعيل زر رفع الصور</label>
                         <label class="checkbox-item"><input type="checkbox" name="requires_photo" value="1"> إرفاق صورة إجباري</label>
-                        <label class="checkbox-item"><input type="checkbox" name="notes_mandatory" value="1"> كتابة ملاحظات إجبارية</label>
                     </div>
                 `;
                 container.appendChild(div);
-                isNotesAdded = true;
+                isPhotosAdded = true;
 
             } else if (selection === 'questions') {
                 // الأسئلة ينفع نضيف منها بلوكات كتير عادي
@@ -184,7 +191,7 @@
         function removeSection(btn, type) {
             btn.parentElement.parentElement.remove();
             if (type === 'map') isMapAdded = false;
-            if (type === 'notes') isNotesAdded = false;
+            if (type === 'photos') isPhotosAdded = false;
         }
 
         function addSingleQuestion(btn) {

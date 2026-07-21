@@ -28,7 +28,7 @@ def check_system_permission():
 def manage_system():
     if not session.get('is_admin') or not check_system_permission():
         return redirect(url_for('admin.admin_login'))
-    return render_template('manage_system.html', areas=Area.query.all())
+    return render_template('manage_system.html', areas=Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all())
 
 # ------------------------------------------------------------------------------
 # 2. إضافة منطقة جغرافية جديدة (POST)
@@ -38,8 +38,23 @@ def add_area():
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     name = request.form.get('area_name')
     if name:
-        db.session.add(Area(name=name))
+        max_order = db.session.query(db.func.max(Area.sort_order)).scalar() or 0
+        db.session.add(Area(name=name, sort_order=max_order + 1))
         db.session.commit()
+    return redirect(url_for('manage.manage_system'))
+
+# ------------------------------------------------------------------------------
+# 2.5 الترتيب المخصص للمناطق بالسحب والإفلات (Drag & Drop) (POST)
+# ------------------------------------------------------------------------------
+@manage_bp.route('/update_areas_order', methods=['POST'])
+def update_areas_order():
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
+    area_ids = request.form.getlist('area_ids[]')
+    for idx, a_id in enumerate(area_ids, start=1):
+        area = Area.query.get(a_id)
+        if area:
+            area.sort_order = idx
+    db.session.commit()
     return redirect(url_for('manage.manage_system'))
 
 # ------------------------------------------------------------------------------
@@ -146,7 +161,7 @@ def edit_game(game_id):
     game = GameModel.query.get_or_404(game_id)
     
     if request.method == 'POST':
-        game.name = request.form.get('game_name')
+        game.name = request.form.get('name')
         game.area_id = request.form.get('area_id')
         game.has_map = bool(request.form.get('has_map'))
         game.map_mandatory = bool(request.form.get('map_mandatory'))
@@ -178,7 +193,7 @@ def edit_game(game_id):
         db.session.commit()
         return redirect(url_for('manage.area_games', area_id=game.area_id))
         
-    return render_template('edit_game.html', game=game, areas=Area.query.all(), checks=json.loads(game.checks) if game.checks else [])
+    return render_template('edit_game.html', game=game, areas=Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all(), checks=json.loads(game.checks) if game.checks else [])
 
 # ------------------------------------------------------------------------------
 # 9. حذف لعبة من منطقة (GET)

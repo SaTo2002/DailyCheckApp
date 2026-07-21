@@ -30,6 +30,7 @@ class Area(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)                        # المعرف الفريد للمنطقة
     name = db.Column(db.String(100), unique=True, nullable=False)       # اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)
+    sort_order = db.Column(db.Integer, default=0)                       # ترتيب ظهور المنطقة (Drag & Drop)
     
     # علاقة الربط بالألعاب (حذف المنطقة يؤدي لحذف ألعابها تلقائياً)
     games = db.relationship('GameModel', backref='area', lazy=True, cascade="all, delete-orphan")

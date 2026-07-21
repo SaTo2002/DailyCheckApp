@@ -61,6 +61,14 @@ with app.app_context():
     except Exception:
         pass  # العمود موجود بالفعل
 
+    # فحص وإضافة عمود ترتيب المناطق (sort_order) لجداول المناطق إن لم يكن موجوداً
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(text("ALTER TABLE areas ADD COLUMN sort_order INT DEFAULT 0"))
+            conn.commit()
+    except Exception:
+        pass  # العمود موجود بالفعل
+
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

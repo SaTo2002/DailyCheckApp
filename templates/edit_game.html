@@ -212,7 +212,7 @@
                 </div>
                 <div class="form-group">
                     <label>المنطقة</label>
-                    <select name="area_id" class="form-control">
+                    <select name="area_id" class="form-control" id="areaSelect" data-original-area="{{ game.area_id }}">
                         {% for area in areas %}
                         <option value="{{ area.id }}" {% if area.id == game.area_id %}selected{% endif %}>{{ area.name }}</option>
                         {% endfor %}
@@ -221,10 +221,18 @@
             </div>
         </div>
 
-        <!-- إعدادات المرفقات والخريطة -->
+        <!-- إعدادات الملاحظات -->
         <div class="section-card">
-            <h3 class="section-title">⚙️ إعدادات التقارير والمرفقات</h3>
-            
+            <h3 class="section-title">📝 إعدادات الملاحظات</h3>
+            <label class="checkbox-wrapper">
+                <input type="checkbox" name="notes_mandatory" {% if game.notes_mandatory %}checked{% endif %}>
+                <span>الملاحظات إجبارية؟</span>
+            </label>
+        </div>
+
+        <!-- إعدادات الصور -->
+        <div class="section-card">
+            <h3 class="section-title">📸 إعدادات الصور</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="allow_photos" {% if game.allow_photos %}checked{% endif %}>
                 <span>تفعيل زر رفع الصور؟</span>
@@ -233,12 +241,11 @@
                 <input type="checkbox" name="requires_photo" {% if game.requires_photo %}checked{% endif %}>
                 <span>الصورة إجبارية؟</span>
             </label>
-            <hr style="border-top: 1px solid var(--border-color); margin: 15px 0;">
-            <label class="checkbox-wrapper">
-                <input type="checkbox" name="notes_mandatory" {% if game.notes_mandatory %}checked{% endif %}>
-                <span>الملاحظات إجبارية؟</span>
-            </label>
-            <hr style="border-top: 1px solid var(--border-color); margin: 15px 0;">
+        </div>
+
+        <!-- إعدادات الخريطة -->
+        <div class="section-card">
+            <h3 class="section-title">🗺️ إعدادات الخريطة</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="has_map" {% if game.has_map %}checked{% endif %}>
                 <span>تفعيل الخريطة؟</span>
@@ -306,6 +313,22 @@
         `;
         container.appendChild(newItem);
         checkIndex++;
+    }
+
+    // تنبيه وتأكيد عند تغيير المنطقة التابع لها اللعبة لمنع الأخطاء
+    const editForm = document.querySelector('form');
+    const areaSelect = document.getElementById('areaSelect');
+    if (editForm && areaSelect) {
+        editForm.addEventListener('submit', function (e) {
+            const originalArea = areaSelect.getAttribute('data-original-area');
+            const currentArea = areaSelect.value;
+            if (originalArea && currentArea && originalArea !== currentArea) {
+                const confirmMove = confirm("⚠️ تحذير: لقد قمت بتغيير المنطقة التابع لها هذه اللعبة. هل أنت متأكد من رغبتك في نقل اللعبة إلى منطقة جديدة؟");
+                if (!confirmMove) {
+                    e.preventDefault(); // إلغاء إرسال الفورم
+                }
+            }
+        });
     }
 </script>
 

@@ -53,29 +53,112 @@
         {% endif %}
 
         <div class="card" style="border-top-color: #007bff;">
-            <h3>📋 المناطق المسجلة (اضغط على المنطقة لإدارة ألعابها)</h3>
-            <ul class="list-group" style="margin-top: 15px;">
-                {% for area in areas %}
-                <li>
-                    <div>
-                        <strong style="font-size: 18px; color: #333;">{{ area.name }}</strong>
-                        <span style="color: #666; font-size: 14px; margin-right: 10px;">({{ area.games|length }} لعبة مسجلة)</span>
-                    </div>
-                    <div class="actions">
-                        {% if session.get('can_manage_games') or session.get('can_manage_areas') or session.get('is_master_admin') %}
-                        <a href="/area_games/{{ area.id }}" class="btn btn-primary">🎮 إدارة الألعاب</a>
-                        {% endif %}
-                        {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
-                        <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ تعديل</a>
-                        <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('⚠️ تحذير: مسح المنطقة سيؤدي إلى مسح جميع ألعابها! هل أنت متأكد؟');">🗑️ حذف</a>
-                        {% endif %}
-                    </div>
-                </li>
-                {% else %}
-                <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد مناطق مسجلة حتى الآن. ابدأ بإضافة منطقة جديدة.</li>
-                {% endfor %}
-            </ul>
+            <h3>📋 المناطق المسجلة وترتيب ظهورها</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">يمكنك <strong>سحب وإفلات المناطق ☰ (Drag & Drop)</strong> للترتيب المباشر أو استخدام الأسهم (⬆️ / ⬇️) ثم حفظ الترتيب.</p>
+            
+            <form action="/update_areas_order" method="POST">
+                <ul class="list-group" id="areasOrderList" style="margin-top: 15px;">
+                    {% for area in areas %}
+                    <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #cbd5e1; margin-bottom: 8px; border-radius: 8px; background: #fff; cursor: grab; transition: background 0.2s;">
+                        <input type="hidden" name="area_ids[]" value="{{ area.id }}">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="cursor: grab; font-size: 20px; color: #94a3b8; user-select: none;" title="اسحب من هنا">☰</span>
+                            <span class="area-index" style="background: #e2e8f0; color: #334155; font-weight: bold; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px;">{{ loop.index }}</span>
+                            <strong style="font-size: 18px; color: #333;">{{ area.name }}</strong>
+                            <span style="color: #666; font-size: 14px; margin-right: 10px;">({{ area.games|length }} لعبة مسجلة)</span>
+                        </div>
+                        <div class="actions">
+                            <button type="button" onclick="moveUp(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="تحريك لأعلى">⬆️</button>
+                            <button type="button" onclick="moveDown(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="تحريك لأسفل">⬇️</button>
+                            
+                            {% if session.get('can_manage_games') or session.get('can_manage_areas') or session.get('is_master_admin') %}
+                            <a href="/area_games/{{ area.id }}" class="btn btn-primary" style="margin-right: 8px;">🎮 إدارة الألعاب</a>
+                            {% endif %}
+                            {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
+                            <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ تعديل</a>
+                            <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('⚠️ تحذير: مسح المنطقة سيؤدي إلى مسح جميع ألعابها! هل أنت متأكد؟');">🗑️ حذف</a>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% else %}
+                    <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد مناطق مسجلة حتى الآن. ابدأ بإضافة منطقة جديدة.</li>
+                    {% endfor %}
+                </ul>
+
+                {% if areas and (session.get('can_manage_areas') or session.get('is_master_admin')) %}
+                <div style="margin-top: 20px; text-align: left;">
+                    <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 10px 25px;">💾 حفظ ترتيب المناطق</button>
+                </div>
+                {% endif %}
+            </form>
         </div>
     </div>
+
+    <script>
+        function moveUp(btn) {
+            const li = btn.closest('li');
+            if (li.previousElementSibling) {
+                li.parentNode.insertBefore(li, li.previousElementSibling);
+                updateIndexes();
+            }
+        }
+        function moveDown(btn) {
+            const li = btn.closest('li');
+            if (li.nextElementSibling) {
+                li.parentNode.insertBefore(li.nextElementSibling, li);
+                updateIndexes();
+            }
+        }
+        function updateIndexes() {
+            document.querySelectorAll('#areasOrderList .area-index').forEach((el, index) => {
+                el.textContent = index + 1;
+            });
+        }
+
+        // HTML5 Drag & Drop Logic
+        let dragItem = null;
+        const list = document.getElementById('areasOrderList');
+        if (list) {
+            list.addEventListener('dragstart', function(e) {
+                const item = e.target.closest('li');
+                if (item) {
+                    dragItem = item;
+                    item.style.opacity = '0.5';
+                    item.style.background = '#e2e8f0';
+                }
+            });
+
+            list.addEventListener('dragend', function(e) {
+                const item = e.target.closest('li');
+                if (item) {
+                    item.style.opacity = '1';
+                    item.style.background = '#fff';
+                }
+                dragItem = null;
+                updateIndexes();
+            });
+
+            list.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+
+            list.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const target = e.target.closest('li');
+                if (target && dragItem && target !== dragItem) {
+                    const children = Array.from(list.children);
+                    const draggedIndex = children.indexOf(dragItem);
+                    const targetIndex = children.indexOf(target);
+
+                    if (draggedIndex < targetIndex) {
+                        list.insertBefore(dragItem, target.nextSibling);
+                    } else {
+                        list.insertBefore(dragItem, target);
+                    }
+                    updateIndexes();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
