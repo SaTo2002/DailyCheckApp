@@ -1,0 +1,226 @@
+/* ==============================================================================
+   تصميم الواجهة العصري والمتجاوب للموبايل والتابلت (monitor.css)
+   يحتوي على متغيرات ألوان النظام، الأزرار التفاعلية باللمس، والأشكال الجذابة
+   ============================================================================== */
+
+:root {
+    --primary: #0d6efd;
+    --primary-hover: #0b5ed7;
+    --success: #198754;
+    --success-hover: #157347;
+    --danger: #dc3545;
+    --danger-hover: #bb2d3b;
+    --warning: #ffc107;
+    --bg-color: #f4f6f9;
+    --card-bg: #ffffff;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --border-radius: 12px;
+    --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* 1. التنسيق العام لصفحات الموبايل والماتريال ديزاين */
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 15px;
+    direction: rtl;
+    -webkit-tap-highlight-color: transparent; /* منع الفلاش الرمادي عند الضغط في الأيفون والأندرويد */
+}
+
+/* 2. الحاوية الكبيرة لكروت المونيتور */
+.monitor-container {
+    max-width: 600px;
+    margin: 10px auto;
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+}
+
+/* 3. العناوين والنصوص المساعدة */
+.monitor-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1a252f;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.sub-title {
+    color: var(--text-muted);
+    font-size: 15px;
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* 4. حقول الإدخال والقوائم المنسدلة المريحة لليد على الموبايل (Touch Friendly) */
+.form-label {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    text-align: right;
+    color: #34495e;
+}
+
+.touch-input, .touch-select {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 16px;
+    background-color: #f8fafc;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.touch-input:focus, .touch-select:focus {
+    border-color: var(--primary);
+    background-color: #fff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
+}
+
+/* 5. تصميم أزرار خيارات الفحص السريعة (Pill Switch Radio Buttons) */
+.pill-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.pill-option {
+    position: relative;
+}
+
+.pill-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.pill-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background-color: #f1f5f9;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+/* تفاعل الأزرار باللون الأخضر (سليم) والأحمر (عطل) عند التحديد */
+.pill-option input[value="سليم"]:checked + .pill-label {
+    background-color: #d1e7dd;
+    border-color: #0f5132;
+    color: #0f5132;
+    box-shadow: 0 4px 10px rgba(25, 135, 84, 0.2);
+}
+
+.pill-option input[value="تالف/يوجد مشكلة"]:checked + .pill-label {
+    background-color: #f8d7da;
+    border-color: #842029;
+    color: #842029;
+    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+}
+
+/* 6. تصميم كروت الألعاب في قائمة الفحص */
+.game-card-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 18px 20px;
+    border-radius: var(--border-radius);
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 700;
+    box-sizing: border-box;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.game-card-link:active {
+    transform: scale(0.98);
+}
+
+.game-pending {
+    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+    color: white;
+    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+}
+
+.game-completed {
+    background: linear-gradient(135deg, #198754, #146c43);
+    color: white;
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
+}
+
+/* 7. الشريط الإجرائي الثابت بأسفل الشاشة على الهاتف (Sticky Footer Bar) */
+.sticky-footer-bar {
+    position: sticky;
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: 0 -4px 15px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 12px;
+    z-index: 100;
+}
+
+.btn-touch {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-touch:active {
+    transform: scale(0.97);
+}
+
+.btn-primary-touch { background: var(--primary); color: white; }
+.btn-success-touch { background: var(--success); color: white; }
+.btn-danger-touch { background: var(--danger); color: white; }
+.btn-secondary-touch { background: #6c757d; color: white; }
+
+/* 8. تصميم شريط نسبة التقدم (Progress Bar) */
+.progress-bar-container {
+    width: 100%;
+    background-color: #e9ecef;
+    border-radius: 20px;
+    height: 12px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: var(--percent, 0%);
+    background: linear-gradient(90deg, #198754, #20c997);
+    border-radius: 20px;
+    transition: width 0.4s ease;
+}

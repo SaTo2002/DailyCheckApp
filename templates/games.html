@@ -1,58 +1,95 @@
+<!-- ==============================================================================
+  صفحة ألعاب المنطقة للمونيتور (games.html)
+  تعرض قائمة الألعاب بالترتيب، نسبة التقدم في الفحص، وزر إرسال التقرير النهائي
+============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اختر اللعبة</title>
+    <title>ألعاب {{ area_name }}</title>
+    <!-- الستايل المتجاوب الخاص بالمونيتور والموبايل -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 30px;">
 
-    <p style="color: #6c757d; font-size: 18px;">الموظف الحالي: <strong>{{ monitor_name }}</strong></p>
-    <h1>ألعاب: <span style="color: #28a745;">{{ area_name }}</span></h1>
-    
-    <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
-        <!-- التعديل هنا: لفينا على القائمة مباشرة واستخدمنا game.id و game.name -->
-        {% for game in games %}
-            
+<body>
+
+    <div class="monitor-container">
+        <!-- الهيدر والمعلومات الأساسية -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <span style="background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+                الموظف الحالي: {{ monitor_name }}
+            </span>
+            <h1 class="monitor-title" style="margin-top: 15px; margin-bottom: 5px;">
+                منطقة: <span style="color: #0d6efd;">{{ area_name }}</span>
+            </h1>
+        </div>
+
+        <!-- 1. حساب نسبة الإنجاز والتقدم في فحص ألعاب المنطقة -->
+        {% set completed_count = completed_games|length %}
+        {% set total_games = games|length %}
+        {% set percent = (completed_count / total_games * 100)|round|int if total_games > 0 else 0 %}
+
+        <!-- شريط التقدم المرئي (Progress Bar) -->
+        <div style="margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #475569;">
+                <span>نسبة الفحص المكتمل:</span>
+                <span>{{ completed_count }} من {{ total_games }} ({{ percent }}%)</span>
+            </div>
+            <div class="progress-bar-container">
+                <!-- استخدام متغير CSS لتجنب تحذيرات المحرر وعرض النسبة بسلاسة -->
+                <div class="progress-bar-fill" style="--percent: {{ percent }}%;"></div>
+            </div>
+        </div>
+
+        <!-- 2. قائمة الألعاب المتاحة للفحص مرتبة حسب اختيار الأدمن -->
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
+            {% for game in games %}
             {% if game.id|string in completed_games %}
-                <a href="/check/{{ game.id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
-                    {{ game.name }} ✅ (تم الفحص)
-                </a>
+            <!-- لعبة تم فحصها بالفعل -->
+            <a href="/check/{{ game.id }}" class="game-card-link game-completed">
+                <span>{{ game.name }}</span>
+                <span>✅ تم الفحص</span>
+            </a>
             {% else %}
-                <a href="/check/{{ game.id }}" style="width: 80%; max-width: 300px; padding: 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-size: 18px;">
-                    {{ game.name }}
-                </a>
+            <!-- لعبة بانتظار الفحص -->
+            <a href="/check/{{ game.id }}" class="game-card-link game-pending">
+                <span>{{ game.name }}</span>
+                <span>⏳ بدء الفحص ➔</span>
+            </a>
             {% endif %}
+            {% endfor %}
+        </div>
 
-        {% endfor %}
-    </div>
-
-    <div style="margin-top: 40px; text-align: center;">
-        <hr style="width: 80%; border: 0; border-top: 1px solid #ccc; margin-bottom: 20px;">
-        
-        {% if all_completed %}
-            <form action="/submit_report" method="POST" style="display: inline;">
-                <button type="submit" id="finalSubmitBtn" style="width: 80%; max-width: 300px; padding: 15px; background-color: #28a745; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+        <!-- 3. زر إرسال تقرير المنطقة بالكامل (يُفعّل فقط بعد فحص جميع الألعاب) -->
+        <div style="text-align: center; margin-top: 25px;">
+            {% if all_completed %}
+            <form action="/submit_report" method="POST">
+                <button type="submit" class="btn-touch btn-success-touch" style="width: 100%; font-size: 18px; padding: 16px;">
                     إرسال تقرير المنطقة بالكامل 🚀
                 </button>
             </form>
-        {% else %}
-            <button disabled id="finalSubmitBtn" style="width: 80%; max-width: 300px; padding: 15px; background-color: #6c757d; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: not-allowed; opacity: 0.6;">
+            {% else %}
+            <button disabled class="btn-touch btn-secondary-touch" style="width: 100%; opacity: 0.6; cursor: not-allowed;">
                 إرسال تقرير المنطقة بالكامل 🚀
             </button>
-            <p style="color: #dc3545; font-size: 14px; margin-top: 10px; font-weight: bold;">(يجب فحص جميع الألعاب أولاً لتفعيل الإرسال)</p>
-        {% endif %}
-    </div>
+            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: bold;">(يرجى فحص جميع الألعاب لتفعيل زر الإرسال)</p>
+            {% endif %}
+        </div>
 
-    <br><br>
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 40px;">
-        
-        <a href="/cancel_area" onclick="return confirm('⚠️ تحذير: هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ \n\nسيتم مسح جميع البيانات والصور التي أدخلتها ولن يمكنك استرجاعها!');" style="width: 80%; max-width: 300px; padding: 12px; background-color: #dc3545; color: white; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
-            إلغاء الفحص بالكامل 🗑️
-        </a>
-        
-        <a href="/logout" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟ سيتم مسح أي فحص لم تقم بإرساله.');" style="color: #6c757d; text-decoration: none; font-size: 16px; font-weight: bold;">تسجيل خروج (تغيير الموظف)</a>
-        
+        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;">
+
+        <!-- 4. خيارات الغاء الفحص وتسجيل الخروج -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            <a href="/cancel_area" onclick="return confirm('⚠️ هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ سيتم مسح أي بيانات أو صور غير مرسلة!');" class="btn-touch btn-danger-touch" style="font-size: 15px;">
+                إلغاء الفحص بالكامل 🗑️
+            </a>
+
+            <a href="/logout" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟');" style="color: #6c757d; text-align: center; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px;">
+                تسجيل الخروج (تغيير الموظف)
+            </a>
+        </div>
     </div>
 
 </body>

@@ -1,3 +1,7 @@
+<!-- ==============================================================================
+  لوحة تحكم الإدارة والداشبورد (dashboard.html)
+  تعرض التقارير المجمعة للفحوصات اليومية مع خيارات الفلترة والطباعة والحذف
+============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -8,12 +12,12 @@
         body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
         .header { text-align: center; margin-bottom: 30px; }
         
-        /* تصميم شريط الفلترة */
+        /* تصميم شريط الفلترة بالمنطقة والتاريخ والمونيتور */
         .filter-section { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 30px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; align-items: center; }
         .filter-section select { padding: 10px; font-size: 16px; border-radius: 5px; border: 1px solid #ccc; width: 200px; }
         .filter-section label { font-weight: bold; margin-left: 10px; font-size: 16px; color: #333; }
         
-        /* تصميم الكروت القابلة للطي */
+        /* تصميم كروت التقارير القابلة للطي والتوسع عند الضغط */
         .report-card { background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #007bff; overflow: hidden; transition: all 0.3s ease; }
         .report-header { display: flex; justify-content: space-between; padding: 20px; cursor: pointer; background-color: #ffffff; transition: background-color 0.2s; }
         .report-header:hover { background-color: #f8f9fa; }
@@ -26,21 +30,24 @@
         .not-ok { background-color: #f8d7da; color: #721c24; }
         .media-container img { width: 150px; height: 150px; object-fit: cover; border-radius: 5px; border: 1px solid #ccc; margin-left: 10px; margin-top: 10px; }
         
-        /* سهم يوضح إن الكارت بيفتح ويقفل */
+        /* سهم يوضح فتح وإغلاق كارت التتقرير */
         .toggle-icon { font-size: 20px; transition: transform 0.3s; }
         .open .toggle-icon { transform: rotate(180deg); }
     </style>
 </head>
 <body>
 
+    <!-- هيدر الصفحة وأزرار التنقل الرئيسية حسب صلاحية المستخدم -->
     <div class="header">
         <h1>📊 لوحة تحكم الإدارة - تقارير الفحص اليومي</h1>
         <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
             
-            {% if session.get('can_manage_areas') or session.get('can_manage_games') or session.get('is_master_admin') %}
+            <!-- زر إدارة النظام (يظهر للأدمن ومسئولي المناطق والألعاب) -->
+            {% if session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games') or session.get('is_master_admin') %}
                 <a href="/manage_system" style="text-decoration: none; background: #007bff; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold;">⚙️ إدارة النظام</a>
             {% endif %}
             
+            <!-- زر إدارة الحسابات والصلاحيات (يظهر للأدمن الرئيسي) -->
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
                 <a href="/manage_users" style="text-decoration: none; background: #28a745; color: white; padding: 10px 20px; border-radius: 5px; font-weight: bold;">👥 إدارة الحسابات</a>
             {% endif %}
@@ -51,6 +58,7 @@
 
     <div style="max-width: 1000px; margin: 0 auto;">
         
+        <!-- 1. شريط الفلترة بالمنطقة، التاريخ، واسم الموظف -->
         <div class="filter-section">
             <form method="GET" action="/dashboard" style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                 <div>
@@ -84,9 +92,11 @@
             </form>
         </div>
 
+        <!-- 2. عرض التقارير المجمعة حسب جلسة الفحص (session_id) -->
         {% if reports %}
             {% for session_id, report in reports.items() %}
                 <div class="report-card" id="card_{{ session_id }}">
+                    <!-- رأس التقرير المجمع (قابل للضغط للتوسع والتفاصيل) -->
                     <div class="report-header" onclick="toggleReport('{{ session_id }}')">
                         <div>
                             <h2 style="margin: 0; color: #333; display: inline-block;">منطقة: {{ report.area_id }}</h2>
@@ -96,6 +106,7 @@
                         <div style="text-align: left; display: flex; flex-direction: column; gap: 10px; align-items: flex-end;">
                             <span style="background: #17a2b8; color: white; padding: 5px 10px; border-radius: 5px;">{{ report.timestamp }}</span>
                             
+                            <!-- أزرار الإجراءات السريعة (طباعة التقرير أو حذفه يدوياً) -->
                             <div style="display: flex; gap: 10px;">
                                 <a href="/print_report/{{ session_id }}" target="_blank" onclick="event.stopPropagation();" style="background-color: #28a745; color: white; text-decoration: none; padding: 8px 15px; border-radius: 5px; font-weight: bold; font-size: 14px;">🖨️ طباعة</a>
                                 
@@ -106,11 +117,13 @@
                         </div>
                     </div>
 
+                    <!-- جسم التقرير بالتفصيل لكل لعبة -->
                     <div class="report-body" id="body_{{ session_id }}">
                         {% for game in report.games %}
                             <div class="game-section">
                                 <h3 class="game-title">لعبة: {{ game.game_id }}</h3>
                                 
+                                <!-- إجابات أسئلة الفحص -->
                                 <div>
                                     {% for check_name, status in game.checks.items() %}
                                         {% if status == 'OK' %}
@@ -121,16 +134,18 @@
                                     {% endfor %}
                                 </div>
 
+                                <!-- ملاحظات المراقب النصية إن وجدت -->
                                 {% if game.notes %}
                                     <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 5px solid #ffc107; border-radius: 5px;">
                                         <strong>ملاحظات الموظف:</strong> {{ game.notes }}
                                     </div>
                                 {% endif %}
 
+                                <!-- الوسائط المرفقة (خريطة الرسم + صور التلفيات) -->
                                 <div class="media-container" style="margin-top: 15px;">
                                     {% if game.map_drawing %}
                                         <div>
-                                            <strong>مخطط المشكلة:</strong><br>
+                                            <strong>مخطط المشكلة على الخريطة:</strong><br>
                                             <div style="position: relative; width: 100%; max-width: 400px; aspect-ratio: 2/1; border: 2px solid #ccc; background-image: url('/static/{{ game.base_map }}'); background-size: 100% 100%; background-repeat: no-repeat; border-radius: 5px; margin-top: 10px; overflow: hidden;">
                                                 <img src="{{ game.map_drawing }}" alt="الرسمة" style="width: 100% !important; height: 100% !important; position: absolute; top: 0; left: 0; margin: 0 !important; border: none; border-radius: 0; object-fit: contain;">
                                             </div>
@@ -156,6 +171,7 @@
         {% endif %}
     </div>
 
+    <!-- سكريبت فتح وإغلاق كروت التقارير تفاعلياً -->
     <script>
         function toggleReport(sessionId) {
             const body = document.getElementById('body_' + sessionId);

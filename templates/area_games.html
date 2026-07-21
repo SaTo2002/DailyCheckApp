@@ -71,22 +71,39 @@
             </form>
         </div>
 
-        <!-- الألعاب المسجلة -->
+        <!-- الألعاب المسجلة وترتيبها -->
         <div class="card" style="border-top-color: #28a745;">
-            <h3>🛠️ الألعاب المسجلة في هذه المنطقة</h3>
-            <ul class="list-group" style="margin-top: 15px;">
-                {% for game in area.games %}
-                <li>
-                    <strong style="font-size: 17px;">{{ game.name }}</strong>
-                    <div style="display: flex; gap: 15px;">
-                        <a href="/edit_game/{{ game.id }}" style="color: #007bff; text-decoration: none; font-weight: bold;">✏️ تعديل الإعدادات</a>
-                        <a href="/delete_game_from_area/{{ area.id }}/{{ game.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('هل أنت متأكد من حذف هذه اللعبة؟');">🗑️ حذف</a>
-                    </div>
-                </li>
-                {% else %}
-                <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد ألعاب مضافة لهذه المنطقة حتى الآن.</li>
-                {% endfor %}
-            </ul>
+            <h3>🛠️ الألعاب المسجلة وترتيب ظهورها للمونيتور</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">يمكنك <strong>سحب وإفلات الألعاب ☰ (Drag & Drop)</strong> للترتيب المباشر أو استخدام الأسهم (⬆️ / ⬇️) ثم حفظ الترتيب.</p>
+            
+            <form action="/update_games_order/{{ area.id }}" method="POST">
+                <ul class="list-group" id="gamesOrderList" style="margin-top: 15px;">
+                    {% for game in games %}
+                    <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #e2e8f0; margin-bottom: 8px; border-radius: 8px; background: #fff; cursor: grab; transition: background 0.2s;">
+                        <input type="hidden" name="game_ids[]" value="{{ game.id }}">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <span style="cursor: grab; font-size: 20px; color: #94a3b8; user-select: none;" title="اسحب من هنا">☰</span>
+                            <span class="game-index" style="background: #e2e8f0; color: #334155; font-weight: bold; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px;">{{ loop.index }}</span>
+                            <strong style="font-size: 17px;">{{ game.name }}</strong>
+                        </div>
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <button type="button" onclick="moveUp(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="تحريك لأعلى">⬆️</button>
+                            <button type="button" onclick="moveDown(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="تحريك لأسفل">⬇️</button>
+                            <a href="/edit_game/{{ game.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-right: 10px;">✏️ تعديل</a>
+                            <a href="/delete_game_from_area/{{ area.id }}/{{ game.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('هل أنت متأكد من حذف هذه اللعبة؟');">🗑️ حذف</a>
+                        </div>
+                    </li>
+                    {% else %}
+                    <li style="color: #888; justify-content: center; background: transparent; border: none;">لا توجد ألعاب مضافة لهذه المنطقة حتى الآن.</li>
+                    {% endfor %}
+                </ul>
+
+                {% if games %}
+                <div style="margin-top: 20px; text-align: left;">
+                    <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 10px 25px;">💾 حفظ ترتيب الألعاب</button>
+                </div>
+                {% endif %}
+            </form>
         </div>
     </div>
 
@@ -175,11 +192,75 @@
             wrapper.appendChild(div);
         }
 
-        // السكريبت ده مهم جداً عشان يرقم الشيك بوكس بتاعت الأسئلة صح قبل ما تروح للباك إند
         function prepareForm() {
             const mandatoryCheckboxes = document.querySelectorAll('.question-mandatory');
             mandatoryCheckboxes.forEach((checkbox, index) => {
                 checkbox.name = 'check_mandatory_' + index;
+            });
+        }
+
+        function moveUp(btn) {
+            const li = btn.closest('li');
+            if (li.previousElementSibling) {
+                li.parentNode.insertBefore(li, li.previousElementSibling);
+                updateIndexes();
+            }
+        }
+        function moveDown(btn) {
+            const li = btn.closest('li');
+            if (li.nextElementSibling) {
+                li.parentNode.insertBefore(li.nextElementSibling, li);
+                updateIndexes();
+            }
+        }
+        function updateIndexes() {
+            document.querySelectorAll('#gamesOrderList .game-index').forEach((el, index) => {
+                el.textContent = index + 1;
+            });
+        }
+
+        // HTML5 Drag & Drop Logic
+        let dragItem = null;
+        const list = document.getElementById('gamesOrderList');
+        if (list) {
+            list.addEventListener('dragstart', function(e) {
+                const item = e.target.closest('li');
+                if (item) {
+                    dragItem = item;
+                    item.style.opacity = '0.5';
+                    item.style.background = '#e2e8f0';
+                }
+            });
+
+            list.addEventListener('dragend', function(e) {
+                const item = e.target.closest('li');
+                if (item) {
+                    item.style.opacity = '1';
+                    item.style.background = '#fff';
+                }
+                dragItem = null;
+                updateIndexes();
+            });
+
+            list.addEventListener('dragover', function(e) {
+                e.preventDefault();
+            });
+
+            list.addEventListener('drop', function(e) {
+                e.preventDefault();
+                const target = e.target.closest('li');
+                if (target && dragItem && target !== dragItem) {
+                    const children = Array.from(list.children);
+                    const draggedIndex = children.indexOf(dragItem);
+                    const targetIndex = children.indexOf(target);
+
+                    if (draggedIndex < targetIndex) {
+                        list.insertBefore(dragItem, target.nextSibling);
+                    } else {
+                        list.insertBefore(dragItem, target);
+                    }
+                    updateIndexes();
+                }
             });
         }
     </script>

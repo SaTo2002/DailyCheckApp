@@ -1,3 +1,8 @@
+# ==============================================================================
+# مسارات الإدارة وبناء النظام (routes/manage.py)
+# مسئول عن: إضافة/تعديل/حذف المناطق، إدارة الألعاب وترتيبها، وإدارة المستخدمين
+# ==============================================================================
+
 import os
 import json
 import uuid
@@ -7,19 +12,27 @@ from werkzeug.utils import secure_filename
 from extensions import db, UPLOAD_FOLDER
 from models import User, Area, GameModel
 
+# إنشاء Blueprint لإدارة وتشكيل النظام
 manage_bp = Blueprint('manage', __name__)
 
+# ------------------------------------------------------------------------------
+# دالة مساعدة للتحقق من صلاحية تعديل النظام (المناطق والألعاب)
+# ------------------------------------------------------------------------------
 def check_system_permission():
     return session.get('is_admin') and (session.get('is_master_admin') or session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games'))
 
+# ------------------------------------------------------------------------------
+# 1. الصفحة الرئيسية لإدارة مناطق الفحص (GET)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/manage_system', methods=['GET', 'POST'])
 def manage_system():
-    if not session.get('is_admin'):
-        return redirect(url_for('admin.admin_login'))
-    if not check_system_permission():
+    if not session.get('is_admin') or not check_system_permission():
         return redirect(url_for('admin.admin_login'))
     return render_template('manage_system.html', areas=Area.query.all())
 
+# ------------------------------------------------------------------------------
+# 2. إضافة منطقة جغرافية جديدة (POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/add_area', methods=['POST'])
 def add_area():
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -29,6 +42,9 @@ def add_area():
         db.session.commit()
     return redirect(url_for('manage.manage_system'))
 
+# ------------------------------------------------------------------------------
+# 3. تعديل اسم منطقة موجودة (GET & POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/edit_area/<int:area_id>', methods=['GET', 'POST'])
 def edit_area(area_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -41,6 +57,9 @@ def edit_area(area_id):
         return redirect(url_for('manage.manage_system'))
     return render_template('edit_area.html', area=area)
 
+# ------------------------------------------------------------------------------
+# 4. حذف منطقة بكافة ألعابها المترتبة عليها (GET/POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/delete_area/<int:area_id>')
 def delete_area(area_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -50,12 +69,37 @@ def delete_area(area_id):
         db.session.commit()
     return redirect(url_for('manage.manage_system'))
 
-# --- إدارة الألعاب داخل المنطقة ---
+# ==============================================================================
+# --- مسارات إدارة وتشكيل الألعاب داخل المناطق ---
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 5. عرض ألعاب المنطقة بترتيبها الحالي المخصص (GET)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/area_games/<int:area_id>')
 def area_games(area_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
-    return render_template('area_games.html', area=Area.query.get_or_404(area_id))
+    area = Area.query.get_or_404(area_id)
+    sorted_games = GameModel.query.filter_by(area_id=area_id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
+    return render_template('area_games.html', area=area, games=sorted_games)
 
+# ------------------------------------------------------------------------------
+# 6. الترتيب المخصص للألعاب بالسحب والإفلات (Drag & Drop) (POST)
+# ------------------------------------------------------------------------------
+@manage_bp.route('/update_games_order/<int:area_id>', methods=['POST'])
+def update_games_order(area_id):
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
+    game_ids = request.form.getlist('game_ids[]')
+    for idx, g_id in enumerate(game_ids, start=1):
+        g = GameModel.query.get(g_id)
+        if g and g.area_id == area_id:
+            g.sort_order = idx
+    db.session.commit()
+    return redirect(url_for('manage.area_games', area_id=area_id))
+
+# ------------------------------------------------------------------------------
+# 7. إضافة لعبة جديدة للمنطقة وتحديد إعداداتها (POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/add_game_to_area/<int:area_id>', methods=['POST'])
 def add_game_to_area(area_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -64,6 +108,7 @@ def add_game_to_area(area_id):
     check_names = request.form.getlist('check_names[]')
     structured_checks = [{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()]
     
+    # رفع ومعالجة صورة الخريطة الأساسية إن وُجدت
     map_image_path = None
     if 'map_image' in request.files:
         file = request.files['map_image']
@@ -75,9 +120,11 @@ def add_game_to_area(area_id):
             map_image_path = f"/{filepath}".replace("\\", "/")
 
     if name:
+        max_order = db.session.query(db.func.max(GameModel.sort_order)).filter_by(area_id=area_id).scalar() or 0
         db.session.add(GameModel(
             name=name, 
             area_id=area_id,
+            sort_order=max_order + 1,
             has_map=bool(request.form.get('has_map')), 
             map_mandatory=bool(request.form.get('map_mandatory')),
             map_image=map_image_path,
@@ -90,6 +137,9 @@ def add_game_to_area(area_id):
         
     return redirect(url_for('manage.area_games', area_id=area_id))
 
+# ------------------------------------------------------------------------------
+# 8. تعديل إعدادات وأسئلة لعبة موجودة (GET & POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/edit_game/<int:game_id>', methods=['GET', 'POST'])
 def edit_game(game_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -107,6 +157,7 @@ def edit_game(game_id):
         check_names = request.form.getlist('check_names[]')
         game.checks = json.dumps([{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()], ensure_ascii=False)
         
+        # استبدال الخريطة القديمة بالجديدة وتوسيع الملف القديم
         if 'map_image' in request.files:
             file = request.files['map_image']
             if file and file.filename != '':
@@ -129,6 +180,9 @@ def edit_game(game_id):
         
     return render_template('edit_game.html', game=game, areas=Area.query.all(), checks=json.loads(game.checks) if game.checks else [])
 
+# ------------------------------------------------------------------------------
+# 9. حذف لعبة من منطقة (GET)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/delete_game_from_area/<int:area_id>/<int:game_id>')
 def delete_game_from_area(area_id, game_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
@@ -138,6 +192,13 @@ def delete_game_from_area(area_id, game_id):
         db.session.commit()
     return redirect(url_for('manage.area_games', area_id=area_id))
 
+# ==============================================================================
+# --- مسارات إدارة المستخدمين والصلاحيات ---
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 10. عرض وإنشاء حسابات المستخدمين الجدد (GET & POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/manage_users', methods=['GET', 'POST'])
 def manage_users():
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
@@ -162,6 +223,9 @@ def manage_users():
         return redirect(url_for('manage.manage_users'))
     return render_template('manage_users.html', users=User.query.all())
 
+# ------------------------------------------------------------------------------
+# 11. تحديث صلاحية حساب قائم (POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/update_user_permissions/<int:user_id>', methods=['POST'])
 def update_user_permissions(user_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
@@ -174,6 +238,9 @@ def update_user_permissions(user_id):
     db.session.commit()
     return redirect(url_for('manage.manage_users'))
 
+# ------------------------------------------------------------------------------
+# 12. حذف حساب مستخدم (POST)
+# ------------------------------------------------------------------------------
 @manage_bp.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))

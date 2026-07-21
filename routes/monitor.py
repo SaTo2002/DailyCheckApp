@@ -1,3 +1,8 @@
+# ==============================================================================
+# مسارات المراقب والفحص الميداني (routes/monitor.py)
+# مسئول عن: تسجيل المونيتور، اختيار المنطقة، فحص الألعاب، رفع الصور، وإرسال التقارير
+# ==============================================================================
+
 import os
 import json
 import base64
@@ -7,26 +12,41 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from extensions import db, UPLOAD_FOLDER
 from models import Area, GameModel, GameReport
 
+# إنشاء Blueprint للمراقب
 monitor_bp = Blueprint('monitor', __name__)
 
+# ------------------------------------------------------------------------------
+# 1. الصفحة الرئيسية للمونيتور لتسجيل الاسم واختيار المنطقة (GET & POST)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/', methods=['GET', 'POST'])
 def home():
     try:
-        # Clean up unreferenced temporary upload files older than 24 hours
+        # --- آلية التنظيف الآلي للصور المهملة (أكبر من 24 ساعة) ---
+        # 1. جمع قائمة بالصور المحمية التابعة لتقارير مسجلة أو خرائط أساسية
         reports = GameReport.query.with_entities(GameReport.map_image_path, GameReport.photos_paths).all()
-        valid_filenames = set()
+        games = GameModel.query.with_entities(GameModel.map_image).all()
+        
+        valid_filenames = {'.gitkeep'}
         for r in reports:
             if r.map_image_path: valid_filenames.add(os.path.basename(r.map_image_path))
             if r.photos_paths:
-                for p in json.loads(r.photos_paths): valid_filenames.add(os.path.basename(p))
+                try:
+                    for p in json.loads(r.photos_paths): valid_filenames.add(os.path.basename(p))
+                except Exception: pass
+        for g in games:
+            if g.map_image: valid_filenames.add(os.path.basename(g.map_image))
+
+        # 2. حظر ومسح الصور المهملة المرفوعة من فحوصات ملغاة وتعدت 24 ساعة
         current_time = time.time()
         for filename in os.listdir(UPLOAD_FOLDER):
             filepath = os.path.join(UPLOAD_FOLDER, filename)
             if os.path.isfile(filepath) and (current_time - os.path.getmtime(filepath)) > 86400:
-                if filename not in valid_filenames: os.remove(filepath)
+                if filename not in valid_filenames:
+                    os.remove(filepath)
     except Exception as err:
         current_app.logger.warning(f"Error during orphan upload cleanup: {err}")
 
+    # عند إرسال نموذج دخول المونيتور
     if request.method == 'POST':
         session['monitor_name'] = request.form.get('monitor_name')
         selected_area = request.form.get('area')
@@ -38,16 +58,25 @@ def home():
     areas = Area.query.all()
     return render_template('index.html', areas=areas)
 
+# ------------------------------------------------------------------------------
+# 2. عرض قائمة الألعاب التابعة للمنطقة المختارة بترتيبها المخصص (GET)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/games/<area_id>')
 def show_games(area_id):
     if 'monitor_name' not in session: return redirect(url_for('monitor.home'))
     area = Area.query.get(area_id)
     if not area: return "هذه المنطقة غير موجودة!"
-    games = GameModel.query.filter_by(area_id=area.id).all()
+    
+    # جلب الألعاب مرتبة حسب الترتيب المخصص ثم المعرف
+    games = GameModel.query.filter_by(area_id=area.id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
     completed = session.get('completed_games', [])
     all_completed = len(games) > 0 and all(str(g.id) in completed for g in games)
+    
     return render_template('games.html', area_name=area.name, games=games, monitor_name=session['monitor_name'], completed_games=completed, all_completed=all_completed)
 
+# ------------------------------------------------------------------------------
+# 3. صفحة فحص لعبة معينة (نموذج الأسئلة والخريطة والصور) (GET & POST)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/check/<game_id>', methods=['GET', 'POST'])
 def check_game(game_id):
     game = GameModel.query.get(game_id)
@@ -56,8 +85,9 @@ def check_game(game_id):
     next_game_id = None
     area_id = session.get('area_id')
     
+    # تحديد اللعبة التالية في الترتيب التلقائي
     if area_id:
-        area_games = GameModel.query.filter_by(area_id=area_id).all()
+        area_games = GameModel.query.filter_by(area_id=area_id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
         game_ids = [str(g.id) for g in area_games]
         if game_id in game_ids:
             current_index = game_ids.index(game_id)
@@ -77,6 +107,7 @@ def check_game(game_id):
         current_answers['notes'] = request.form.get('notes', '')
         current_answers['photos'] = session.get('game_data', {}).get(game_id, {}).get('photos', [])
 
+        # حفظ الرسم على الخريطة الموقعية بصيغة base64 إلى ملف صورة
         map_drawing_data = request.form.get('map_drawing', '')
         old_map_path = session.get('game_data', {}).get(game_id, {}).get('map_drawing', '')
 
@@ -98,6 +129,9 @@ def check_game(game_id):
 
     return render_template('form.html', game=game, checks=game_checks, next_game_id=next_game_id, saved_data=saved_data, game_id=game_id)
 
+# ------------------------------------------------------------------------------
+# 4. رفع صور التلفيات عبر AJAX (POST)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/upload_photo_ajax', methods=['POST'])
 def upload_photo_ajax():
     game_id = request.form.get('game_id')
@@ -118,6 +152,9 @@ def upload_photo_ajax():
     session.modified = True
     return {"status": "success", "photos": new_photos}
 
+# ------------------------------------------------------------------------------
+# 5. حذف صورة مرفوعة أثناء المعاينة (POST)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/delete_photo', methods=['POST'])
 def delete_photo():
     data = request.json
@@ -133,6 +170,9 @@ def delete_photo():
             return {"status": "success"}
     return {"status": "error"}, 400
 
+# ------------------------------------------------------------------------------
+# 6. إرسال تقرير المنطقة النهائي وحفظه نهائياً في قاعدة البيانات (POST)
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/submit_report', methods=['POST'])
 def submit_report():
     if 'monitor_name' not in session or 'area_id' not in session: return redirect(url_for('monitor.home'))
@@ -143,6 +183,7 @@ def submit_report():
     game_data = session.get('game_data', {})
     session_id = uuid.uuid4().hex
 
+    # حفظ سجل تقرير فرعي لكل لعبة مفحوصة
     for game_id in completed_games:
         data = game_data.get(game_id, {})
         checks = {k: v for k, v in data.items() if k.startswith('check_')}
@@ -153,11 +194,16 @@ def submit_report():
             photos_paths=json.dumps(data.get('photos', []), ensure_ascii=False)
         ))
     db.session.commit()
+    
+    # تنظيف الجلسة المؤقتة للمونيتور
     session.pop('completed_games', None)
     session.pop('game_data', None)
     session.pop('area_id', None) 
     return "<div style='text-align:center; margin-top:100px; direction:rtl;'><h1 style='color:green;'>تم إرسال تقرير المنطقة بنجاح! 🎉</h1><a href='/'>العودة للصفحة الرئيسية</a></div>"
 
+# ------------------------------------------------------------------------------
+# 7. إلغاء فحص لعبة محددة وتنظيف ملفاتها غير المحفوظة
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/cancel_game/<game_id>')
 def cancel_game(game_id):
     if game_id in session.get('completed_games', []): return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
@@ -171,6 +217,9 @@ def cancel_game(game_id):
         session.modified = True
     return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
 
+# ------------------------------------------------------------------------------
+# 8. إلغاء فحص المنطقة بالكامل وتنظيف كافة الصور المؤقتة
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/cancel_area')
 def cancel_area():
     for _, data in session.get('game_data', {}).items():
@@ -183,6 +232,9 @@ def cancel_area():
     session.pop('area_id', None)
     return redirect(url_for('monitor.home'))
 
+# ------------------------------------------------------------------------------
+# 9. تسجيل خروج المراقب وتصفير الجلسة
+# ------------------------------------------------------------------------------
 @monitor_bp.route('/logout')
 def logout():
     cancel_area()

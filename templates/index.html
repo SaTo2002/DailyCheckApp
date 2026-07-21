@@ -1,30 +1,48 @@
+<!-- ==============================================================================
+  صفحة الدخول الرئيسية للمونيتور (index.html)
+  تتيح للموظف إدخال اسمه واختيار المنطقة التي سيبدأ بفحص ألعابها
+============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - فحص الألعاب</title>
+    <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
 </head>
-<body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f8f9fa;">
+<body>
 
-    <h2>مرحباً بك في نظام الفحص اليومي</h2>
-    
-    <form method="POST" style="margin-top: 30px; background: white; padding: 20px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+    <!-- الكارت الرئيسي لنموذج تسجيل دخول المونيتور -->
+    <div class="monitor-container" style="margin-top: 40px;">
+        <h2 class="monitor-title">🎮 نظام الفحص اليومي للألعاب</h2>
+        <p class="sub-title">يرجى إدخال اسم الموظف واختيار المنطقة للبدء</p>
         
-        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right;">اسم الموظف (المونيتور):</label>
-        <input type="text" name="monitor_name" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;">
-        
-        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right;">اختر المنطقة (Area):</label>
-        <select name="area" required style="width: 100%; padding: 10px; margin-bottom: 30px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;">
-            {% for area in areas %}
-                <option value="{{ area.id }}">{{ area.name }}</option>
-            {% endfor %}
-        </select>
-        
-        <button type="submit" style="width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer;">دخول للفحص</button>
-    </form>
-    <div style="margin-top: 50px;">
-        <a href="/admin_login" style="color: #adb5bd; text-decoration: none; font-size: 14px;">🔒 دخول الإدارة والصيانة</a>
+        <!-- نموذج اختيار اسم المراقب والمنطقة -->
+        <form method="POST">
+            <!-- حقل اسم المراقب (يحتفظ بالاسم الأخير المكتوب في Session) -->
+            <label class="form-label">👤 اسم الموظف (المونيتور):</label>
+            <input type="text" name="monitor_name" class="touch-input" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}">
+            
+            <!-- قائمة اختيار المنطقة الحالية من قاعدة البيانات -->
+            <label class="form-label">📍 اختر المنطقة (Area):</label>
+            <select name="area" class="touch-select" required>
+                {% for area in areas %}
+                    <option value="{{ area.id }}">{{ area.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <!-- زر الانتقال لقائمة ألعاب المنطقة -->
+            <button type="submit" class="btn-touch btn-primary-touch" style="width: 100%; font-size: 18px; margin-top: 10px;">
+                🚀 بدء الفحص
+            </button>
+        </form>
+
+        <!-- رابط سريع لدخول لوحة تحكم الإدارة والصيانة -->
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒 دخول الإدارة والصيانة</a>
+        </div>
     </div>
+
 </body>
 </html>

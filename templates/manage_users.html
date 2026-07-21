@@ -1,3 +1,7 @@
+<!-- ==============================================================================
+  صفحة إدارة المستخدمين والحسابات (manage_users.html)
+  تسمح للـ Master Admin بإنشاء حسابات جديدة، وتحديد خيار تعديل النظام بـ Checkbox واحد
+============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -22,16 +26,18 @@
 <body>
 
     <div class="container">
+        <!-- الهيدر وزر العودة للداشبورد -->
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <h2>👥 إدارة الحسابات والصلاحيات</h2>
             <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">العودة للوحة التحكم</a>
         </div>
 
+        <!-- صندوق توضيحي لسلسلة الصلاحيات المطبقة -->
         <div class="note-box">
             📌 <strong>ملاحظة:</strong> جميع الحسابات المسجلة يمكنها الاطلاع على تقارير الفحص في الداشبورد تلقائياً. يمكنك تحديد الحسابات المسموح لها بإدارة وتعديل النظام (المناطق والألعاب).
         </div>
 
-        <!-- إضافة مستخدم جديد -->
+        <!-- 1. نموذج إضافة مستخدم جديد -->
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd;">
             <h3 style="margin-top: 0; color: #007bff;">➕ إضافة مستخدم جديد</h3>
             <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
@@ -54,6 +60,7 @@
                     </div>
                 </div>
 
+                <!-- خيار منح صلاحيات التعديل في النظام -->
                 <div>
                     <label style="font-weight: bold; display: block; margin-bottom: 8px;">إعدادات التعديل والتغيير:</label>
                     <div class="checkbox-group">
@@ -69,7 +76,7 @@
             </form>
         </div>
 
-        <!-- جدول الحسابات المسجلة -->
+        <!-- 2. جدول عرض وتعديل صلاحيات الحسابات المسجلة -->
         <h3 style="margin-top: 40px; color: #333;">📋 الحسابات المسجلة وإمكانيات التعديل</h3>
         <table>
             <thead>
@@ -82,6 +89,7 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- الحساب الرئيسي الثابت -->
                 <tr>
                     <td><strong>admin</strong></td>
                     <td><span class="badge badge-admin">المدير العام</span></td>
@@ -89,12 +97,14 @@
                     <td><span style="color: #28a745; font-weight: bold;">✅ صلاحيات كاملة</span></td>
                     <td><span style="color: #999;">أساسي (لا يمكن حذفه)</span></td>
                 </tr>
+                <!-- الحسابات الفرعية الدفعية -->
                 {% for user in users %}
                 <tr>
                     <td><strong>{{ user.username }}</strong></td>
                     <td><span class="badge badge-role">{{ user.role }}</span></td>
                     <td><span style="color: #28a745; font-weight: bold;">✅ متاح</span></td>
                     <td>
+                        <!-- فورم تحديث الصلاحية فوراً بـ Checkbox وحفظ -->
                         <form action="/update_user_permissions/{{ user.id }}" method="POST" style="display: flex; gap: 10px; align-items: center; margin: 0;">
                             <label class="checkbox-label" style="font-size: 14px;">
                                 <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> السماح بتعديل النظام

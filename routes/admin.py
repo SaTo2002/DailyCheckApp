@@ -1,3 +1,8 @@
+# ==============================================================================
+# مسارات الإدارة والداشبورد (routes/admin.py)
+# مسئول عن: تسجيل دخول الأدمن، تصفح الفحوصات والفلترة، طباعة التقارير، وحذفها
+# ==============================================================================
+
 import os
 import json
 from flask import Blueprint, render_template, request, session, redirect, url_for
@@ -6,12 +11,19 @@ from sqlalchemy import func
 from extensions import db, MASTER_ADMIN_HASH
 from models import User, GameModel, GameReport
 
+# إنشاء Blueprint للإدارة والداشبورد
 admin_bp = Blueprint('admin', __name__)
 
+# ------------------------------------------------------------------------------
+# 1. تسجيل دخول حسابات الإدارة والصيانة (GET & POST)
+# ------------------------------------------------------------------------------
 @admin_bp.route('/admin_login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
-        username, password = request.form.get('username'), request.form.get('password')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        # 1. التحقق أولاً لو كان الحساب هو Master Admin الرئيسي
         if username == 'admin' and check_password_hash(MASTER_ADMIN_HASH, password):
             session['is_admin'] = True
             session['admin_role'] = 'admin'
@@ -19,65 +31,111 @@ def admin_login():
             session['can_manage_system'] = True
             session['can_view_reports'] = True
             return redirect(url_for('admin.dashboard'))
+            
+        # 2. التحقق من الحسابات المسجلة في جدول المستخدمين (users)
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
             is_master = (user.role == 'admin')
             session['is_admin'] = True
             session['admin_role'] = user.role
             session['is_master_admin'] = is_master
-            session['can_view_reports'] = True  # Every account can view dashboard reports
+            session['can_view_reports'] = True  # كافة الحسابات يمكنها رؤية الداشبورد
             session['can_manage_system'] = is_master or bool(getattr(user, 'can_manage_system', False)) or bool(getattr(user, 'can_manage_areas', False)) or bool(getattr(user, 'can_manage_games', False))
             
             return redirect(url_for('admin.dashboard'))
+            
         return render_template('admin_login.html', error="اسم المستخدم أو كلمة المرور غير صحيحة!")
     return render_template('admin_login.html')
 
+# ------------------------------------------------------------------------------
+# 2. تسجيل خروج الإدارة وتصفير مفاتيح جلسة الإدارة
+# ------------------------------------------------------------------------------
 @admin_bp.route('/admin_logout')
 def admin_logout():
     for k in ['is_admin', 'admin_role', 'is_master_admin', 'can_manage_system', 'can_manage_areas', 'can_manage_games', 'can_view_reports']:
         session.pop(k, None)
     return redirect(url_for('monitor.home'))
 
+# ------------------------------------------------------------------------------
+# 3. لوحة تحكم الإدارة والداشبورد وعرض تقارير الفحص (GET)
+# ------------------------------------------------------------------------------
 @admin_bp.route('/dashboard', methods=['GET'])
 def dashboard():
+    # التحقق من صلاحيات الدخول للداشبورد
     if not session.get('is_admin') or not session.get('can_view_reports'):
-        if session.get('is_admin') and (session.get('can_manage_areas') or session.get('can_manage_games')):
+        if session.get('is_admin') and session.get('can_manage_system'):
             return redirect(url_for('manage.manage_system'))
         return redirect(url_for('admin.admin_login'))
-    selected_area, selected_date, selected_monitor = request.args.get('area', ''), request.args.get('date', ''), request.args.get('monitor_name', '')
+        
+    # قراءة قيم الفلترة من رابط الرغبات (Query Parameters)
+    selected_area = request.args.get('area', '')
+    selected_date = request.args.get('date', '')
+    selected_monitor = request.args.get('monitor_name', '')
+    
+    # بناء استعلام الفلترة
     query = GameReport.query
     if selected_area: query = query.filter(GameReport.area_id == selected_area)
     if selected_date: query = query.filter(func.date(GameReport.timestamp) == selected_date)
     if selected_monitor: query = query.filter(GameReport.monitor_name == selected_monitor)
+    
     reports = query.order_by(GameReport.timestamp.desc()).all()
+    
+    # جلب القوائم الفرعية المتاحة للفلترة
     areas = [r[0] for r in db.session.query(GameReport.area_id).distinct().all()]
     dates = [str(r[0]) for r in db.session.query(func.date(GameReport.timestamp)).distinct().all() if r[0]]
     monitors = [r[0] for r in db.session.query(GameReport.monitor_name).distinct().all()]
     
+    # تجميع التقارير حسب session_id لتظهر المنطقة والفحوصات في كارت واحد مجمع
     grouped_reports = {}
     for r in reports:
         if r.session_id not in grouped_reports:
-            grouped_reports[r.session_id] = {'monitor_name': r.monitor_name, 'area_id': r.area_id, 'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'), 'games': []}
+            grouped_reports[r.session_id] = {
+                'monitor_name': r.monitor_name,
+                'area_id': r.area_id,
+                'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'games': []
+            }
+        
         game_model = GameModel.query.get(r.game_id) if r.game_id.isdigit() else None
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
         checks = json.loads(r.checks_data) if r.checks_data else {}
+        
         mapped_checks = {}
         for k, v in checks.items():
             if k.startswith('check_'):
                 try:
                     idx = int(k.split('_')[1]) - 1
                     mapped_checks[actual_check_names[idx] if idx < len(actual_check_names) else k] = 'OK' if v == 'سليم' else 'Not OK'
-                except: mapped_checks[k] = v
+                except Exception: mapped_checks[k] = v
             else: mapped_checks[k] = v
-        grouped_reports[r.session_id]['games'].append({'game_id': game_model.name if game_model else r.game_id, 'checks': mapped_checks, 'notes': r.notes, 'map_drawing': r.map_image_path, 'base_map': game_model.map_image if game_model else "", 'photos': json.loads(r.photos_paths) if r.photos_paths else []})
+            
+        grouped_reports[r.session_id]['games'].append({
+            'game_id': game_model.name if game_model else r.game_id,
+            'checks': mapped_checks,
+            'notes': r.notes,
+            'map_drawing': r.map_image_path,
+            'base_map': game_model.map_image if game_model else "",
+            'photos': json.loads(r.photos_paths) if r.photos_paths else []
+        })
+        
     return render_template('dashboard.html', reports=grouped_reports, areas=areas, dates=dates, monitors=monitors, selected_area=selected_area, selected_date=selected_date, selected_monitor=selected_monitor)
 
+# ------------------------------------------------------------------------------
+# 4. طباعة التقرير المجمع للمنطقة (GET)
+# ------------------------------------------------------------------------------
 @admin_bp.route('/print_report/<session_id>')
 def print_report(session_id):
     if not session.get('is_admin') or not session.get('can_view_reports'): return redirect(url_for('admin.admin_login'))
     reports = GameReport.query.filter_by(session_id=session_id).all()
     if not reports: return "التقرير غير موجود"
-    report_data = {'monitor_name': reports[0].monitor_name, 'area_id': reports[0].area_id, 'timestamp': reports[0].timestamp.strftime('%Y-%m-%d %H:%M:%S'), 'games': []}
+    
+    report_data = {
+        'monitor_name': reports[0].monitor_name,
+        'area_id': reports[0].area_id,
+        'timestamp': reports[0].timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        'games': []
+    }
+    
     for r in reports:
         game_model = GameModel.query.get(r.game_id) if r.game_id.isdigit() else None
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
@@ -85,21 +143,32 @@ def print_report(session_id):
         for k, v in (json.loads(r.checks_data) if r.checks_data else {}).items():
             if k.startswith('check_'):
                 try: mapped_checks[actual_check_names[int(k.split('_')[1]) - 1] if int(k.split('_')[1]) - 1 < len(actual_check_names) else k] = 'OK' if v == 'سليم' else 'Not OK'
-                except: mapped_checks[k] = v
+                except Exception: mapped_checks[k] = v
             else: mapped_checks[k] = v
-        report_data['games'].append({'game_id': game_model.name if game_model else r.game_id, 'checks': mapped_checks, 'notes': r.notes, 'map_drawing': r.map_image_path, 'base_map': game_model.map_image if game_model else "", 'photos': json.loads(r.photos_paths) if r.photos_paths else []})
+        report_data['games'].append({
+            'game_id': game_model.name if game_model else r.game_id,
+            'checks': mapped_checks,
+            'notes': r.notes,
+            'map_drawing': r.map_image_path,
+            'base_map': game_model.map_image if game_model else "",
+            'photos': json.loads(r.photos_paths) if r.photos_paths else []
+        })
     return render_template('print_report.html', report=report_data)
 
+# ------------------------------------------------------------------------------
+# 5. حذف التقرير يدوياً وتنظيف صوره نهائياً من النظام (POST)
+# ------------------------------------------------------------------------------
 @admin_bp.route('/delete_report/<session_id>', methods=['POST'])
 def delete_report(session_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
     for r in GameReport.query.filter_by(session_id=session_id).all():
-        if r.map_image_path and os.path.exists(r.map_image_path.lstrip('/')): os.remove(r.map_image_path.lstrip('/'))
+        if r.map_image_path and os.path.exists(r.map_image_path.lstrip('/')):
+            os.remove(r.map_image_path.lstrip('/'))
         if r.photos_paths:
             try:
                 for p in json.loads(r.photos_paths):
                     if os.path.exists(p.lstrip('/')): os.remove(p.lstrip('/'))
-            except: pass
+            except Exception: pass
         db.session.delete(r)
     db.session.commit()
     return redirect(url_for('admin.dashboard'))

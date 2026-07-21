@@ -1,110 +1,124 @@
+<!-- ==============================================================================
+  صفحة فحص اللعبة للمونيتور (form.html)
+  تحتوي على: أسئلة الفحص (سليم/تالف)، ملاحظات النصية، الرسم على الخريطة (Canvas)، 
+  ورفع الصور، مع الشريط اللمسي الثابت بالأسفل للموبايل
+============================================================================== -->
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>فحص لعبة: {{ game.name }}</title>
+    <!-- الستايل الرئيسي المتجاوب لللمس -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; border-bottom: 2px solid #28a745; padding-bottom: 10px; margin-top: 0; }
-        .section-title { font-size: 18px; color: #007bff; margin-bottom: 15px; margin-top: 30px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
-        
-        .question-box { background: #fdfdfd; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        .question-box p { margin: 0 0 10px 0; font-weight: bold; font-size: 16px; }
-        .options { display: flex; gap: 20px; }
-        .options label { font-size: 16px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
-        
-        textarea { width: 100%; height: 100px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit; font-size: 15px; box-sizing: border-box; resize: vertical; }
-        
-        .map-container { position: relative; display: inline-block; border: 2px solid #dee2e6; border-radius: 5px; overflow: hidden; background: #fff; max-width: 100%; }
-        canvas { cursor: crosshair; touch-action: none; max-width: 100%; } /* touch-action: none لمنع السكرول أثناء الرسم عالموبايل */
-        
-        .btn-clear { position: absolute; top: 10px; left: 10px; background: rgba(220, 53, 69, 0.9); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 13px; z-index: 10; }
-        .btn-clear:hover { background: rgba(200, 35, 51, 1); }
-        
-        .submit-btn { background: #28a745; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 30px; transition: 0.3s; }
-        .submit-btn:hover { background: #218838; }
-        
-        .file-input-wrapper { background: #e9ecef; padding: 20px; border-radius: 5px; text-align: center; border: 1px dashed #adb5bd; }
-        .file-input-wrapper input { width: 100%; cursor: pointer; }
+        /* تنسيق الخريطة وعنصر الرسم Canvas */
+        .map-container { position: relative; display: inline-block; border: 2px solid #cbd5e1; border-radius: 10px; overflow: hidden; background: #fff; max-width: 100%; width: 100%; box-sizing: border-box; }
+        canvas { cursor: crosshair; touch-action: none; max-width: 100%; display: block; width: 100%; }
+        .btn-clear { position: absolute; top: 10px; left: 10px; background: rgba(220, 53, 69, 0.95); color: white; border: none; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 13px; z-index: 10; }
+        .question-card { background: #ffffff; border: 1px solid #e2e8f0; padding: 18px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .section-header { font-size: 17px; font-weight: 700; color: #0d6efd; margin-top: 25px; margin-bottom: 12px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>فحص: <span style="color: #28a745;">{{ game.name }}</span></h1>
+<div class="monitor-container" style="padding-bottom: 80px;">
+    <!-- الهيدر وعنوان اللعبة المفحوصة -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1 class="monitor-title" style="margin: 0; font-size: 20px;">
+            فحص: <span style="color: #198754;">{{ game.name }}</span>
+        </h1>
+        <a href="/games/{{ session.get('area_id') }}" style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 إلغاء</a>
+    </div>
 
+    <!-- نموذج إجابات فحص اللعبة -->
     <form action="/check/{{ game_id }}" method="POST" id="checkForm" enctype="multipart/form-data" data-map-mandatory="{{ 'true' if game.map_mandatory else 'false' }}">
         
-        <!-- 1. الأسئلة -->
+        <!-- 1. عناصر وأسئلة الفحص المصممة كأزرار خيارية (Pills Switch) -->
         {% if checks %}
-            <h3 class="section-title">📋 عناصر الفحص</h3>
+            <div class="section-header">📋 عناصر الفحص</div>
             {% for check in checks %}
-            <div class="question-box">
-                <p>{{ check.name }} {% if check.is_mandatory %}<span style="color: red;">*</span>{% endif %}</p>
-                <div class="options">
-                    <label>
-                        <input type="radio" name="check_{{ loop.index }}" value="سليم" 
+            <div class="question-card">
+                <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1e293b;">
+                    {{ check.name }} {% if check.is_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}
+                </div>
+                <!-- أزرار الاختيار السريعة باللمس -->
+                <div class="pill-options">
+                    <!-- خيار: سليم (خلفية خضراء عند الاختيار) -->
+                    <div class="pill-option">
+                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="سليم" 
                                {% if saved_data.get('check_' ~ loop.index) == 'سليم' %}checked{% endif %} 
-                               {% if check.is_mandatory %}required{% endif %}> سليم
-                    </label>
-                    <label>
-                        <input type="radio" name="check_{{ loop.index }}" value="تالف/يوجد مشكلة" 
-                               {% if saved_data.get('check_' ~ loop.index) == 'تالف/يوجد مشكلة' %}checked{% endif %}> تالف/يوجد مشكلة
-                    </label>
+                               {% if check.is_mandatory %}required{% endif %}>
+                        <label for="check_{{ loop.index }}_ok" class="pill-label">
+                            ✅ سليم
+                        </label>
+                    </div>
+                    <!-- خيار: عطل/مشكلة (خلفية حمراء عند الاختيار) -->
+                    <div class="pill-option">
+                        <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}" value="تالف/يوجد مشكلة" 
+                               {% if saved_data.get('check_' ~ loop.index) == 'تالف/يوجد مشكلة' %}checked{% endif %}>
+                        <label for="check_{{ loop.index }}_bad" class="pill-label">
+                            ❌ مشكلة / عطل
+                        </label>
+                    </div>
                 </div>
             </div>
             {% endfor %}
         {% endif %}
 
-        <!-- 2. الملاحظات -->
-        <h3 class="section-title">📝 ملاحظات إضافية {% if game.notes_mandatory %}<span style="color: red;">*</span>{% endif %}</h3>
-        <textarea name="notes" placeholder="اكتب أي ملاحظات هنا..." {% if game.notes_mandatory %}required{% endif %}>{{ saved_data.get('notes', '') }}</textarea>
+        <!-- 2. سيكشن الملاحظات النصية -->
+        <div class="section-header">📝 ملاحظات إضافية {% if game.notes_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}</div>
+        <textarea name="notes" class="touch-input" style="height: 110px; resize: vertical;" placeholder="اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا..." {% if game.notes_mandatory %}required{% endif %}>{{ saved_data.get('notes', '') }}</textarea>
 
-        <!-- 3. الخريطة (الـ Canvas) -->
+        <!-- 3. سيكشن الخريطة الموقعية والرسم التفاعلي (Canvas) -->
         {% if game.has_map %}
-        <h3 class="section-title">🗺️ تحديد المشكلة على الخريطة {% if game.map_mandatory %}<span style="color: red;">*</span>{% endif %}</h3>
+        <div class="section-header">🗺️ تحديد المشكلة على الخريطة {% if game.map_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}</div>
         
             {% if game.map_image %}
             <div class="map-container">
-                <button type="button" class="btn-clear" onclick="clearCanvas()">مسح الرسم 🗑️</button>
-                <!-- يتم تحديد عرض وطول الكانفاس برمجياً بناءً على حجم الصورة -->
+                <button type="button" class="btn-clear" onclick="clearCanvas()">مسح 🗑️</button>
                 <canvas id="mapCanvas"></canvas>
             </div>
+            <!-- الحقل المخفي الذي يحتوي على الصورة الملموسة بصيغة DataURL -->
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="{{ saved_data.get('map_drawing', '') }}">
-            <p style="color: #6c757d; font-size: 14px;">(استخدم الماوس أو إصبعك للرسم وتحديد مكان المشكلة باللون الأحمر)</p>
+            <p style="color: #64748b; font-size: 13px; margin-top: 6px;">(ارسم على الخريطة بإصبعك لتحديد موقع العطل بالضبط باللون الأحمر)</p>
             {% else %}
-            <div style="padding: 20px; background: #fff3cd; color: #856404; border-radius: 5px; border: 1px solid #ffeeba;">
-                ⚠️ تم تفعيل الخريطة لهذه اللعبة، ولكن لم يتم رفع صورة أساسية لها من قبل الإدارة.
+            <div style="padding: 15px; background: #fff3cd; color: #856404; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
+                ⚠️ تم تفعيل الخريطة لهذه اللعبة، لكن لم يتم رفع صورة الخريطة الأساسية بعد.
             </div>
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="">
             {% endif %}
             
         {% endif %}
 
-        <!-- 4. إرفاق الصور -->
+        <!-- 4. سيكشن إرفاق صور الأعطال والتلفيات -->
         {% if game.allow_photos %}
-        <h3 class="section-title">📸 إرفاق صور (للمشاكل الموجودة) {% if game.requires_photo %}<span style="color: red;">*</span>{% endif %}</h3>
-        <div class="file-input-wrapper">
-            <input type="file" name="issue_photos" accept="image/*" multiple id="photoInput" {% if game.requires_photo and not saved_data.get('photos') %}required{% endif %}>
+        <div class="section-header">📸 صور التلفيات والعطل {% if game.requires_photo %}<span style="color: #dc3545;">*</span>{% endif %}</div>
+        <div style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center;">
+            <input type="file" name="issue_photos" accept="image/*" multiple id="photoInput" style="width: 100%; font-size: 14px;" {% if game.requires_photo and not saved_data.get('photos') %}required{% endif %}>
         </div>
-        <p style="color: #6c757d; font-size: 13px;">يمكنك اختيار أكثر من صورة.</p>
+        <p style="color: #64748b; font-size: 13px; margin-top: 6px;">يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار أكثر من صورة.</p>
         {% endif %}
 
-        <!-- أزرار الحفظ -->
-        <div style="display: flex; gap: 15px;">
-            <button type="submit" name="action" value="save" class="submit-btn" style="background: #007bff;">💾 حفظ والعودة للقائمة</button>
+        <!-- شريط الإجراءات الثابت بأسفل الشاشة (Sticky Footer Bar) -->
+        <div class="sticky-footer-bar">
+            <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch">
+                💾 حفظ والعودة
+            </button>
             
             {% if next_game_id %}
-            <button type="submit" name="action" value="next" class="submit-btn">التالي ⏭️</button>
+            <button type="submit" name="action" value="next" class="btn-touch btn-success-touch">
+                التالي ⏭️
+            </button>
             {% endif %}
         </div>
 
     </form>
 </div>
 
-<!-- سكريبت الرسم على الخريطة -->
+<!-- ==============================================================================
+  سكريبت الرسم على الـ Canvas بالتاتش أو الماوس
+============================================================================== -->
 {% if game.has_map and game.map_image %}
 <script>
     const canvas = document.getElementById('mapCanvas');
@@ -114,10 +128,8 @@
     let isDrawing = false;
     let img = new Image();
 
-    // تحميل الصورة الأساسية وضبط أبعاد الـ Canvas عليها
+    // تحميل صورة الخريطة الأساسية وضبط أبعاد الـ Canvas
     img.onload = function() {
-        // نضبط أبعاد الـ canvas لتطابق الصورة الأساسية للحفاظ على الدقة
-        // بحد أقصى للعرض عشان ما تخرجش بره الشاشة
         const maxWidth = 800;
         let finalWidth = img.width;
         let finalHeight = img.height;
@@ -133,29 +145,21 @@
         
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // لو فيه رسمة محفوظة قبل كده، نعرضها فوق الصورة
+        // إعادة رسم الخريطة المحفوظة إن وجدت مسبقاً
         const savedDataUrl = mapInput.value;
-        if (savedDataUrl && savedDataUrl.startsWith('data:image')) {
+        if (savedDataUrl && (savedDataUrl.startsWith('data:image') || savedDataUrl.startsWith('/static'))) {
             let savedImg = new Image();
-            savedImg.onload = function() {
-                ctx.drawImage(savedImg, 0, 0, canvas.width, canvas.height);
-            };
-            savedImg.src = savedDataUrl;
-        } else if (savedDataUrl && savedDataUrl.startsWith('/static')) {
-             // لو مسار لصورة محفوظة كملف
-             let savedImg = new Image();
             savedImg.onload = function() {
                 ctx.drawImage(savedImg, 0, 0, canvas.width, canvas.height);
             };
             savedImg.src = savedDataUrl;
         }
     };
-    img.src = "{{ game.map_image }}"; // المسار الجاي من الداتابيز
+    img.src = "{{ game.map_image }}";
 
-    // دوال الرسم
+    // حساب إحداثيات الأصابع أو الماوس بدقة على الكانفاس المتجاوب
     function getPointerPos(e) {
         const rect = canvas.getBoundingClientRect();
-        // حساب نسبة التصغير/التكبير لو الـ CSS صغر الـ canvas في الشاشات الصغيرة
         const scaleX = canvas.width / rect.width;
         const scaleY = canvas.height / rect.height;
         
@@ -181,18 +185,18 @@
     function endPosition() {
         isDrawing = false;
         ctx.beginPath();
-        // حفظ الرسمة في الـ Input المخفي عشان تتبعت مع الفورم
+        // حفظ الصورة المحدثة في الحقل المخفي
         mapInput.value = canvas.toDataURL('image/png');
     }
 
     function draw(e) {
         if (!isDrawing) return;
         
-        e.preventDefault(); // لمنع سكرول الشاشة أثناء الرسم عالموبايل
+        e.preventDefault();
         
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 5;
         ctx.lineCap = 'round';
-        ctx.strokeStyle = '#dc3545'; // لون أحمر لتحديد المشكلة
+        ctx.strokeStyle = '#dc3545'; // قلم أحمر واضح للتحديد
 
         const pos = getPointerPos(e);
 
@@ -202,26 +206,25 @@
         ctx.moveTo(pos.x, pos.y);
     }
 
-    // ربط أحداث الماوس
+    // استماع لأحداث الماوس
     canvas.addEventListener('mousedown', startPosition);
     canvas.addEventListener('mouseup', endPosition);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseleave', endPosition);
 
-    // ربط أحداث اللمس (للموبايلات)
+    // استماع لأحداث اللمس باليد على الموبايل
     canvas.addEventListener('touchstart', startPosition, { passive: false });
     canvas.addEventListener('touchend', endPosition);
     canvas.addEventListener('touchmove', draw, { passive: false });
 
-    // دالة مسح الرسمة
+    // تفريغ ومسح الرسومات وإعادة الخريطة لأصلها
     function clearCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        mapInput.value = ''; // تفريغ القيمة
+        mapInput.value = '';
     }
 
-    // التحقق قبل الإرسال لو الخريطة إجبارية
-    // قراءة القيمة من الـ HTML مباشرة لتجنب أي تعارض في محرر الأكواد
+    // التحقق من شرط إجبارية تحديد الخريطة قبل إرسال الفورم
     const formElement = document.getElementById('checkForm');
     const isMapMandatory = formElement.getAttribute('data-map-mandatory') === 'true';
     
@@ -229,7 +232,7 @@
         if (isMapMandatory) {
             if (!mapInput.value || mapInput.value === '') {
                 e.preventDefault();
-                alert('⚠️ يرجى تحديد المشكلة على الخريطة أولاً (هذا الحقل إجباري).');
+                alert('⚠️ يرجى تحديد موقع التلف أو المشكلة على الخريطة (هذا الحقل إجباري).');
             }
         }
     });
