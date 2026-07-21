@@ -1,2 +1,29 @@
+# Environment & Secrets
 .env
+.env.local
+
+# Byte-compiled / optimized files
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Uploaded Media (ignore user uploads, keep directory tracked)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDE / OS junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Flask instance & database files
+instance/
+*.sqlite3
+*.db

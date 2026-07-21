@@ -1,0 +1,154 @@
+import os
+import json
+import uuid
+from flask import Blueprint, render_template, request, session, redirect, url_for
+from werkzeug.security import generate_password_hash
+from werkzeug.utils import secure_filename
+from extensions import db, UPLOAD_FOLDER
+from models import User, Area, GameModel
+
+manage_bp = Blueprint('manage', __name__)
+
+@manage_bp.route('/manage_system', methods=['GET', 'POST'])
+def manage_system():
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    return render_template('manage_system.html', areas=Area.query.all())
+
+@manage_bp.route('/add_area', methods=['POST'])
+def add_area():
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    name = request.form.get('area_name')
+    if name:
+        db.session.add(Area(name=name))
+        db.session.commit()
+    return redirect(url_for('manage.manage_system'))
+
+@manage_bp.route('/edit_area/<int:area_id>', methods=['GET', 'POST'])
+def edit_area(area_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    area = Area.query.get_or_404(area_id)
+    if request.method == 'POST':
+        new_name = request.form.get('area_name')
+        if new_name:
+            area.name = new_name
+            db.session.commit()
+        return redirect(url_for('manage.manage_system'))
+    return render_template('edit_area.html', area=area)
+
+@manage_bp.route('/delete_area/<int:area_id>')
+def delete_area(area_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    area = Area.query.get_or_404(area_id)
+    if area:
+        db.session.delete(area)
+        db.session.commit()
+    return redirect(url_for('manage.manage_system'))
+
+# --- إدارة الألعاب داخل المنطقة ---
+@manage_bp.route('/area_games/<int:area_id>')
+def area_games(area_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    return render_template('area_games.html', area=Area.query.get_or_404(area_id))
+
+@manage_bp.route('/add_game_to_area/<int:area_id>', methods=['POST'])
+def add_game_to_area(area_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    
+    name = request.form.get('game_name')
+    check_names = request.form.getlist('check_names[]')
+    structured_checks = [{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()]
+    
+    # معالجة صورة الخريطة الأساسية
+    map_image_path = None
+    if 'map_image' in request.files:
+        file = request.files['map_image']
+        if file and file.filename != '':
+            ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+            filename = f"base_map_area{area_id}_{uuid.uuid4().hex}.{ext}"
+            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            file.save(filepath)
+            map_image_path = f"/{filepath}".replace("\\", "/")
+
+    if name:
+        db.session.add(GameModel(
+            name=name, 
+            area_id=area_id,
+            has_map=bool(request.form.get('has_map')), 
+            map_mandatory=bool(request.form.get('map_mandatory')),
+            map_image=map_image_path,
+            allow_photos=bool(request.form.get('allow_photos')), 
+            requires_photo=bool(request.form.get('requires_photo')),
+            notes_mandatory=bool(request.form.get('notes_mandatory')), 
+            checks=json.dumps(structured_checks, ensure_ascii=False)
+        ))
+        db.session.commit()
+        
+    return redirect(url_for('manage.area_games', area_id=area_id))
+
+@manage_bp.route('/edit_game/<int:game_id>', methods=['GET', 'POST'])
+def edit_game(game_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    game = GameModel.query.get_or_404(game_id)
+    
+    if request.method == 'POST':
+        game.name = request.form.get('game_name')
+        game.area_id = request.form.get('area_id')
+        game.has_map = bool(request.form.get('has_map'))
+        game.map_mandatory = bool(request.form.get('map_mandatory'))
+        game.allow_photos = bool(request.form.get('allow_photos'))
+        game.requires_photo = bool(request.form.get('requires_photo'))
+        game.notes_mandatory = bool(request.form.get('notes_mandatory'))
+        
+        check_names = request.form.getlist('check_names[]')
+        game.checks = json.dumps([{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()], ensure_ascii=False)
+        
+        if 'map_image' in request.files:
+            file = request.files['map_image']
+            if file and file.filename != '':
+                old_map_path = getattr(game, 'map_image_path', None)
+                if old_map_path and os.path.exists(old_map_path):
+                    try:
+                        os.remove(old_map_path)
+                    except Exception as e:
+                        print(f"Error deleting old map: {e}")
+                
+                filename = secure_filename(file.filename)
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                file.save(filepath)
+                
+                game.map_image_path = filepath
+
+        db.session.commit()
+        return redirect(url_for('manage.area_games', area_id=game.area_id))
+        
+    return render_template('edit_game.html', game=game, areas=Area.query.all(), checks=json.loads(game.checks) if game.checks else [])
+
+@manage_bp.route('/delete_game_from_area/<int:area_id>/<int:game_id>')
+def delete_game_from_area(area_id, game_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    game = GameModel.query.get(game_id)
+    if game:    
+        db.session.delete(game)
+        db.session.commit()
+    return redirect(url_for('manage.area_games', area_id=area_id))
+
+@manage_bp.route('/manage_users', methods=['GET', 'POST'])
+def manage_users():
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if request.method == 'POST':
+        username, password, role = request.form.get('username'), request.form.get('password'), request.form.get('role', 'monitor')
+        if username and password:
+            db.session.add(User(username=username, password_hash=generate_password_hash(password), role=role))
+            db.session.commit()
+        return redirect(url_for('manage.manage_users'))
+    return render_template('manage_users.html', users=User.query.all())
+
+@manage_bp.route('/delete_user/<int:user_id>')
+def delete_user(user_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    user = User.query.get(user_id)
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+    return redirect(url_for('manage.manage_users'))
