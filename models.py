@@ -6,6 +6,10 @@ class User(db.Model):
     username = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False)
+    can_manage_system = db.Column(db.Boolean, default=False)
+    can_manage_areas = db.Column(db.Boolean, default=False)
+    can_manage_games = db.Column(db.Boolean, default=False)
+    can_view_reports = db.Column(db.Boolean, default=True)
 
 class Area(db.Model):
     __tablename__ = 'areas'

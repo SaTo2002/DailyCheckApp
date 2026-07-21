@@ -9,14 +9,20 @@ from models import User, Area, GameModel
 
 manage_bp = Blueprint('manage', __name__)
 
+def check_system_permission():
+    return session.get('is_admin') and (session.get('is_master_admin') or session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games'))
+
 @manage_bp.route('/manage_system', methods=['GET', 'POST'])
 def manage_system():
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not session.get('is_admin'):
+        return redirect(url_for('admin.admin_login'))
+    if not check_system_permission():
+        return redirect(url_for('admin.admin_login'))
     return render_template('manage_system.html', areas=Area.query.all())
 
 @manage_bp.route('/add_area', methods=['POST'])
 def add_area():
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     name = request.form.get('area_name')
     if name:
         db.session.add(Area(name=name))
@@ -25,7 +31,7 @@ def add_area():
 
 @manage_bp.route('/edit_area/<int:area_id>', methods=['GET', 'POST'])
 def edit_area(area_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     area = Area.query.get_or_404(area_id)
     if request.method == 'POST':
         new_name = request.form.get('area_name')
@@ -37,7 +43,7 @@ def edit_area(area_id):
 
 @manage_bp.route('/delete_area/<int:area_id>')
 def delete_area(area_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     area = Area.query.get_or_404(area_id)
     if area:
         db.session.delete(area)
@@ -47,18 +53,17 @@ def delete_area(area_id):
 # --- إدارة الألعاب داخل المنطقة ---
 @manage_bp.route('/area_games/<int:area_id>')
 def area_games(area_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     return render_template('area_games.html', area=Area.query.get_or_404(area_id))
 
 @manage_bp.route('/add_game_to_area/<int:area_id>', methods=['POST'])
 def add_game_to_area(area_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     
     name = request.form.get('game_name')
     check_names = request.form.getlist('check_names[]')
     structured_checks = [{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()]
     
-    # معالجة صورة الخريطة الأساسية
     map_image_path = None
     if 'map_image' in request.files:
         file = request.files['map_image']
@@ -87,7 +92,7 @@ def add_game_to_area(area_id):
 
 @manage_bp.route('/edit_game/<int:game_id>', methods=['GET', 'POST'])
 def edit_game(game_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     game = GameModel.query.get_or_404(game_id)
     
     if request.method == 'POST':
@@ -126,7 +131,7 @@ def edit_game(game_id):
 
 @manage_bp.route('/delete_game_from_area/<int:area_id>/<int:game_id>')
 def delete_game_from_area(area_id, game_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     game = GameModel.query.get(game_id)
     if game:    
         db.session.delete(game)
@@ -137,14 +142,39 @@ def delete_game_from_area(area_id, game_id):
 def manage_users():
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
     if request.method == 'POST':
-        username, password, role = request.form.get('username'), request.form.get('password'), request.form.get('role', 'monitor')
+        username = request.form.get('username')
+        password = request.form.get('password')
+        role = request.form.get('role', 'Team Leader')
+        can_manage_system = bool(request.form.get('can_manage_system'))
+
         if username and password:
-            db.session.add(User(username=username, password_hash=generate_password_hash(password), role=role))
+            user = User(
+                username=username,
+                password_hash=generate_password_hash(password),
+                role=role,
+                can_manage_system=can_manage_system,
+                can_manage_areas=can_manage_system,
+                can_manage_games=can_manage_system,
+                can_view_reports=True
+            )
+            db.session.add(user)
             db.session.commit()
         return redirect(url_for('manage.manage_users'))
     return render_template('manage_users.html', users=User.query.all())
 
-@manage_bp.route('/delete_user/<int:user_id>')
+@manage_bp.route('/update_user_permissions/<int:user_id>', methods=['POST'])
+def update_user_permissions(user_id):
+    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    user = User.query.get_or_404(user_id)
+    can_manage_system = bool(request.form.get('can_manage_system'))
+    user.can_manage_system = can_manage_system
+    user.can_manage_areas = can_manage_system
+    user.can_manage_games = can_manage_system
+    user.can_view_reports = True
+    db.session.commit()
+    return redirect(url_for('manage.manage_users'))
+
+@manage_bp.route('/delete_user/<int:user_id>', methods=['POST'])
 def delete_user(user_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
     user = User.query.get(user_id)

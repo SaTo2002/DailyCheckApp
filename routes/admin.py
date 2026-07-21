@@ -13,24 +13,37 @@ def admin_login():
     if request.method == 'POST':
         username, password = request.form.get('username'), request.form.get('password')
         if username == 'admin' and check_password_hash(MASTER_ADMIN_HASH, password):
-            session['is_admin'], session['admin_role'] = True, 'admin'
+            session['is_admin'] = True
+            session['admin_role'] = 'admin'
+            session['is_master_admin'] = True
+            session['can_manage_system'] = True
+            session['can_view_reports'] = True
             return redirect(url_for('admin.dashboard'))
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password_hash, password):
-            session['is_admin'], session['admin_role'] = True, user.role
+            is_master = (user.role == 'admin')
+            session['is_admin'] = True
+            session['admin_role'] = user.role
+            session['is_master_admin'] = is_master
+            session['can_view_reports'] = True  # Every account can view dashboard reports
+            session['can_manage_system'] = is_master or bool(getattr(user, 'can_manage_system', False)) or bool(getattr(user, 'can_manage_areas', False)) or bool(getattr(user, 'can_manage_games', False))
+            
             return redirect(url_for('admin.dashboard'))
         return render_template('admin_login.html', error="اسم المستخدم أو كلمة المرور غير صحيحة!")
     return render_template('admin_login.html')
 
 @admin_bp.route('/admin_logout')
 def admin_logout():
-    session.pop('is_admin', None)
-    session.pop('admin_role', None)
+    for k in ['is_admin', 'admin_role', 'is_master_admin', 'can_manage_system', 'can_manage_areas', 'can_manage_games', 'can_view_reports']:
+        session.pop(k, None)
     return redirect(url_for('monitor.home'))
 
 @admin_bp.route('/dashboard', methods=['GET'])
 def dashboard():
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not session.get('is_admin') or not session.get('can_view_reports'):
+        if session.get('is_admin') and (session.get('can_manage_areas') or session.get('can_manage_games')):
+            return redirect(url_for('manage.manage_system'))
+        return redirect(url_for('admin.admin_login'))
     selected_area, selected_date, selected_monitor = request.args.get('area', ''), request.args.get('date', ''), request.args.get('monitor_name', '')
     query = GameReport.query
     if selected_area: query = query.filter(GameReport.area_id == selected_area)
@@ -61,7 +74,7 @@ def dashboard():
 
 @admin_bp.route('/print_report/<session_id>')
 def print_report(session_id):
-    if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    if not session.get('is_admin') or not session.get('can_view_reports'): return redirect(url_for('admin.admin_login'))
     reports = GameReport.query.filter_by(session_id=session_id).all()
     if not reports: return "التقرير غير موجود"
     report_data = {'monitor_name': reports[0].monitor_name, 'area_id': reports[0].area_id, 'timestamp': reports[0].timestamp.strftime('%Y-%m-%d %H:%M:%S'), 'games': []}

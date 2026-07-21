@@ -27,8 +27,18 @@ app.register_blueprint(monitor_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(manage_bp)
 
+from sqlalchemy import text
+
 with app.app_context():
     db.create_all()
+    # Migration helper for User permission columns
+    for col, default_val in [('can_manage_system', 0), ('can_manage_areas', 0), ('can_manage_games', 0), ('can_view_reports', 1)]:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} TINYINT(1) DEFAULT {default_val}"))
+                conn.commit()
+        except Exception:
+            pass
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

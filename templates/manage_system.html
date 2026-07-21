@@ -28,6 +28,7 @@
             <a href="/dashboard" class="btn btn-secondary">🔙 العودة للوحة التحكم</a>
         </div>
 
+        {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
         <div class="card">
             <h3>➕ إضافة منطقة جديدة</h3>
             <form action="/add_area" method="POST" style="display: flex; gap: 15px; margin-top: 15px;">
@@ -35,6 +36,7 @@
                 <button type="submit" class="btn btn-success">حفظ المنطقة</button>
             </form>
         </div>
+        {% endif %}
 
         <div class="card" style="border-top-color: #007bff;">
             <h3>📋 المناطق المسجلة (اضغط على المنطقة لإدارة ألعابها)</h3>
@@ -46,9 +48,13 @@
                         <span style="color: #666; font-size: 14px; margin-right: 10px;">({{ area.games|length }} لعبة مسجلة)</span>
                     </div>
                     <div class="actions">
+                        {% if session.get('can_manage_games') or session.get('can_manage_areas') or session.get('is_master_admin') %}
                         <a href="/area_games/{{ area.id }}" class="btn btn-primary">🎮 إدارة الألعاب</a>
+                        {% endif %}
+                        {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
                         <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ تعديل</a>
                         <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('⚠️ تحذير: مسح المنطقة سيؤدي إلى مسح جميع ألعابها! هل أنت متأكد؟');">🗑️ حذف</a>
+                        {% endif %}
                     </div>
                 </li>
                 {% else %}
