@@ -12,10 +12,8 @@ from sqlalchemy import text
 from extensions import db
 from models import User, Area, GameModel, GameReport
 
-# استدعاء الـ Blueprints الخاصة بأجزاء التطبيق المختلفة
-from routes.monitor import monitor_bp  # مسارات المراقب والفحص الميداني
-from routes.admin import admin_bp      # مسارات دخول الإدارة والداشبورد
-from routes.manage import manage_bp    # مسارات إدارة المناطق والألعاب والحسابات
+# استدعاء الـ Blueprints مباشرة من حزمة المسارات (routes)
+from routes import monitor_bp, admin_bp, manage_bp
 
 # 1. تحميل متغيرات البيئة من ملف .env
 load_dotenv()
