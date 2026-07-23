@@ -22,9 +22,10 @@ monitor_bp = Blueprint('monitor', __name__)
 def home():
     try:
         # --- آلية التنظيف الآلي للصور المهملة (أكبر من 24 ساعة) ---
-        # 1. جمع قائمة بالصور المحمية التابعة لتقارير مسجلة أو خرائط أساسية
+        # 1. جمع قائمة بالصور المحمية التابعة لتقارير مسجلة أو خرائط أساسية أو أغلفة المناطق
         reports = GameReport.query.with_entities(GameReport.map_image_path, GameReport.photos_paths).all()
         games = GameModel.query.with_entities(GameModel.map_image).all()
+        areas = Area.query.with_entities(Area.image).all()
         
         valid_filenames = {'.gitkeep'}
         for r in reports:
@@ -35,6 +36,8 @@ def home():
                 except Exception: pass
         for g in games:
             if g.map_image: valid_filenames.add(os.path.basename(g.map_image))
+        for a in areas:
+            if a.image: valid_filenames.add(os.path.basename(a.image))
 
         # 2. حظر ومسح الصور المهملة المرفوعة من فحوصات ملغاة وتعدت 24 ساعة
         current_time = time.time()
