@@ -13,8 +13,12 @@ docxtpl==0.16.8
 Pillow
 WeasyPrint==62.3
 
-# --- الربط السحابي (Google Drive API) ---
+# --- الربط السحابي (Google Drive & Sheets API) ---
 google-api-python-client==2.137.0
 google-auth-httplib2==0.2.0
 google-auth-oauthlib==1.2.1
+google-auth==2.56.0
 
+# --- معالجة جداول البيانات (Excel & Google Sheets) ---
+openpyxl==3.1.5
+gspread==6.2.1

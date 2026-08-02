@@ -4,16 +4,16 @@
   ورفع الصور، مع الشريط اللمسي الثابت بالأسفل للموبايل
 ============================================================================== -->
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<!DOCTYPE html>
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>فحص لعبة: {{ game.name }}</title>
-    <!-- الستايل الرئيسي المتجاوب لللمس -->
+    <title>{% if is_ar %}فحص لعبة:{% else %}Check Game:{% endif %} {{ game.name }}</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
     <style>
-        /* تنسيق الخريطة وعنصر الرسم Canvas */
         .map-container {
             position: relative;
             display: inline-block;
@@ -68,7 +68,6 @@
             padding-bottom: 6px;
         }
 
-        /* شريط التمرير العريض المريح لللمس بالأصبع على الموبايل */
         .map-scroll-container::-webkit-scrollbar {
             height: 28px;
             width: 28px;
@@ -82,51 +81,80 @@
             border-radius: 14px;
             border: 4px solid #e2e8f0;
         }
+
+        .lang-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .lang-switch-btn:hover {
+            background: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="monitor-container" style="padding-bottom: 80px;">
-        <!-- الهيدر وعنوان اللعبة المفحوصة -->
+    <!-- Language Switcher Bar -->
+    <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
+        {% if is_ar %}
+        <a href="/set_language/en" class="lang-switch-btn" title="Switch to English">🌐 English</a>
+        {% else %}
+        <a href="/set_language/ar" class="lang-switch-btn" title="التحويل للغة العربية">🌐 العربية</a>
+        {% endif %}
+    </div>
+
+    <div class="monitor-container" style="margin-top: 10px; padding-bottom: 80px;">
+        <!-- Header & Title -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1 class="monitor-title" style="margin: 0; font-size: 20px;">
-                فحص: <span style="color: #198754;">{{ game.name }}</span>
+                {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: #198754;">{{ game.name }}</span>
             </h1>
             <a href="/games/{{ session.get('area_id') }}"
-                style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 إلغاء</a>
+                style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
         </div>
 
-        <!-- نموذج إجابات فحص اللعبة -->
+        <!-- Form -->
         <form action="/check/{{ game_id }}" method="POST" id="checkForm" enctype="multipart/form-data"
             data-map-mandatory="{{ 'true' if game.map_mandatory else 'false' }}">
 
-            <!-- 1. عناصر وأسئلة الفحص المصممة كأزرار خيارية (Pills Switch) -->
+            <!-- 1. Check Items -->
             {% if checks %}
-            <div class="section-header">📋 عناصر الفحص</div>
+            <div class="section-header">📋 {% if is_ar %}عناصر الفحص{% else %}Check Items{% endif %}</div>
             {% for check in checks %}
             <div class="question-card">
                 <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1e293b;">
                     {{ check.name }} {% if check.is_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}
                 </div>
-                <!-- أزرار الاختيار السريعة باللمس -->
+                <!-- Pills Options -->
                 <div class="pill-options">
-                    <!-- خيار: سليم (خلفية خضراء عند الاختيار) -->
+                    <!-- Option: OK -->
                     <div class="pill-option">
-                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="سليم" {%
-                            if saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if
+                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="OK" {%
+                            if saved_data.get('check_' ~ loop.index)=='OK' or saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if
                             check.is_mandatory %}required{% endif %}>
                         <label for="check_{{ loop.index }}_ok" class="pill-label">
-                            ✅ سليم
+                            OK
                         </label>
                     </div>
-                    <!-- خيار: عطل/مشكلة (خلفية حمراء عند الاختيار) -->
+                    <!-- Option: NOK -->
                     <div class="pill-option">
                         <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}"
-                            value="تالف/يوجد مشكلة" {% if saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة'
+                            value="NOK" {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة'
                             %}checked{% endif %}>
                         <label for="check_{{ loop.index }}_bad" class="pill-label">
-                            ❌ مشكلة / عطل
+                            NOK
                         </label>
                     </div>
                 </div>
@@ -134,41 +162,43 @@
             {% endfor %}
             {% endif %}
 
-            <!-- 2. سيكشن الملاحظات النصية -->
-            <div class="section-header">📝 ملاحظات إضافية {% if game.notes_mandatory %}<span
+            <!-- 2. Notes / Description Section -->
+            {% if game.allow_notes is not defined or game.allow_notes %}
+            <div class="section-header">📝 {% if is_ar %}ملاحظات إضافية / الوصف{% else %}Additional Notes / Description{% endif %} {% if game.notes_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <textarea name="notes" class="touch-input" style="height: 110px; resize: vertical;"
-                placeholder="اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا..." {% if game.notes_mandatory %}required{%
+                placeholder="{% if is_ar %}اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا...{% else %}Write any additional notes or details about the game condition...{% endif %}" {% if game.notes_mandatory %}required{%
                 endif %}>{{ saved_data.get('notes', '') }}</textarea>
+            {% endif %}
 
-            <!-- 3. سيكشن الخريطة الموقعية والرسم التفاعلي (Canvas) -->
+            <!-- 3. Interactive Map Drawing Section -->
             {% if game.has_map %}
-            <div class="section-header">🗺️ تحديد المشكلة على الخريطة {% if game.map_mandatory %}<span
+            <div class="section-header">🗺️ {% if is_ar %}تحديد المشكلة على الخريطة{% else %}Mark Issue on Map{% endif %} {% if game.map_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
 
             {% if game.map_image %}
-            <!-- شريط أدوات التحكم بالخريطة (تراجع، مسح، وتكبير) -->
+            <!-- Map Toolbar -->
             <div
                 style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 6px;">
                     <button type="button" class="btn-map-tool" style="background: #e2e8f0; color: #334155;"
-                        onclick="undoCanvas()">↩️ تراجع</button>
+                        onclick="undoCanvas()">↩️ {% if is_ar %}تراجع{% else %}Undo{% endif %}</button>
                     <button type="button" class="btn-map-tool" style="background: #dc3545; color: white;"
-                        onclick="clearCanvas()">🗑️ مسح الكل</button>
+                        onclick="clearCanvas()">🗑️ {% if is_ar %}مسح الكل{% else %}Clear All{% endif %}</button>
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center;">
-                    <span style="font-size: 13px; font-weight: bold; color: #475569;">الزوم:</span>
+                    <span style="font-size: 13px; font-weight: bold; color: #475569;">{% if is_ar %}الزوم:{% else %}Zoom:{% endif %}</span>
                     <button type="button" class="btn-map-tool" style="background: #0d6efd; color: white;"
-                        onclick="changeZoom(0.3)">🔍+ تكبير</button>
+                        onclick="changeZoom(0.3)">🔍+ {% if is_ar %}تكبير{% else %}Zoom In{% endif %}</button>
                     <button type="button" class="btn-map-tool" style="background: #6c757d; color: white;"
-                        onclick="changeZoom(-0.3)">🔍- تصغير</button>
+                        onclick="changeZoom(-0.3)">🔍- {% if is_ar %}تصغير{% else %}Zoom Out{% endif %}</button>
                     <button type="button" class="btn-map-tool"
                         style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;" onclick="resetZoom()">🔄
-                        إعادة</button>
+                        {% if is_ar %}إعادة{% else %}Reset{% endif %}</button>
                 </div>
             </div>
 
-            <!-- حاوية الخريطة القابلة للتمرير والتكبير -->
+            <!-- Map Container -->
             <div class="map-scroll-container" id="mapScrollContainer"
                 style="position: relative; border: 2px solid #cbd5e1; border-radius: 10px; overflow: auto; background: #fff; max-height: 520px; max-width: 100%;">
                 <div id="canvasWrapper" style="display: inline-block; width: 100%; transition: width 0.2s ease;">
@@ -177,33 +207,29 @@
                 </div>
             </div>
 
-            <!-- الحقل المخفي الذي يحتوي على الصورة الملموسة بصيغة DataURL -->
             <input type="hidden" name="map_drawing" id="map_drawing_input"
                 value="{{ saved_data.get('map_drawing', '') }}">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                <p style="color: #64748b; font-size: 13px; margin: 0;">(يمكنك التكبير بالزر أعلاه والتراجع عن الرسم خطوة
-                    بخطوة)</p>
+                <p style="color: #64748b; font-size: 13px; margin: 0;">{% if is_ar %}(يمكنك التكبير بالأزرار أعلاه والتراجع عن الرسم step-by-step){% else %}(Use zoom buttons above to adjust view and draw step-by-step){% endif %}</p>
                 {% if saved_data.get('map_drawing') %}
-                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px;">✅ تم تحديد
-                    الرسم</span>
+                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px;">✅ {% if is_ar %}تم تحديد الرسم{% else %}Drawing Saved{% endif %}</span>
                 {% else %}
-                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px; display: none;">✅ تم
-                    تحديد الرسم</span>
+                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px; display: none;">✅ {% if is_ar %}تم تحديد الرسم{% else %}Drawing Saved{% endif %}</span>
                 {% endif %}
             </div>
             {% else %}
             <div
                 style="padding: 15px; background: #fff3cd; color: #856404; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
-                ⚠️ تم تفعيل الخريطة لهذه اللعبة، لكن لم يتم رفع صورة الخريطة الأساسية بعد.
+                ⚠️ {% if is_ar %}تم تفعيل الخريطة لهذه اللعبة، لكن لم يتم رفع صورة الخريطة الأساسية بعد.{% else %}Map is enabled for this game, but no base map image has been uploaded yet.{% endif %}
             </div>
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="">
             {% endif %}
 
             {% endif %}
 
-            <!-- 4. سيكشن إرفاق صور الأعطال والتلفيات -->
+            <!-- 4. Photos Section -->
             {% if game.allow_photos %}
-            <div class="section-header">📸 صور التلفيات والعطل {% if game.requires_photo %}<span
+            <div class="section-header">📸 {% if is_ar %}صور الأعطال والتلفيات{% else %}Attach Photos{% endif %} {% if game.requires_photo %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <div
                 style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center;">
@@ -211,19 +237,18 @@
                     style="width: 100%; font-size: 14px;" {% if game.requires_photo and not saved_data.get('photos')
                     %}required{% endif %}>
             </div>
-            <p style="color: #64748b; font-size: 13px; margin-top: 6px;">يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار
-                أكثر من صورة.</p>
+            <p style="color: #64748b; font-size: 13px; margin-top: 6px;">{% if is_ar %}يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار أكثر من صورة.{% else %}You can capture photos directly using your camera or choose multiple images.{% endif %}</p>
             {% endif %}
 
-            <!-- شريط الإجراءات الثابت بأسفل الشاشة (Sticky Footer Bar) -->
+            <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar">
                 <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch">
-                    💾 حفظ والعودة
+                    💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
                 </button>
 
                 {% if next_game_id %}
                 <button type="submit" name="action" value="next" class="btn-touch btn-success-touch">
-                    التالي ⏭️
+                    {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
                 </button>
                 {% endif %}
             </div>

@@ -3,91 +3,121 @@
   تعرض قائمة الألعاب بالترتيب، نسبة التقدم في الفحص، وزر إرسال التقرير النهائي
 ============================================================================== -->
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<!DOCTYPE html>
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ألعاب {{ area_name }}</title>
-    <!-- الستايل المتجاوب الخاص بالمونيتور والموبايل -->
+    <title>{{ area_name }}</title>
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <style>
+        .lang-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .lang-switch-btn:hover {
+            background: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+    </style>
 </head>
 
 <body>
 
-    <div class="monitor-container">
-        <!-- الهيدر والمعلومات الأساسية -->
+    <!-- Language Switcher Bar -->
+    <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
+        {% if is_ar %}
+        <a href="/set_language/en" class="lang-switch-btn" title="Switch to English">🌐 English</a>
+        {% else %}
+        <a href="/set_language/ar" class="lang-switch-btn" title="التحويل للغة العربية">🌐 العربية</a>
+        {% endif %}
+    </div>
+
+    <div class="monitor-container" style="margin-top: 10px;">
+        <!-- Header -->
         <div style="text-align: center; margin-bottom: 20px;">
             <span style="background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
-                الموظف الحالي: {{ monitor_name }}
+                {% if is_ar %}الموظف الحالي:{% else %}Current Inspector:{% endif %} {{ monitor_name }}
             </span>
             <h1 class="monitor-title" style="margin-top: 15px; margin-bottom: 5px;">
-                منطقة: <span style="color: #0d6efd;">{{ area_name }}</span>
+                {% if is_ar %}منطقة:{% else %}Area:{% endif %} <span style="color: #0d6efd;">{{ area_name }}</span>
             </h1>
         </div>
 
-        <!-- 1. حساب نسبة الإنجاز والتقدم في فحص ألعاب المنطقة -->
+        <!-- 1. Progress Calculation -->
         {% set completed_count = completed_games|length %}
         {% set total_games = games|length %}
         {% set percent = (completed_count / total_games * 100)|round|int if total_games > 0 else 0 %}
 
-        <!-- شريط التقدم المرئي (Progress Bar) -->
+        <!-- Progress Bar -->
         <div style="margin-bottom: 25px;">
             <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #475569;">
-                <span>نسبة الفحص المكتمل:</span>
-                <span>{{ completed_count }} من {{ total_games }} ({{ percent }}%)</span>
+                <span>{% if is_ar %}نسبة الفحص المكتمل:{% else %}Inspection Progress:{% endif %}</span>
+                <span>{% if is_ar %}{{ completed_count }} من {{ total_games }} ({{ percent }}%){% else %}{{ completed_count }} of {{ total_games }} ({{ percent }}%){% endif %}</span>
             </div>
             <div class="progress-bar-container">
-                <!-- استخدام متغير CSS لتجنب تحذيرات المحرر وعرض النسبة بسلاسة -->
                 <div class="progress-bar-fill" style="--percent: {{ percent }}%;"></div>
             </div>
         </div>
 
-        <!-- 2. قائمة الألعاب المتاحة للفحص مرتبة حسب اختيار الأدمن -->
+        <!-- 2. Games List -->
         <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
             {% for game in games %}
             {% if game.id|string in completed_games %}
-            <!-- لعبة تم فحصها بالفعل -->
+            <!-- Completed Game -->
             <a href="/check/{{ game.id }}" class="game-card-link game-completed">
                 <span>{{ game.name }}</span>
-                <span>✅ تم الفحص</span>
+                <span>✅ {% if is_ar %}تم الفحص{% else %}Checked{% endif %}</span>
             </a>
             {% else %}
-            <!-- لعبة بانتظار الفحص -->
+            <!-- Pending Game -->
             <a href="/check/{{ game.id }}" class="game-card-link game-pending">
                 <span>{{ game.name }}</span>
-                <span>⏳ بدء الفحص ➔</span>
+                <span>{% if is_ar %}بدء الفحص ⏳ ➔{% else %}Start Check ⌛ ➔{% endif %}</span>
             </a>
             {% endif %}
             {% endfor %}
         </div>
 
-        <!-- 3. زر إرسال تقرير المنطقة بالكامل (يُفعّل فقط بعد فحص جميع الألعاب) -->
+        <!-- 3. Submit Area Report -->
         <div style="text-align: center; margin-top: 25px;">
             {% if all_completed %}
             <form action="/submit_report" method="POST">
                 <button type="submit" class="btn-touch btn-success-touch" style="width: 100%; font-size: 18px; padding: 16px;">
-                    إرسال تقرير المنطقة بالكامل 🚀
+                    {% if is_ar %}إرسال تقرير المنطقة بالكامل 🚀{% else %}Submit Complete Area Report 🚀{% endif %}
                 </button>
             </form>
             {% else %}
             <button disabled class="btn-touch btn-secondary-touch" style="width: 100%; opacity: 0.6; cursor: not-allowed;">
-                إرسال تقرير المنطقة بالكامل 🚀
+                {% if is_ar %}إرسال تقرير المنطقة بالكامل 🚀{% else %}Submit Complete Area Report 🚀{% endif %}
             </button>
-            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: bold;">(يرجى فحص جميع الألعاب لتفعيل زر الإرسال)</p>
+            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: bold;">{% if is_ar %}(يرجى فحص جميع الألعاب لتفعيل زر الإرسال){% else %}(Please check all games to enable submission button){% endif %}</p>
             {% endif %}
         </div>
 
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;">
 
-        <!-- 4. خيارات الغاء الفحص وتسجيل الخروج -->
+        <!-- 4. Cancel & Logout -->
         <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="/cancel_area" onclick="return confirm('⚠️ هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ سيتم مسح أي بيانات أو صور غير مرسلة!');" class="btn-touch btn-danger-touch" style="font-size: 15px;">
-                إلغاء الفحص بالكامل 🗑️
+            <a href="/cancel_area" onclick="return confirm('{% if is_ar %}⚠️ هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel the entire area inspection? Unsubmitted data will be lost!{% endif %}');" class="btn-touch btn-danger-touch" style="font-size: 15px;">
+                {% if is_ar %}إلغاء الفحص بالكامل 🗑️{% else %}Cancel Area Inspection 🗑️{% endif %}
             </a>
 
-            <a href="/logout" onclick="return confirm('هل أنت متأكد من تسجيل الخروج؟');" style="color: #6c757d; text-align: center; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px;">
-                تسجيل الخروج (تغيير الموظف)
+            <a href="/logout" onclick="return confirm('{% if is_ar %}هل أنت متأكد من تسجيل الخروج؟{% else %}Are you sure you want to logout?{% endif %}');" style="color: #6c757d; text-align: center; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px;">
+                {% if is_ar %}تسجيل الخروج (تغيير الموظف){% else %}Logout (Change Inspector){% endif %}
             </a>
         </div>
     </div>

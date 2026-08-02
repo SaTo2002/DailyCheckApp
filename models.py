@@ -53,6 +53,7 @@ class GameModel(db.Model):
     map_mandatory = db.Column(db.Boolean, default=False)               # هل تحديد مكان المشكلة على الخريطة إجباري؟
     allow_photos = db.Column(db.Boolean, default=True)                  # هل يُسمح بإرفاق صور عند وجود عطل؟
     requires_photo = db.Column(db.Boolean, default=False)              # هل إرفاق الصورة إجباري؟
+    allow_notes = db.Column(db.Boolean, default=True)                   # هل يظهر قسم الملاحظات النصية؟
     notes_mandatory = db.Column(db.Boolean, default=False)              # هل كتابة الملاحظات إجبارية؟
     checks = db.Column(db.Text, nullable=False)                         # عناصر وأسئلة الفحص مفرغة بكود JSON
 

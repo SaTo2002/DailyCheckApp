@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تعديل المنطقة: {{ area.name }}</title>
+    <title>{% if is_ar %}تعديل المنطقة{% else %}Edit Area{% endif %}: {{ area.name }}</title>
     <style>
         :root {
             --primary: #0d6efd;
@@ -21,7 +21,6 @@
             color: var(--text-color);
             margin: 0;
             padding: 20px 15px;
-            direction: rtl;
         }
 
         .container {
@@ -77,6 +76,7 @@
             font-weight: 700;
             font-size: 15px;
             color: #334155;
+            text-align: start;
         }
 
         .touch-input {
@@ -125,29 +125,36 @@
 <body>
     <div class="container">
         <div class="page-header">
-            <h2>📍 تعديل اسم المنطقة: <span style="color: var(--primary);">{{ area.name }}</span></h2>
-            <a href="/manage_system" class="btn-back">🔙 إلغاء والعودة</a>
+            <h2>📍 {% if is_ar %}تعديل اسم المنطقة:{% else %}Edit Area:{% endif %} <span style="color: var(--primary);">{{ area.name }}</span></h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                {% if is_ar %}
+                <a href="/set_language/en" class="btn-back" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 English</a>
+                {% else %}
+                <a href="/set_language/ar" class="btn-back" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 العربية</a>
+                {% endif %}
+                <a href="/manage_system" class="btn-back">🔙 {% if is_ar %}إلغاء والعودة{% else %}Cancel & Return{% endif %}</a>
+            </div>
         </div>
         
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label>اسم المنطقة الجديد:</label>
-                <input type="text" name="area_name" value="{{ area.name }}" class="touch-input" placeholder="اكتب اسم المنطقة..." required>
+                <label>{% if is_ar %}اسم المنطقة الجديد:{% else %}New Area Name:{% endif %}</label>
+                <input type="text" name="area_name" value="{{ area.name }}" class="touch-input" placeholder="{% if is_ar %}اكتب اسم المنطقة...{% else %}Type area name...{% endif %}" required>
             </div>
             
             {% if area.image %}
             <div class="form-group">
-                <label>🖼️ صورة غلاف المنطقة الحالية:</label>
+                <label>🖼️ {% if is_ar %}صورة غلاف المنطقة الحالية:{% else %}Current Area Cover Image:{% endif %}</label>
                 <img src="{{ area.image }}" alt="Cover" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid var(--border-color); display: block;">
             </div>
             {% endif %}
             
             <div class="form-group">
-                <label>🖼️ تحديث صورة غلاف المنطقة (اختياري):</label>
+                <label>🖼️ {% if is_ar %}تحديث صورة غلاف المنطقة (اختياري):{% else %}Update Area Cover Image (Optional):{% endif %}</label>
                 <input type="file" name="area_image" accept="image/*" class="touch-input" style="cursor: pointer;">
             </div>
             
-            <button type="submit" class="btn-submit">💾 حفظ التعديلات</button>
+            <button type="submit" class="btn-submit">💾 {% if is_ar %}حفظ التعديلات{% else %}Save Changes{% endif %}</button>
         </form>
     </div>
 </body>

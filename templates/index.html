@@ -3,11 +3,11 @@
   تتيح للموظف اختيار المنطقة بصرياً بكروت مضيئة ثم إدخال اسمه لبدء الفحص
 ============================================================================== -->
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - فحص الألعاب</title>
+    <title>{% if is_ar %}تسجيل الدخول - فحص الألعاب{% else %}Login - Games Check{% endif %}</title>
     <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
     <style>
@@ -85,6 +85,26 @@
             color: #ffffff; /* لون أبيض ناصع للتناسق مع اللون الأخضر */
             box-shadow: 0 8px 32px 0 rgba(72, 187, 120, 0.25);
         }
+
+        .lang-switch-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 6px 14px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .lang-switch-btn:hover {
+            background: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
         
         @media (max-width: 480px) {
             .area-grid {
@@ -104,15 +124,24 @@
 </head>
 <body>
 
-    <!-- الكارت الرئيسي لنموذج تسجيل دخول المونيتور -->
-    <div class="monitor-container" style="margin-top: 40px;">
-        <h2 class="monitor-title">🎮 نظام الفحص اليومي للألعاب</h2>
-        <p class="sub-title">اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء</p>
+    <!-- Top Language Switcher Bar -->
+    <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
+        {% if is_ar %}
+        <a href="/set_language/en" class="lang-switch-btn" title="Switch to English">🌐 English</a>
+        {% else %}
+        <a href="/set_language/ar" class="lang-switch-btn" title="التحويل للغة العربية">🌐 العربية</a>
+        {% endif %}
+    </div>
+
+    <!-- Login Card -->
+    <div class="monitor-container" style="margin-top: 10px;">
+        <h2 class="monitor-title">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else %}Daily Games Check System{% endif %}</h2>
+        <p class="sub-title">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{% endif %}</p>
         
-        <!-- نموذج اختيار اسم المراقب والمنطقة -->
+        <!-- Form -->
         <form method="POST" id="loginForm">
-            <!-- قائمة اختيار المنطقة الحالية من قاعدة البيانات بصور وكروت -->
-            <label class="form-label">📍 اختر المنطقة (Area):</label>
+            <!-- Area Grid -->
+            <label class="form-label">📍 {% if is_ar %}اختر المنطقة:{% else %}Select Area:{% endif %}</label>
             <div class="area-grid">
                 {% for area in areas %}
                 <div class="area-card" data-area-id="{{ area.id }}" onclick="selectArea(this)">
@@ -128,49 +157,45 @@
                 {% endfor %}
             </div>
 
-            <!-- الحقل المخفي لحفظ معرف المنطقة المحددة -->
+            <!-- Hidden Selected Area Input -->
             <input type="hidden" name="area" id="selected_area_input" required>
 
-            <!-- حقل اسم المراقب -->
+            <!-- Inspector Name Input -->
             <div id="nameInputSection">
-                <label class="form-label">👤 اسم الموظف (المونيتور):</label>
-                <input type="text" name="monitor_name" class="touch-input" required placeholder="اكتب اسمك هنا..." value="{{ session.get('monitor_name', '') }}">
+                <label class="form-label">👤 {% if is_ar %}اسم الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
+                <input type="text" name="monitor_name" class="touch-input" required placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}" value="{{ session.get('monitor_name', '') }}">
             </div>
             
-            <!-- زر الانتقال لقائمة ألعاب المنطقة -->
+            <!-- Submit Button -->
             <button type="submit" class="btn-touch btn-primary-touch" style="width: 100%; font-size: 18px; margin-top: 15px;">
-                🚀 بدء الفحص
+                🚀 {% if is_ar %}بدء الفحص{% else %}Start Check{% endif %}
             </button>
         </form>
 
-        <!-- رابط سريع لدخول لوحة تحكم الإدارة والصيانة -->
+        <!-- Admin Login Link -->
         <div style="margin-top: 30px; text-align: center;">
-            <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒 دخول الإدارة والصيانة</a>
+            <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒 {% if is_ar %}دخول الإدارة والصيانة{% else %}Admin & Maintenance Login{% endif %}</a>
         </div>
     </div>
 
     <script>
         function selectArea(cardElement) {
-            // إزالة التحديد عن الكروت الأخرى
             document.querySelectorAll('.area-card').forEach(card => {
                 card.classList.remove('selected');
             });
             
-            // تحديد الكارت الحالي
             cardElement.classList.add('selected');
             
-            // تحديث القيمة في الحقل المخفي
             const areaId = cardElement.getAttribute('data-area-id');
             document.getElementById('selected_area_input').value = areaId;
         }
 
-        // التأكد من اختيار منطقة قبل الإرسال
         const form = document.getElementById('loginForm');
         form.addEventListener('submit', function (e) {
             const selectedArea = document.getElementById('selected_area_input').value;
             if (!selectedArea) {
                 e.preventDefault();
-                alert('⚠️ يرجى اختيار المنطقة أولاً بالضغط على صورتها.');
+                alert('⚠️ Please select an area first by clicking on its image.');
             }
         });
     </script>

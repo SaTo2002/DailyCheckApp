@@ -27,3 +27,6 @@ Thumbs.db
 instance/
 *.sqlite3
 *.db
+
+# Google credentials
+DailyGoogleApi.json

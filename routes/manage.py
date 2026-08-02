@@ -175,6 +175,7 @@ def add_game_to_area(area_id):
             map_image=map_image_path,
             allow_photos=bool(request.form.get('allow_photos')), 
             requires_photo=bool(request.form.get('requires_photo')),
+            allow_notes=bool(request.form.get('allow_notes')),
             notes_mandatory=bool(request.form.get('notes_mandatory')), 
             checks=json.dumps(structured_checks, ensure_ascii=False)
         ))
@@ -197,6 +198,7 @@ def edit_game(game_id):
         game.map_mandatory = bool(request.form.get('map_mandatory'))
         game.allow_photos = bool(request.form.get('allow_photos'))
         game.requires_photo = bool(request.form.get('requires_photo'))
+        game.allow_notes = bool(request.form.get('allow_notes'))
         game.notes_mandatory = bool(request.form.get('notes_mandatory'))
         
         check_names = request.form.getlist('check_names[]')

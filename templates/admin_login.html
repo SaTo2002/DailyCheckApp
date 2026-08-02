@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دخول الإدارة - جرافيتي كود</title>
+    <title>{% if is_ar %}دخول الإدارة - جرافيتي كود{% else %}Admin Login - Daily Check{% endif %}</title>
 </head>
 <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 80px; background-color: #343a40; color: white;">
 
-    <h2>🔒 بوابة الإدارة والصيانة</h2>
+    <h2>🔒 {% if is_ar %}بوابة الإدارة والصيانة{% else %}Admin & Maintenance Portal{% endif %}</h2>
     
     <form method="POST" style="margin-top: 30px; background: white; color: black; padding: 30px; width: 90%; max-width: 400px; margin-left: auto; margin-right: auto; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
         
@@ -17,17 +17,17 @@
             </div>
         {% endif %}
 
-        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right; font-weight: bold;">اسم المستخدم:</label>
-        <input type="text" name="username" required style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;" placeholder="اكتب اسم المستخدم...">
+        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: start; font-weight: bold;">{% if is_ar %}اسم المستخدم:{% else %}Username:{% endif %}</label>
+        <input type="text" name="username" required style="width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;" placeholder="{% if is_ar %}اكتب اسم المستخدم...{% else %}Type username...{% endif %}">
         
         
-        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: right; font-weight: bold;">كلمة المرور:</label>
+        <label style="display: block; font-size: 18px; margin-bottom: 10px; text-align: start; font-weight: bold;">{% if is_ar %}كلمة المرور:{% else %}Password:{% endif %}</label>
         <input type="password" name="password" required style="width: 100%; padding: 10px; margin-bottom: 30px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box;" placeholder="••••••••">
         
-        <button type="submit" style="width: 100%; padding: 12px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; font-weight: bold;">تسجيل الدخول</button>
+        <button type="submit" style="width: 100%; padding: 12px; background-color: #dc3545; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer; font-weight: bold;">{% if is_ar %}تسجيل الدخول{% else %}Login{% endif %}</button>
         
         <br><br>
-        <a href="/" style="color: #6c757d; text-decoration: none; font-size: 14px;">🔙 العودة لصفحة المونيتورز</a>
+        <a href="/" style="color: #6c757d; text-decoration: none; font-size: 14px;">🔙 {% if is_ar %}العودة لصفحة الفحص{% else %}Back to Inspectors Page{% endif %}</a>
     </form>
 
 </body>

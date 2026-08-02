@@ -136,7 +136,7 @@ def dashboard():
                     check_label = k
             
             is_ok = (v == 'سليم' or v == 'OK')
-            mapped_checks[check_label] = 'OK' if is_ok else 'Not OK'
+            mapped_checks[check_label] = 'OK' if is_ok else 'NOK'
             
             grouped_reports[r.session_id]['total_checks_count'] += 1
             if not is_ok:
@@ -200,7 +200,7 @@ def print_report(session_id):
         mapped_checks = {}
         for k, v in (json.loads(r.checks_data) if r.checks_data else {}).items():
             if k.startswith('check_'):
-                try: mapped_checks[actual_check_names[int(k.split('_')[1]) - 1] if int(k.split('_')[1]) - 1 < len(actual_check_names) else k] = 'OK' if v == 'سليم' else 'Not OK'
+                try: mapped_checks[actual_check_names[int(k.split('_')[1]) - 1] if int(k.split('_')[1]) - 1 < len(actual_check_names) else k] = 'OK' if (v == 'سليم' or v == 'OK') else 'NOK'
                 except Exception: mapped_checks[k] = v
             else: mapped_checks[k] = v
         report_data['games'].append({

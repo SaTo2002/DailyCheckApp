@@ -62,6 +62,16 @@ def home():
     return render_template('index.html', areas=areas)
 
 # ------------------------------------------------------------------------------
+# 1.5. تغيير لغة النظام (English / العربية)
+# ------------------------------------------------------------------------------
+@monitor_bp.route('/set_language/<lang>')
+def set_language(lang):
+    if lang in ['en', 'ar']:
+        session['lang'] = lang
+    referrer = request.referrer or url_for('monitor.home')
+    return redirect(referrer)
+
+# ------------------------------------------------------------------------------
 # 2. عرض قائمة الألعاب التابعة للمنطقة المختارة بترتيبها المخصص (GET)
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/games/<area_id>')

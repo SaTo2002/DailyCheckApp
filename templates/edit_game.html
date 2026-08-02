@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="rtl" lang="ar">
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تعديل اللعبة - {{ game.name }}</title>
+    <title>{% if is_ar %}تعديل اللعبة{% else %}Edit Game{% endif %} - {{ game.name }}</title>
     <style>
         :root {
             --primary-color: #0d6efd;
@@ -196,22 +196,29 @@
 
 <div class="container">
     <div class="page-header">
-        <h1>تعديل إعدادات اللعبة: <span style="color: var(--primary-color);">{{ game.name }}</span></h1>
-        <a href="/area_games/{{ game.area_id }}" class="btn-back">🔙 إلغاء والعودة</a>
+        <h1>{% if is_ar %}تعديل إعدادات اللعبة:{% else %}Edit Game Settings:{% endif %} <span style="color: var(--primary-color);">{{ game.name }}</span></h1>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            {% if is_ar %}
+            <a href="/set_language/en" class="btn-back" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 English</a>
+            {% else %}
+            <a href="/set_language/ar" class="btn-back" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 العربية</a>
+            {% endif %}
+            <a href="/area_games/{{ game.area_id }}" class="btn-back">🔙 {% if is_ar %}إلغاء والعودة{% else %}Cancel & Return{% endif %}</a>
+        </div>
     </div>
 
     <form action="/edit_game/{{ game.id }}" method="POST" enctype="multipart/form-data">
         
-        <!-- البيانات الأساسية -->
+        <!-- Basic Info -->
         <div class="section-card">
-            <h3 class="section-title">📌 البيانات الأساسية</h3>
+            <h3 class="section-title">📌 {% if is_ar %}البيانات الأساسية{% else %}Basic Information{% endif %}</h3>
             <div class="inline-flex">
                 <div class="form-group" style="flex-grow: 1;">
-                    <label>اسم اللعبة</label>
+                    <label>{% if is_ar %}اسم اللعبة{% else %}Game Name{% endif %}</label>
                     <input type="text" name="name" class="form-control" value="{{ game.name }}" required>
                 </div>
                 <div class="form-group">
-                    <label>المنطقة</label>
+                    <label>{% if is_ar %}المنطقة{% else %}Area{% endif %}</label>
                     <select name="area_id" class="form-control" id="areaSelect" data-original-area="{{ game.area_id }}">
                         {% for area in areas %}
                         <option value="{{ area.id }}" {% if area.id == game.area_id %}selected{% endif %}>{{ area.name }}</option>
@@ -221,77 +228,80 @@
             </div>
         </div>
 
-        <!-- إعدادات الملاحظات -->
+        <!-- Notes / Description Settings -->
         <div class="section-card">
-            <h3 class="section-title">📝 إعدادات الملاحظات</h3>
+            <h3 class="section-title">📝 {% if is_ar %}إعدادات الملاحظات والوصف{% else %}Notes & Description Settings{% endif %}</h3>
             <label class="checkbox-wrapper">
-                <input type="checkbox" name="notes_mandatory" {% if game.notes_mandatory %}checked{% endif %}>
-                <span>الملاحظات إجبارية؟</span>
+                <input type="checkbox" name="allow_notes" value="1" {% if game.allow_notes is not defined or game.allow_notes %}checked{% endif %}>
+                <span>{% if is_ar %}إظهار قسم الملاحظات والوصف{% else %}Show Description / Notes Section{% endif %}</span>
+            </label>
+            <label class="checkbox-wrapper">
+                <input type="checkbox" name="notes_mandatory" value="1" {% if game.notes_mandatory %}checked{% endif %}>
+                <span>{% if is_ar %}الملاحظات إجبارية؟{% else %}Notes Mandatory?{% endif %}</span>
             </label>
         </div>
 
-        <!-- إعدادات الصور -->
+        <!-- Photos Settings -->
         <div class="section-card">
-            <h3 class="section-title">📸 إعدادات الصور</h3>
+            <h3 class="section-title">📸 {% if is_ar %}إعدادات الصور{% else %}Photos Settings{% endif %}</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="allow_photos" {% if game.allow_photos %}checked{% endif %}>
-                <span>تفعيل زر رفع الصور؟</span>
+                <span>{% if is_ar %}تفعيل زر رفع الصور؟{% else %}Enable Upload Photos Button?{% endif %}</span>
             </label>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="requires_photo" {% if game.requires_photo %}checked{% endif %}>
-                <span>الصورة إجبارية؟</span>
+                <span>{% if is_ar %}الصور إجبارية؟{% else %}Photo Mandatory?{% endif %}</span>
             </label>
         </div>
 
-        <!-- إعدادات الخريطة -->
+        <!-- Map Settings -->
         <div class="section-card">
-            <h3 class="section-title">🗺️ إعدادات الخريطة</h3>
+            <h3 class="section-title">🗺️ {% if is_ar %}إعدادات الخريطة{% else %}Map Settings{% endif %}</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="has_map" {% if game.has_map %}checked{% endif %}>
-                <span>تفعيل الخريطة؟</span>
+                <span>{% if is_ar %}تفعيل الخريطة؟{% else %}Enable Map?{% endif %}</span>
             </label>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="map_mandatory" {% if game.map_mandatory %}checked{% endif %}>
-                <span>الرسم على الخريطة إجباري؟</span>
+                <span>{% if is_ar %}الرسم على الخريطة إجباري؟{% else %}Drawing on Map Mandatory?{% endif %}</span>
             </label>
 
             <div style="margin-top: 15px;">
-                <label style="font-weight: bold; color: #495057;">تحديث صورة الخريطة (اختياري - اتركها فارغة للاحتفاظ بالقديمة):</label>
+                <label style="font-weight: bold; color: #495057;">{% if is_ar %}تحديث صورة الخريطة (اختياري - اتركه فارغاً للإبقاء على الحالية):{% else %}Update Map Image (Optional - leave empty to keep existing):{% endif %}</label>
                 <input type="file" name="map_image" accept="image/*" class="form-control" style="cursor: pointer;">
             </div>
         </div>
 
-        <!-- عناصر الفحص -->
+        <!-- Check Items -->
         <div class="section-card">
-            <h3 class="section-title">📋 عناصر الفحص (الأسئلة)</h3>
+            <h3 class="section-title">📋 {% if is_ar %}عناصر الفحص (الأسئلة){% else %}Check Items (Questions){% endif %}</h3>
             <div class="checks-container" id="checksContainer" data-check-count="{{ checks|length if checks else 1 }}">
                 
                 {% for check in checks %}
                 <div class="check-item">
-                    <input type="text" name="check_names[]" class="form-control" value="{{ check.name }}" placeholder="اسم العنصر (مثال: نظافة، إضاءة)">
+                    <input type="text" name="check_names[]" class="form-control" value="{{ check.name }}" placeholder="{% if is_ar %}اسم العنصر (مثال: نظافة، إضاءة){% else %}Item name (e.g. Cleanliness, Lighting){% endif %}">
                     <label class="checkbox-wrapper" style="margin: 0;">
                         <input type="checkbox" name="check_mandatory_{{ loop.index0 }}" {% if check.is_mandatory %}checked{% endif %}>
-                        <span>إجباري؟</span>
+                        <span>{% if is_ar %}إجباري؟{% else %}Mandatory?{% endif %}</span>
                     </label>
                 </div>
                 {% endfor %}
 
-                <!-- لو مفيش عناصر سابقة، نعرض واحد فارغ كبداية -->
                 {% if not checks %}
                 <div class="check-item">
-                    <input type="text" name="check_names[]" class="form-control" placeholder="اسم العنصر (مثال: نظافة، إضاءة)">
+                    <input type="text" name="check_names[]" class="form-control" placeholder="{% if is_ar %}اسم العنصر (مثال: نظافة، إضاءة){% else %}Item name (e.g. Cleanliness, Lighting){% endif %}">
                     <label class="checkbox-wrapper" style="margin: 0;">
                         <input type="checkbox" name="check_mandatory_0">
-                        <span>إجباري؟</span>
+                        <span>{% if is_ar %}إجباري؟{% else %}Mandatory?{% endif %}</span>
                     </label>
                 </div>
                 {% endif %}
             </div>
             
-            <button type="button" class="btn-add" onclick="addCheckItem()">+ إضافة فحص آخر</button>
+            <button type="button" class="btn-add" onclick="addCheckItem()">+ {% if is_ar %}إضافة عنصر جديد{% else %}Add Another Item{% endif %}</button>
         </div>
 
-        <button type="submit" class="btn-save">💾 حفظ التعديلات</button>
+        <button type="submit" class="btn-save">💾 {% if is_ar %}حفظ التعديلات{% else %}Save Changes{% endif %}</button>
     </form>
 </div>
 

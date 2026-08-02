@@ -39,6 +39,18 @@ app.register_blueprint(monitor_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(manage_bp)
 
+@app.context_processor
+def inject_language():
+    from flask import session
+    current_lang = session.get('lang', 'en')
+    is_ar = (current_lang == 'ar')
+    return {
+        'current_lang': current_lang,
+        'is_ar': is_ar,
+        'dir_attr': 'rtl' if is_ar else 'ltr',
+        'html_lang': 'ar' if is_ar else 'en'
+    }
+
 # 5. تهيئة جداول قاعدة البيانات والترحيل التلقائي للأعمدة الجديدة (Migrations)
 with app.app_context():
     # إنشاء الجداول الأساسية إن لم تكن موجودة
@@ -53,13 +65,17 @@ with app.app_context():
         except Exception:
             pass  # العمود موجود بالفعل
             
-    # فحص وإضافة عمود ترتيب الألعاب (sort_order) لجداول الألعاب إن لم يكن موجوداً
-    try:
-        with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE games ADD COLUMN sort_order INT DEFAULT 0"))
-            conn.commit()
-    except Exception:
-        pass  # العمود موجود بالفعل
+    # فحص وإضافة عمود ترتيب الألعاب (sort_order) وعمود السماح بالملاحظات (allow_notes) لجداول الألعاب إن لم تكن موجودة
+    for col_sql in [
+        "ALTER TABLE games ADD COLUMN sort_order INT DEFAULT 0",
+        "ALTER TABLE games ADD COLUMN allow_notes TINYINT(1) DEFAULT 1"
+    ]:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text(col_sql))
+                conn.commit()
+        except Exception:
+            pass  # العمود موجود بالفعل
 
     # فحص وإضافة عمود ترتيب المناطق (sort_order) لجداول المناطق إن لم يكن موجوداً
     try:
