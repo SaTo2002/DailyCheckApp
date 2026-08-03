@@ -30,3 +30,6 @@ instance/
 
 # Google credentials
 DailyGoogleApi.json
+
+# Generated PDFs
+pdfs/

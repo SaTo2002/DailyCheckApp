@@ -166,7 +166,7 @@
             {% if game.allow_notes is not defined or game.allow_notes %}
             <div class="section-header">📝 {% if is_ar %}ملاحظات إضافية / الوصف{% else %}Additional Notes / Description{% endif %} {% if game.notes_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
-            <textarea name="notes" class="touch-input" style="height: 110px; resize: vertical;"
+            <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
                 placeholder="{% if is_ar %}اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا...{% else %}Write any additional notes or details about the game condition...{% endif %}" {% if game.notes_mandatory %}required{%
                 endif %}>{{ saved_data.get('notes', '') }}</textarea>
             {% endif %}
@@ -242,12 +242,12 @@
 
             <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar">
-                <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch">
+                <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch" style="cursor: pointer;">
                     💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
                 </button>
 
                 {% if next_game_id %}
-                <button type="submit" name="action" value="next" class="btn-touch btn-success-touch">
+                <button type="submit" name="action" value="next" class="btn-touch btn-success-touch" style="cursor: pointer;">
                     {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
                 </button>
                 {% endif %}
@@ -437,7 +437,7 @@
         const isMapMandatory = formElement.getAttribute('data-map-mandatory') === 'true';
 
         formElement.addEventListener('submit', function (e) {
-            if (isMapMandatory) {
+            if (isMapMandatory && mapInput) {
                 if (!mapInput.value || mapInput.value === '') {
                     e.preventDefault();
                     alert('⚠️ يرجى تحديد موقع التلف أو المشكلة على الخريطة (هذا الحقل إجباري).');
@@ -447,6 +447,22 @@
     </script>
     {% endif %}
 
+    <script>
+        document.querySelectorAll('.sticky-footer-bar button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                const form = document.getElementById('checkForm');
+                if (form) {
+                    let oldAction = form.querySelector('input[name="action"]');
+                    if (oldAction) oldAction.remove();
+                    let actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = this.value;
+                    form.appendChild(actionInput);
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

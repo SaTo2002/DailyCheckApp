@@ -93,6 +93,17 @@ with app.app_context():
     except Exception:
         pass  # العمود موجود بالفعل
 
+    # إنشاء مجلدات السنة والشهر الحالية تلقائياً في بداية التطبيق والت شهر الجديد
+    try:
+        from datetime import datetime
+        now = datetime.now()
+        current_year = now.strftime('%Y')
+        current_month = now.strftime('%m')
+        pdf_month_folder = os.path.join('pdfs', current_year, current_month)
+        os.makedirs(pdf_month_folder, exist_ok=True)
+    except Exception:
+        pass
+
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

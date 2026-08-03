@@ -204,23 +204,23 @@ def edit_game(game_id):
         check_names = request.form.getlist('check_names[]')
         game.checks = json.dumps([{"name": c.strip(), "is_mandatory": bool(request.form.get(f'check_mandatory_{i}'))} for i, c in enumerate(check_names) if c.strip()], ensure_ascii=False)
         
-        # استبدال الخريطة القديمة بالجديدة وتوسيع الملف القديم
+        # استبدال الخريطة القديمة بالجديدة وتحديث مسار الصورة
         if 'map_image' in request.files:
             file = request.files['map_image']
             if file and file.filename != '':
-                old_map_path = getattr(game, 'map_image_path', None)
-                if old_map_path and os.path.exists(old_map_path):
+                old_map_path = game.map_image
+                if old_map_path and os.path.exists(old_map_path.lstrip('/')):
                     try:
-                        os.remove(old_map_path)
+                        os.remove(old_map_path.lstrip('/'))
                     except Exception as e:
                         print(f"Error deleting old map: {e}")
                 
-                filename = secure_filename(file.filename)
-                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
+                filename = f"base_map_game{game.id}_{uuid.uuid4().hex}.{ext}"
                 filepath = os.path.join(UPLOAD_FOLDER, filename)
                 file.save(filepath)
                 
-                game.map_image_path = filepath
+                game.map_image = f"/{filepath}".replace("\\", "/")
 
         db.session.commit()
         return redirect(url_for('manage.area_games', area_id=game.area_id))

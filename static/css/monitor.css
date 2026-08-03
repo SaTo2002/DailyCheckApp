@@ -121,14 +121,16 @@ body {
 }
 
 /* تفاعل الأزرار باللون الأخضر (سليم) والأحمر (عطل) عند التحديد */
-.pill-option input[value="سليم"]:checked + .pill-label {
+.pill-option input[value="سليم"]:checked + .pill-label,
+.pill-option input[value="OK"]:checked + .pill-label {
     background-color: #d1e7dd;
     border-color: #0f5132;
     color: #0f5132;
     box-shadow: 0 4px 10px rgba(25, 135, 84, 0.2);
 }
 
-.pill-option input[value="تالف/يوجد مشكلة"]:checked + .pill-label {
+.pill-option input[value="تالف/يوجد مشكلة"]:checked + .pill-label,
+.pill-option input[value="NOK"]:checked + .pill-label {
     background-color: #f8d7da;
     border-color: #842029;
     color: #842029;

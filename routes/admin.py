@@ -119,7 +119,7 @@ def dashboard():
                 'issue_checks_count': 0
             }
         
-        game_model = GameModel.query.get(r.game_id) if r.game_id and r.game_id.isdigit() else None
+        game_model = GameModel.query.filter((GameModel.id == r.game_id) | (GameModel.name == r.game_id)).first()
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
         checks = json.loads(r.checks_data) if r.checks_data else {}
         
@@ -188,6 +188,7 @@ def print_report(session_id):
     if not reports: return "التقرير غير موجود"
     
     report_data = {
+        'session_id': session_id,
         'monitor_name': reports[0].monitor_name,
         'area_id': reports[0].area_id,
         'timestamp': reports[0].timestamp.strftime('%Y-%m-%d %H:%M:%S'),
@@ -195,7 +196,7 @@ def print_report(session_id):
     }
     
     for r in reports:
-        game_model = GameModel.query.get(r.game_id) if r.game_id.isdigit() else None
+        game_model = GameModel.query.filter((GameModel.id == r.game_id) | (GameModel.name == r.game_id)).first()
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
         mapped_checks = {}
         for k, v in (json.loads(r.checks_data) if r.checks_data else {}).items():
@@ -208,10 +209,94 @@ def print_report(session_id):
             'checks': mapped_checks,
             'notes': r.notes,
             'map_drawing': r.map_image_path,
-            'base_map': game_model.map_image if game_model else "",
+            'base_map': (game_model.map_image.replace('/static/', '').lstrip('/') if game_model and game_model.map_image else ""),
             'photos': json.loads(r.photos_paths) if r.photos_paths else []
         })
     return render_template('print_report.html', report=report_data)
+
+# ------------------------------------------------------------------------------
+# 5. تصدير وتحميل التقرير كملف PDF رسمي من Google Sheets
+# ------------------------------------------------------------------------------
+@admin_bp.route('/download_pdf/<session_id>')
+def download_pdf(session_id):
+    if not session.get('is_admin') or not session.get('can_view_reports'): 
+        return redirect(url_for('admin.admin_login'))
+    
+    reports = GameReport.query.filter_by(session_id=session_id).all()
+    if not reports:
+        return "التقرير غير موجود", 404
+        
+    area_name = reports[0].area_id
+    monitor_name = reports[0].monitor_name
+    date_str = reports[0].timestamp.strftime('%Y-%m-%d')
+    
+    all_checks = {}
+    game_notes = {}
+    game_maps = {}
+    
+    for r in reports:
+        game_model = GameModel.query.filter((GameModel.id == r.game_id) | (GameModel.name == r.game_id)).first()
+        game_name = game_model.name if game_model else r.game_id
+        
+        actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
+        for k, v in (json.loads(r.checks_data) if r.checks_data else {}).items():
+            if k.startswith('check_'):
+                try: 
+                    q_title = actual_check_names[int(k.split('_')[1]) - 1] if int(k.split('_')[1]) - 1 < len(actual_check_names) else k
+                    all_checks[q_title] = 'OK' if (v == 'سليم' or v == 'OK') else 'NOK'
+                except Exception: 
+                    all_checks[k] = v
+            else: 
+                all_checks[k] = v
+                
+        if r.notes and r.notes.strip():
+            game_notes[game_name] = r.notes.strip()
+            
+        if r.map_image_path:
+            # Build full absolute image URL for Google Sheets formula
+            base_url = request.host_url.rstrip('/')
+            full_img_url = f"{base_url}{r.map_image_path}"
+            game_maps[game_name] = full_img_url
+
+    # 1. Date formatting (DDMMYY) and folder structure (pdfs/YYYY/MM/)
+    ts = reports[0].timestamp
+    year_folder = ts.strftime('%Y')
+    month_folder = ts.strftime('%m')
+    ddmmyy_date = ts.strftime('%d%m%y')
+    
+    # 2. Branch abbreviation logic (e.g. Park -> alm / Park, Almaza -> alm)
+    branch_clean = area_name.lower().strip()
+    if 'almaza' in branch_clean or 'park' in branch_clean:
+        branch_code = 'alm'
+    else:
+        branch_code = branch_clean[:3] if len(branch_clean) >= 3 else branch_clean
+        
+    folder_path = os.path.join('pdfs', year_folder, month_folder)
+    os.makedirs(folder_path, exist_ok=True)
+    
+    # Format: DDMMYY_branch.pdf (e.g. 190726_alm.pdf)
+    pdf_filename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}.pdf"
+    pdf_path = os.path.join(folder_path, pdf_filename)
+    
+    try:
+        # Always generate fresh PDF from Google Sheets
+        from gsheet_exporter import export_report_to_pdf
+        export_report_to_pdf(
+                report_session_id=session_id,
+                monitor_name=monitor_name,
+                area_name=area_name,
+                checks_dict=all_checks,
+                game_notes_dict=game_notes,
+                game_maps_dict=game_maps,
+                date_str=date_str,
+                output_pdf_path=pdf_path
+            )
+            
+        from flask import send_file
+        is_inline = request.args.get('view') == '1'
+        return send_file(pdf_path, as_attachment=not is_inline, download_name=f"{ddmmyy_date}_{branch_code}.pdf", mimetype='application/pdf')
+    except Exception as e:
+        return f"حدث خطأ أثناء تصدير ملف PDF: {str(e)}", 500
 
 # ------------------------------------------------------------------------------
 # 5. حذف التقرير يدوياً وتنظيف صوره نهائياً من النظام (POST)
@@ -228,5 +313,14 @@ def delete_report(session_id):
                     if os.path.exists(p.lstrip('/')): os.remove(p.lstrip('/'))
             except Exception: pass
         db.session.delete(r)
+
+    # Delete cached PDF file across subfolders on server disk
+    try:
+        for root, dirs, files in os.walk('pdfs'):
+            for file in files:
+                if session_id[:6] in file or session_id in file:
+                    os.remove(os.path.join(root, file))
+    except Exception: pass
+
     db.session.commit()
     return redirect(url_for('admin.dashboard'))
