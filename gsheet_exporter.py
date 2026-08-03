@@ -66,7 +66,7 @@ def export_report_to_pdf(report_session_id, monitor_name, area_name, checks_dict
     try:
         # 3. Fill Header details (Inspector Name in B5 & Date in H5)
         ws.update_acell('B5', f"Name: {monitor_name}")
-        ws.update_acell('H5', date_str)
+        ws.update_acell('H5', f"Date: {date_str}")
         
         # 4. Read questions rows and set check mark symbols (✔) in OK / NOK columns
         all_rows = ws.get_all_values()
@@ -157,6 +157,8 @@ def export_report_to_pdf(report_session_id, monitor_name, area_name, checks_dict
             for r in set(cleared_ranges):
                 if r == 'B5':
                     cleanup_updates.append({'range': 'B5', 'values': [['Name:']]})
+                elif r == 'H5':
+                    cleanup_updates.append({'range': 'H5', 'values': [['Date:']]})
                 elif r in title_restorations:
                     cleanup_updates.append({'range': r, 'values': [[title_restorations[r]]]})
                 else:
