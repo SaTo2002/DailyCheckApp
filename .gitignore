@@ -34,6 +34,7 @@ DailyGoogleApi.json
 # Generated Reports & PDFs
 pdfs/
 reports_excel/
+Exsl/
 
 # Temporary generated files
 static/uploads/temp_composites/
