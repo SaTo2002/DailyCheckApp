@@ -138,23 +138,35 @@
         
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label>{% if is_ar %}اسم المنطقة الجديد:{% else %}New Area Name:{% endif %}</label>
-                <input type="text" name="area_name" value="{{ area.name }}" class="touch-input" placeholder="{% if is_ar %}اكتب اسم المنطقة...{% else %}Type area name...{% endif %}" required>
+                <label for="area_name">🏷️ {% if is_ar %}اسم المنطقة الجديد:{% else %}New Area Name:{% endif %}</label>
+                <input type="text" id="area_name" name="area_name" value="{{ area.name }}" class="touch-input" required autofocus placeholder="{% if is_ar %}اكتب الاسم الجديد للمنطقة...{% else %}Enter area name...{% endif %}">
             </div>
-            
-            {% if area.image %}
+
             <div class="form-group">
-                <label>🖼️ {% if is_ar %}صورة غلاف المنطقة الحالية:{% else %}Current Area Cover Image:{% endif %}</label>
-                <img src="{{ area.image }}" alt="Cover" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; border: 2px solid var(--border-color); display: block;">
+                <label>📄 {% if is_ar %}اتجاه طباعة تقرير الـ PDF والـ Excel:{% else %}PDF & Excel Report Print Orientation:{% endif %}</label>
+                <div style="display: flex; gap: 15px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; background: #f8fafc; padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 8px; flex: 1;">
+                        <input type="radio" name="pdf_orientation" value="portrait" {% if area.pdf_orientation != 'landscape' %}checked{% endif %}>
+                        📱 <strong>{% if is_ar %}طولي (Portrait){% else %}Portrait{% endif %}</strong>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; background: #f8fafc; padding: 10px 14px; border: 2px solid #cbd5e1; border-radius: 8px; flex: 1;">
+                        <input type="radio" name="pdf_orientation" value="landscape" {% if area.pdf_orientation == 'landscape' %}checked{% endif %}>
+                        🖥️ <strong>{% if is_ar %}عرضي (Landscape){% else %}Landscape{% endif %}</strong>
+                    </label>
+                </div>
             </div>
-            {% endif %}
-            
+
             <div class="form-group">
-                <label>🖼️ {% if is_ar %}تحديث صورة غلاف المنطقة (اختياري):{% else %}Update Area Cover Image (Optional):{% endif %}</label>
-                <input type="file" name="area_image" accept="image/*" class="touch-input" style="cursor: pointer;">
+                <label for="area_image">🖼️ {% if is_ar %}تغيير صورة غلاف المنطقة:{% else %}Change Area Cover Image:{% endif %}</label>
+                {% if area.image %}
+                <div style="margin-bottom: 10px;">
+                    <img src="{{ area.image }}" alt="Cover" style="max-width: 100%; max-height: 120px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover;">
+                </div>
+                {% endif %}
+                <input type="file" id="area_image" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; background: #f8fafc; width: 100%; box-sizing: border-box;">
             </div>
-            
-            <button type="submit" class="btn-submit">💾 {% if is_ar %}حفظ التعديلات{% else %}Save Changes{% endif %}</button>
+
+            <button type="submit" class="btn-submit" style="margin-top: 10px;">💾 {% if is_ar %}حفظ التغييرات{% else %}Save Changes{% endif %}</button>
         </form>
     </div>
 </body>

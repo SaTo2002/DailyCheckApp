@@ -30,6 +30,8 @@ DB_NAME = os.getenv('DB_NAME')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Max payload upload limit (512 Megabytes to allow high-res canvas Base64 data)
+app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024
 
 # 3. ربط قاعدة البيانات بتطبيق فلاسك
 db.init_app(app)
@@ -77,13 +79,17 @@ with app.app_context():
         except Exception:
             pass  # العمود موجود بالفعل
 
-    # فحص وإضافة عمود ترتيب المناطق (sort_order) لجداول المناطق إن لم يكن موجوداً
-    try:
-        with db.engine.connect() as conn:
-            conn.execute(text("ALTER TABLE areas ADD COLUMN sort_order INT DEFAULT 0"))
-            conn.commit()
-    except Exception:
-        pass  # العمود موجود بالفعل
+    # فحص وإضافة عمود ترتيب المناطق (sort_order) وعمود اتجاه الـ PDF لجداول المناطق إن لم تكن موجودة
+    for col_sql in [
+        "ALTER TABLE areas ADD COLUMN sort_order INT DEFAULT 0",
+        "ALTER TABLE areas ADD COLUMN pdf_orientation VARCHAR(20) DEFAULT 'portrait'"
+    ]:
+        try:
+            with db.engine.connect() as conn:
+                conn.execute(text(col_sql))
+                conn.commit()
+        except Exception:
+            pass  # العمود موجود بالفعل
 
     # فحص وإضافة عمود صورة المنطقة (image) لجداول المناطق إن لم يكن موجوداً
     try:

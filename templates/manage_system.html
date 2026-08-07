@@ -54,6 +54,15 @@
             <h3>➕ {% if is_ar %}إضافة منطقة جديدة{% else %}Add New Area{% endif %}</h3>
             <form action="/add_area" method="POST" class="add-area-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;" enctype="multipart/form-data">
                 <input type="text" name="area_name" placeholder="{% if is_ar %}اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)...{% else %}Type area name (e.g. Main Trampoline Area)...{% endif %}" required style="width: 100%;">
+                
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-weight: bold; font-size: 14px; color: #475569;">📄 {% if is_ar %}اتجاه طباعة تقرير المنطقة (PDF & Excel):{% else %}PDF & Excel Print Orientation:{% endif %}</label>
+                    <select name="pdf_orientation" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #f8fafc; font-weight: bold;">
+                        <option value="portrait">📱 {% if is_ar %}طولي (Portrait){% else %}Portrait{% endif %}</option>
+                        <option value="landscape">🖥️ {% if is_ar %}عرضي (Landscape){% else %}Landscape{% endif %}</option>
+                    </select>
+                </div>
+
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                     <label style="font-weight: bold; font-size: 14px; color: #475569;">🖼️ {% if is_ar %}صورة غلاف المنطقة:{% else %}Area Cover Image:{% endif %}</label>
                     <input type="file" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #f8fafc;">
@@ -72,10 +81,13 @@
                     {% for area in areas %}
                     <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #cbd5e1; margin-bottom: 8px; border-radius: 8px; background: #fff; cursor: grab; transition: background 0.2s;">
                         <input type="hidden" name="area_ids[]" value="{{ area.id }}">
-                        <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <span style="cursor: grab; font-size: 20px; color: #94a3b8; user-select: none;" title="Drag from here">☰</span>
                             <span class="area-index" style="background: #e2e8f0; color: #334155; font-weight: bold; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px;">{{ loop.index }}</span>
                             <strong style="font-size: 18px; color: #333;">{{ area.name }}</strong>
+                            <span style="background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;">
+                                {% if area.pdf_orientation == 'landscape' %}🖥️ Landscape{% else %}📱 Portrait{% endif %}
+                            </span>
                             <span style="color: #666; font-size: 14px; margin-right: 10px;">({% if is_ar %}{{ area.games|length }} ألعاب مسجلة{% else %}{{ area.games|length }} games registered{% endif %})</span>
                         </div>
                         <div class="actions">

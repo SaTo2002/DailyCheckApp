@@ -215,10 +215,10 @@ def print_report(session_id):
     return render_template('print_report.html', report=report_data)
 
 # ------------------------------------------------------------------------------
-# 5. تصدير وتحميل التقرير كملف PDF رسمي من Google Sheets
+# 5. تصدير وتحميل التقرير كملف Excel (.xlsx) محلي من القوالب المرفقة
 # ------------------------------------------------------------------------------
-@admin_bp.route('/download_pdf/<session_id>')
-def download_pdf(session_id):
+@admin_bp.route('/download_excel/<session_id>')
+def download_excel(session_id):
     if not session.get('is_admin') or not session.get('can_view_reports'): 
         return redirect(url_for('admin.admin_login'))
     
@@ -230,7 +230,7 @@ def download_pdf(session_id):
     monitor_name = reports[0].monitor_name
     date_str = reports[0].timestamp.strftime('%Y-%m-%d')
     
-    all_checks = {}
+    game_checks = {}
     game_notes = {}
     game_maps = {}
     
@@ -239,64 +239,110 @@ def download_pdf(session_id):
         game_name = game_model.name if game_model else r.game_id
         
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
+        checks_dict = {}
         for k, v in (json.loads(r.checks_data) if r.checks_data else {}).items():
             if k.startswith('check_'):
                 try: 
                     q_title = actual_check_names[int(k.split('_')[1]) - 1] if int(k.split('_')[1]) - 1 < len(actual_check_names) else k
-                    all_checks[q_title] = 'OK' if (v == 'سليم' or v == 'OK') else 'NOK'
+                    checks_dict[q_title] = 'OK' if (v == 'سليم' or v == 'OK') else 'NOK'
                 except Exception: 
-                    all_checks[k] = v
+                    checks_dict[k] = v
             else: 
-                all_checks[k] = v
+                checks_dict[k] = v
+                
+        game_checks[game_name] = checks_dict
                 
         if r.notes and r.notes.strip():
             game_notes[game_name] = r.notes.strip()
             
         if r.map_image_path:
-            # Build full absolute image URL for Google Sheets formula
-            base_url = request.host_url.rstrip('/')
-            full_img_url = f"{base_url}{r.map_image_path}"
-            game_maps[game_name] = full_img_url
+            game_maps[game_name] = r.map_image_path
 
-    # 1. Date formatting (DDMMYY) and folder structure (pdfs/YYYY/MM/)
     ts = reports[0].timestamp
     year_folder = ts.strftime('%Y')
     month_folder = ts.strftime('%m')
     ddmmyy_date = ts.strftime('%d%m%y')
     
-    # 2. Branch abbreviation logic (e.g. Park -> alm / Park, Almaza -> alm)
     branch_clean = area_name.lower().strip()
     if 'almaza' in branch_clean or 'park' in branch_clean:
         branch_code = 'alm'
     else:
         branch_code = branch_clean[:3] if len(branch_clean) >= 3 else branch_clean
         
-    folder_path = os.path.join('pdfs', year_folder, month_folder)
+    area_folder_name = "".join([c if c.isalnum() or c in (' ', '_', '-') else '' for c in area_name]).strip()
+    if not area_folder_name:
+        area_folder_name = "General"
+        
+    folder_path = os.path.join('reports_excel', year_folder, month_folder, area_folder_name)
     os.makedirs(folder_path, exist_ok=True)
     
-    # Format: DDMMYY_branch.pdf (e.g. 190726_alm.pdf)
-    pdf_filename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}.pdf"
-    pdf_path = os.path.join(folder_path, pdf_filename)
+    xlsx_filename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}.xlsx"
+    xlsx_path = os.path.join(folder_path, xlsx_filename)
     
     try:
-        # Always generate fresh PDF from Google Sheets
-        from gsheet_exporter import export_report_to_pdf
-        export_report_to_pdf(
-                report_session_id=session_id,
-                monitor_name=monitor_name,
-                area_name=area_name,
-                checks_dict=all_checks,
-                game_notes_dict=game_notes,
-                game_maps_dict=game_maps,
-                date_str=date_str,
-                output_pdf_path=pdf_path
-            )
+        from models import Area
+        area_obj = Area.query.filter((Area.name == area_name) | (Area.name.like(f"%{area_name}%"))).first()
+        orientation = area_obj.pdf_orientation if area_obj and area_obj.pdf_orientation else 'portrait'
+
+        from excel_exporter import export_report_to_excel
+        export_report_to_excel(
+            report_session_id=session_id,
+            monitor_name=monitor_name,
+            area_name=area_name,
+            checks_dict=game_checks,
+            game_notes_dict=game_notes,
+            game_maps_dict=game_maps,
+            date_str=date_str,
+            output_xlsx_path=xlsx_path,
+            orientation=orientation
+        )
             
         from flask import send_file
-        is_inline = request.args.get('view') == '1'
-        return send_file(pdf_path, as_attachment=not is_inline, download_name=f"{ddmmyy_date}_{branch_code}.pdf", mimetype='application/pdf')
+        return send_file(
+            xlsx_path,
+            as_attachment=True,
+            download_name=f"{ddmmyy_date}_{branch_code}.xlsx",
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
     except Exception as e:
-        return f"حدث خطأ أثناء تصدير ملف PDF: {str(e)}", 500
+        return f"حدث خطأ أثناء تصدير ملف Excel: {str(e)}", 500
+
+# ------------------------------------------------------------------------------
+# 6. تصدير وعرض وتنزيل تقرير الـ PDF المترجم من Excel
+# ------------------------------------------------------------------------------
+@admin_bp.route('/download_pdf/<session_id>')
+def download_pdf(session_id):
+    if not session.get('is_admin') or not session.get('can_view_reports'): 
+        return redirect(url_for('admin.admin_login'))
+
+    is_view = request.args.get('view') == '1'
+    
+    # البحث عن ملف الـ PDF الجاهز في المجلدات
+    pdf_file_path = None
+    for root, dirs, files in os.walk('pdfs'):
+        for file in files:
+            if file.endswith('.pdf') and (session_id[:6] in file or session_id in file):
+                pdf_file_path = os.path.join(root, file)
+                break
+
+    if not pdf_file_path or not os.path.exists(pdf_file_path):
+        # إنشاء التقرير فوراً إن لم يكن موجوداً
+        try:
+            from pdf_generator import generate_report_excel_and_pdf
+            _, pdf_file_path = generate_report_excel_and_pdf(session_id)
+        except Exception as e:
+            return redirect(url_for('admin.print_report', session_id=session_id))
+
+    if pdf_file_path and os.path.exists(pdf_file_path):
+        from flask import send_file
+        return send_file(
+            pdf_file_path,
+            as_attachment=not is_view,
+            download_name=os.path.basename(pdf_file_path),
+            mimetype='application/pdf'
+        )
+    else:
+        return redirect(url_for('admin.print_report', session_id=session_id))
 
 # ------------------------------------------------------------------------------
 # 5. حذف التقرير يدوياً وتنظيف صوره نهائياً من النظام (POST)

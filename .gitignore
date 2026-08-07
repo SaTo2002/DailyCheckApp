@@ -31,5 +31,9 @@ instance/
 # Google credentials
 DailyGoogleApi.json
 
-# Generated PDFs
+# Generated Reports & PDFs
 pdfs/
+reports_excel/
+
+# Temporary generated files
+static/uploads/temp_composites/

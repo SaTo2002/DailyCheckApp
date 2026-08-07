@@ -200,7 +200,7 @@
 
             <!-- Map Container -->
             <div class="map-scroll-container" id="mapScrollContainer"
-                style="position: relative; border: 2px solid #cbd5e1; border-radius: 10px; overflow: auto; background: #fff; max-height: 520px; max-width: 100%;">
+                style="position: relative; border: 2px solid #cbd5e1; border-radius: 10px; overflow: auto; background: #fff; max-height: 1400px; max-width: 100%;">
                 <div id="canvasWrapper" style="display: inline-block; width: 100%; transition: width 0.2s ease;">
                     <canvas id="mapCanvas"
                         style="display: block; width: 100%; touch-action: none; cursor: crosshair;"></canvas>
@@ -293,8 +293,8 @@
         // تحميل صورة الخريطة الأساسية وضبط أبعاد الـ Canvas
         img.onload = function () {
             const maxWidth = 800;
-            let finalWidth = img.width;
-            let finalHeight = img.height;
+            let finalWidth = img.width || 800;
+            let finalHeight = img.height || 400;
 
             if (finalWidth > maxWidth) {
                 const ratio = maxWidth / finalWidth;
@@ -308,7 +308,7 @@
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
             // إعادة رسم الخريطة المحفوظة إن وجدت مسبقاً
-            const savedDataUrl = mapInput.value;
+            const savedDataUrl = mapInput ? mapInput.value : '';
             if (savedDataUrl && (savedDataUrl.startsWith('data:image') || savedDataUrl.startsWith('/static'))) {
                 let savedImg = new Image();
                 savedImg.onload = function () {
@@ -324,9 +324,7 @@
 
         // حفظ حالة الخريطة في مصفوفة التراجع
         function saveStateToHistory() {
-            if (drawingHistory.length >= 25) {
-                drawingHistory.shift(); // الحفاظ على آخر 25 خطوة فقط لتوفير الذاكرة
-            }
+            if (drawingHistory.length >= 10) drawingHistory.shift();
             drawingHistory.push(ctx.getImageData(0, 0, canvas.width, canvas.height));
         }
 
@@ -353,15 +351,34 @@
         function startPosition(e) {
             if (e.cancelable) e.preventDefault();
             isDrawing = true;
-            draw(e);
+            const pos = getPointerPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            drawCtx.beginPath();
+            drawCtx.moveTo(pos.x, pos.y);
         }
 
         function endPosition() {
             if (!isDrawing) return;
             isDrawing = false;
             ctx.beginPath();
-            // حفظ الصورة المحدثة وإبراز التنبيه
-            mapInput.value = canvas.toDataURL('image/png');
+            
+            // Create a scaled down lightweight compressed image of the drawing + map
+            try {
+                const tempCanvas = document.createElement('canvas');
+                const targetW = Math.min(600, canvas.width);
+                const targetH = Math.round(canvas.height * (targetW / canvas.width));
+                tempCanvas.width = targetW;
+                tempCanvas.height = targetH;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Draw full composite onto scaled canvas
+                tempCtx.drawImage(canvas, 0, 0, targetW, targetH);
+                mapInput.value = tempCanvas.toDataURL('image/jpeg', 0.6);
+            } catch (err) {
+                mapInput.value = canvas.toDataURL('image/jpeg', 0.6);
+            }
+
             if (drawingBadge) drawingBadge.style.display = 'inline';
             saveStateToHistory(); // حفظ الحالة بعد الانتهاء من الرسم
         }

@@ -37,6 +37,7 @@ def manage_system():
 def add_area():
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     name = request.form.get('area_name')
+    pdf_orientation = request.form.get('pdf_orientation', 'portrait')
     
     image_path = None
     if 'area_image' in request.files:
@@ -50,7 +51,7 @@ def add_area():
 
     if name:
         max_order = db.session.query(db.func.max(Area.sort_order)).scalar() or 0
-        db.session.add(Area(name=name, sort_order=max_order + 1, image=image_path))
+        db.session.add(Area(name=name, sort_order=max_order + 1, image=image_path, pdf_orientation=pdf_orientation))
         db.session.commit()
     return redirect(url_for('manage.manage_system'))
 
@@ -77,8 +78,11 @@ def edit_area(area_id):
     area = Area.query.get_or_404(area_id)
     if request.method == 'POST':
         new_name = request.form.get('area_name')
+        pdf_orientation = request.form.get('pdf_orientation', 'portrait')
+        
         if new_name:
             area.name = new_name
+        area.pdf_orientation = pdf_orientation
             
         if 'area_image' in request.files:
             file = request.files['area_image']

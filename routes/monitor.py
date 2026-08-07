@@ -129,7 +129,17 @@ def check_game(game_id):
             _, encoded = map_drawing_data.split(',', 1)
             filename = f"map_{game_id}_{uuid.uuid4().hex}.png"
             filepath = os.path.join(UPLOAD_FOLDER, filename)
-            with open(filepath, "wb") as fh: fh.write(base64.b64decode(encoded))
+            img_bytes = base64.b64decode(encoded)
+            
+            # Compress drawing image using PIL to save disk space (~100KB)
+            try:
+                from PIL import Image
+                import io
+                image = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
+                image.save(filepath, "PNG", optimize=True)
+            except Exception:
+                with open(filepath, "wb") as fh: fh.write(img_bytes)
+                
             current_answers['map_drawing'] = f"/{filepath}".replace("\\", "/") 
         else: current_answers['map_drawing'] = old_map_path
 
@@ -143,7 +153,7 @@ def check_game(game_id):
     return render_template('form.html', game=game, checks=game_checks, next_game_id=next_game_id, saved_data=saved_data, game_id=game_id)
 
 # ------------------------------------------------------------------------------
-# 4. رفع صور التلفيات عبر AJAX (POST)
+# 4. رفع صور التلفيات عبر AJAX (POST) مع ضغط الحجم التلقائي
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/upload_photo_ajax', methods=['POST'])
 def upload_photo_ajax():
@@ -156,9 +166,16 @@ def upload_photo_ajax():
 
     for file in uploaded_files:
         if file and file.filename != '':
-            photo_ext = file.filename.split('.')[-1]
-            photo_filepath = os.path.join(UPLOAD_FOLDER, f"photo_{game_id}_{uuid.uuid4().hex}.{photo_ext}")
-            file.save(photo_filepath)
+            photo_filepath = os.path.join(UPLOAD_FOLDER, f"photo_{game_id}_{uuid.uuid4().hex}.jpg")
+            try:
+                from PIL import Image
+                img = Image.open(file).convert('RGB')
+                # Resize if image is huge (> 1600px width/height)
+                img.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+                img.save(photo_filepath, 'JPEG', quality=80, optimize=True)
+            except Exception:
+                file.save(photo_filepath)
+                
             photo_url = f"/{photo_filepath}".replace("\\", "/")
             new_photos.append(photo_url)
             session['game_data'][game_id]['photos'].append(photo_url)
@@ -207,6 +224,13 @@ def submit_report():
             photos_paths=json.dumps(data.get('photos', []), ensure_ascii=False)
         ))
     db.session.commit()
+    
+    # 2. إنشاء وتصدير ملف الـ Excel وملف الـ PDF تلقائياً فور حفظ التقرير
+    try:
+        from pdf_generator import generate_report_excel_and_pdf
+        generate_report_excel_and_pdf(session_id)
+    except Exception as exp_err:
+        print(f"Error auto-generating Excel/PDF report: {exp_err}")
     
     # تنظيف الجلسة المؤقتة للمونيتور
     session.pop('completed_games', None)

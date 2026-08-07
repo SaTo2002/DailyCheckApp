@@ -32,6 +32,7 @@ class Area(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)       # اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)
     sort_order = db.Column(db.Integer, default=0)                       # ترتيب ظهور المنطقة (Drag & Drop)
     image = db.Column(db.String(255), nullable=True)                    # مسار صورة غلاف المنطقة
+    pdf_orientation = db.Column(db.String(20), default='portrait')      # اتجاه طباعة التقرير (portrait / landscape)
     
     # علاقة الربط بالألعاب (حذف المنطقة يؤدي لحذف ألعابها تلقائياً)
     games = db.relationship('GameModel', backref='area', lazy=True, cascade="all, delete-orphan")
