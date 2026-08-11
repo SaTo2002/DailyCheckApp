@@ -95,8 +95,8 @@
         <!-- 3. Submit Area Report -->
         <div style="text-align: center; margin-top: 25px;">
             {% if all_completed %}
-            <form action="/submit_report" method="POST">
-                <button type="submit" class="btn-touch btn-success-touch" style="width: 100%; font-size: 18px; padding: 16px;">
+            <form action="/submit_report" method="POST" onsubmit="const btn=this.querySelector('button'); btn.disabled=true; btn.innerHTML='⏳ {% if is_ar %}جاري الحفظ وتوليد ملفات الإكسيل والـ PDF...{% else %}Submitting & Generating Excel/PDF...{% endif %}';">
+                <button type="submit" class="btn-touch btn-success-touch" style="width: 100%; font-size: 18px; padding: 16px; cursor: pointer;">
                     {% if is_ar %}إرسال تقرير المنطقة بالكامل 🚀{% else %}Submit Complete Area Report 🚀{% endif %}
                 </button>
             </form>
