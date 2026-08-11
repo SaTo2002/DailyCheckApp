@@ -1,24 +1,21 @@
-# --- الأساسيات والويب والحماية ---
+# --- Core Flask & Security ---
 Flask==3.0.3
-Flask-Login==0.6.3
-Flask-WTF==1.2.1
 python-dotenv==1.0.1
 
-# --- قاعدة البيانات (MySQL) ---
+# --- Database (MySQL) ---
 Flask-SQLAlchemy==3.1.1
 PyMySQL==1.1.1
 
-# --- معالجة الصور والملفات والـ PDF ---
-docxtpl==0.16.8
+# --- Image Processing ---
 Pillow
-WeasyPrint==62.3
 
-# --- الربط السحابي (Google Drive & Sheets API) ---
-google-api-python-client==2.137.0
-google-auth-httplib2==0.2.0
-google-auth-oauthlib==1.2.1
-google-auth==2.56.0
-
-# --- معالجة جداول البيانات (Excel & Google Sheets) ---
+# --- Excel Generation ---
 openpyxl==3.1.5
-gspread==6.2.1
+
+# --- Password Hashing ---
+werkzeug
+
+# --- Windows PDF Export (win32com) ---
+# Only needed on Windows — install manually:
+# pip install pywin32
+# (Not needed on Linux — LibreOffice is used instead)

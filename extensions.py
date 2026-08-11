@@ -14,8 +14,8 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 if not os.path.exists(UPLOAD_FOLDER):
     os.makedirs(UPLOAD_FOLDER)
 
-# 3. الباسورد المشفّر للـ Master Admin الرئيسي (يُقرأ من ملف .env أو النواة الاحتياطية)
-MASTER_ADMIN_HASH = os.getenv(
-    'MASTER_ADMIN_HASH',
-    'scrypt:32768:8:1$o2sRQJ3CVeIvLBFk$630226ad3aa44801001362c89ca76753c7ae6900c4f8395cbe90cf89a657dd6d544988584d0ab9e667571be840294f8290e4c87cb47d5d4f6a2acb0075e2bb1e'
-)
+# 3. الباسورد المشفّر للـ Master Admin الرئيسي (يُقرأ من ملف .env فقط — لا يُكتب في الكود أبداً)
+MASTER_ADMIN_HASH = os.getenv('MASTER_ADMIN_HASH')
+if not MASTER_ADMIN_HASH:
+    raise RuntimeError("❌ MASTER_ADMIN_HASH is missing from .env file! The app cannot start without it.")
+

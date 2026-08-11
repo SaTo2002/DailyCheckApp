@@ -5,7 +5,11 @@
 1. Grant Execution Permission (Run Once in Terminal):
    chmod +x run_app.sh
 
-2. Manual Run:
+2. Install Required System Dependencies (Run Once):
+   sudo apt install libreoffice -y
+   # LibreOffice is required for PDF generation on Linux
+
+3. Manual Run:
    ./run_app.sh
 
 ------------------------------------------------------------------------------

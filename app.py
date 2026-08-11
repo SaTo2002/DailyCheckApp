@@ -20,7 +20,11 @@ load_dotenv()
 
 # 2. إنشاء وتكوين تطبيق فلاسك
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY', 'gravity_code_secret_key_fallback')
+secret_key = os.getenv('SECRET_KEY')
+if not secret_key:
+    raise RuntimeError("❌ SECRET_KEY is missing from .env file! The app cannot start without it.")
+app.secret_key = secret_key
+
 
 # إعدادات الاتصال بقاعدة بيانات MySQL
 DB_USER = os.getenv('DB_USER')
@@ -112,4 +116,5 @@ with app.app_context():
 
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    debug_mode = os.getenv('DEBUG', 'False').lower() == 'true'
+    app.run(host='0.0.0.0', port=5000, debug=debug_mode)

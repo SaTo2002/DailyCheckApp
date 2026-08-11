@@ -50,26 +50,26 @@ def generate_report_excel_and_pdf(session_id):
     month_folder = ts.strftime('%m')
     ddmmyy_date = ts.strftime('%d%m%y')
     
-    branch_clean = area_name.lower().strip()
-    if 'almaza' in branch_clean or 'park' in branch_clean:
-        branch_code = 'alm'
-    else:
-        branch_code = branch_clean[:3] if len(branch_clean) >= 3 else branch_clean
+    # كود الفرع: يُقرأ من ملف .env — يتغير فقط لو فتحنا فرع جديد
+    branch_code = os.getenv('BRANCH_CODE', 'alm').lower().strip()
         
     # تنظيف اسم المنطقة لاستخدامه كمجلد مستقل (مثل: Park, Kids, Kickerz, Bowling)
     area_folder_name = "".join([c if c.isalnum() or c in (' ', '_', '-') else '' for c in area_name]).strip()
     if not area_folder_name:
         area_folder_name = "General"
 
-    # مجلدات الحفظ بالترتيب المفضل: (نوع_التقرير / السنة / الشهر / اسم_المنطقة)
-    excel_dir = os.path.join('reports_excel', year_folder, month_folder, area_folder_name)
+    # مجلد الـ PDF الدائم فقط: (pdfs / السنة / الشهر / اسم_المنطقة)
     pdf_dir = os.path.join('pdfs', year_folder, month_folder, area_folder_name)
-    os.makedirs(excel_dir, exist_ok=True)
     os.makedirs(pdf_dir, exist_ok=True)
-    
+
     file_basename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}"
-    xlsx_path = os.path.abspath(os.path.join(excel_dir, f"{file_basename}.xlsx"))
     pdf_path = os.path.abspath(os.path.join(pdf_dir, f"{file_basename}.pdf"))
+
+    # مجلد مؤقت للـ xlsx فقط — يُمسح تلقائياً بعد التحويل (لا يُحفظ على الديسك نهائياً)
+    import tempfile
+    temp_dir = tempfile.mkdtemp()
+    xlsx_path = os.path.abspath(os.path.join(temp_dir, f"{file_basename}.xlsx"))
+
 
     # قراءة اتجاه طباعة المنطقة المحدد من قاعدة البيانات
     from models import Area
@@ -90,31 +90,72 @@ def generate_report_excel_and_pdf(session_id):
         orientation=orientation
     )
 
-    # 2. تحويل ملف الـ Excel المحفوظ تلقائياً إلى PDF عبر pywin32 COM
+    # 2. تحويل ملف الـ Excel إلى PDF — يحاول Windows أولاً ثم Linux fallback
+    pdf_generated = False
+
+    # --- الطريقة الأولى: Windows فقط عبر Microsoft Excel COM ---
+    if os.name == 'nt':
+        try:
+            import win32com.client
+            import pythoncom
+            pythoncom.CoInitialize()
+
+            excel_app = win32com.client.DispatchEx("Excel.Application")
+            excel_app.Visible = False
+            excel_app.DisplayAlerts = False
+
+            wb = excel_app.Workbooks.Open(xlsx_path)
+            # Type 0 = xlTypePDF
+            wb.ExportAsFixedFormat(0, pdf_path)
+            wb.Close(False)
+            excel_app.Quit()
+            pdf_generated = True
+            print(f"✅ [Windows] Excel → PDF via COM: {pdf_path}")
+        except Exception as win_err:
+            print(f"⚠️ [Windows] win32com failed: {win_err}")
+
+    # --- الطريقة الثانية: Linux / Mac عبر LibreOffice headless ---
+    if not pdf_generated:
+        try:
+            import subprocess
+            pdf_dir = os.path.dirname(pdf_path)
+            result = subprocess.run(
+                [
+                    'libreoffice', '--headless', '--convert-to', 'pdf',
+                    '--outdir', pdf_dir, xlsx_path
+                ],
+                timeout=60,
+                capture_output=True,
+                text=True
+            )
+            # LibreOffice saves as <filename>.pdf in the same outdir
+            generated_name = os.path.splitext(os.path.basename(xlsx_path))[0] + '.pdf'
+            generated_path = os.path.join(pdf_dir, generated_name)
+
+            # Rename to match expected pdf_path if different
+            if os.path.exists(generated_path) and generated_path != pdf_path:
+                os.rename(generated_path, pdf_path)
+
+            if os.path.exists(pdf_path):
+                pdf_generated = True
+                print(f"✅ [Linux] Excel → PDF via LibreOffice: {pdf_path}")
+            else:
+                print(f"⚠️ [Linux] LibreOffice ran but PDF not found. stdout: {result.stdout} stderr: {result.stderr}")
+        except FileNotFoundError:
+            print("⚠️ [Linux] LibreOffice not installed. Install it with: sudo apt install libreoffice")
+        except Exception as lo_err:
+            print(f"⚠️ [Linux] LibreOffice conversion failed: {lo_err}")
+
+    if not pdf_generated:
+        print("❌ PDF generation failed on both Windows (COM) and Linux (LibreOffice).")
+
+    # تنظيف المجلد المؤقت بالكامل (يشمل الـ xlsx وأي ملفات مؤقتة أخرى)
     try:
-        import win32com.client
-        import pythoncom
-        pythoncom.CoInitialize()
-        
-        excel_app = win32com.client.DispatchEx("Excel.Application")
-        excel_app.Visible = False
-        excel_app.DisplayAlerts = False
-        
-        wb = excel_app.Workbooks.Open(xlsx_path)
-        # Type 0 = xlTypePDF
-        wb.ExportAsFixedFormat(0, pdf_path)
-        wb.Close(False)
-        excel_app.Quit()
-        print(f"✅ Excel to PDF conversion successful: {pdf_path}")
-    except Exception as pdf_err:
-        print(f"⚠️ Warning: Could not convert Excel to PDF via COM: {pdf_err}")
-    finally:
-        # Clean up temporary Excel file from disk immediately (Keep PDFs only)
-        if os.path.exists(xlsx_path):
-            try:
-                os.remove(xlsx_path)
-            except Exception as e:
-                print(f"Error removing temp excel file: {e}")
+        import shutil
+        shutil.rmtree(temp_dir, ignore_errors=True)
+    except Exception as e:
+        print(f"Error removing temp directory: {e}")
+
 
     return None, pdf_path
 
