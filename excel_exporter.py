@@ -156,116 +156,128 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
         cell.alignment = Alignment(wrap_text=True, vertical='top', horizontal='right', readingOrder=2)
         cell.font = Font(name='Arial', size=10, bold=False)
 
-    # 5. Insert Map Images directly inside cells (In-Cell Anchoring)
-    if game_maps_dict:
-        for game_name, map_info in game_maps_dict.items():
-            drawing_path = map_info.get('drawing', '') if isinstance(map_info, dict) else map_info
-            base_path = map_info.get('base', '') if isinstance(map_info, dict) else ''
-            
-            if drawing_path:
-                d_path = drawing_path.lstrip('/')
-                b_path = base_path.lstrip('/') if base_path else ''
+    created_temp_files = []
+    try:
+        # 5. Insert Map Images directly inside cells (In-Cell Anchoring)
+        if game_maps_dict:
+            for game_name, map_info in game_maps_dict.items():
+                drawing_path = map_info.get('drawing', '') if isinstance(map_info, dict) else map_info
+                base_path = map_info.get('base', '') if isinstance(map_info, dict) else ''
                 
-                if not os.path.isabs(d_path): d_path = os.path.abspath(d_path)
-                if b_path and not os.path.isabs(b_path): b_path = os.path.abspath(b_path)
+                if drawing_path:
+                    d_path = drawing_path.lstrip('/')
+                    b_path = base_path.lstrip('/') if base_path else ''
+                    
+                    if not os.path.isabs(d_path): d_path = os.path.abspath(d_path)
+                    if b_path and not os.path.isabs(b_path): b_path = os.path.abspath(b_path)
 
-                if os.path.exists(d_path):
-                    target_cell = None
-                    gn_clean = game_name.lower().replace('(map)', '').strip()
-                    for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
-                        mg_clean = mapped_game.lower().replace('(map)', '').strip()
-                        if mg_clean == gn_clean:
-                            target_cell = cell_addr
-                            break
-                    if not target_cell:
+                    if os.path.exists(d_path):
+                        target_cell = None
+                        gn_clean = game_name.lower().replace('(map)', '').strip()
                         for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
                             mg_clean = mapped_game.lower().replace('(map)', '').strip()
-                            if mg_clean in gn_clean or gn_clean in mg_clean:
+                            if mg_clean == gn_clean:
                                 target_cell = cell_addr
                                 break
-                    if target_cell:
-                        try:
-                            # 1. Overlay Drawing onto Base Map if present
-                            if b_path and os.path.exists(b_path):
-                                base_img = PILImage.open(b_path).convert("RGBA")
-                                draw_img = PILImage.open(d_path).convert("RGBA")
-                                draw_resized = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
-                                final_img = PILImage.alpha_composite(base_img, draw_resized)
-                                
-                                temp_dir = os.path.join("static", "uploads", "temp_composites")
-                                os.makedirs(temp_dir, exist_ok=True)
-                                img_to_insert = os.path.abspath(os.path.join(temp_dir, f"excel_{os.path.basename(d_path)}"))
-                                final_img.save(img_to_insert, "PNG")
-                            else:
-                                img_to_insert = d_path
-
-                            # Find merged range for target cell to compute exact cell box dimensions
-                            target_range = None
-                            for rng in ws.merged_cells.ranges:
-                                if rng.start_cell.coordinate == target_cell:
-                                    target_range = rng
+                        if not target_cell:
+                            for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
+                                mg_clean = mapped_game.lower().replace('(map)', '').strip()
+                                if mg_clean in gn_clean or gn_clean in mg_clean:
+                                    target_cell = cell_addr
                                     break
+                        if target_cell:
+                            try:
+                                # 1. Overlay Drawing onto Base Map if present
+                                if b_path and os.path.exists(b_path):
+                                    base_img = PILImage.open(b_path).convert("RGBA")
+                                    draw_img = PILImage.open(d_path).convert("RGBA")
+                                    draw_resized = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
+                                    final_img = PILImage.alpha_composite(base_img, draw_resized)
                                     
-                            # 1. Determine exact merged cell box dimensions dynamically for any box
-                            cell_w_px = 500
-                            cell_h_px = 200
-                            if target_range:
-                                col_letters = [openpyxl.utils.get_column_letter(c) for c in range(target_range.min_col, target_range.max_col + 1)]
-                                total_w = sum((ws.column_dimensions[c].width or 13.0) for c in col_letters)
-                                total_h = sum((ws.row_dimensions[r].height or 16.5) for r in range(target_range.min_row, target_range.max_row + 1))
-                                cell_w_px = int(total_w * 7.5 + len(col_letters) * 4)
-                                cell_h_px = int(total_h * 1.333)
+                                    temp_dir = os.path.join("static", "uploads", "temp_composites")
+                                    os.makedirs(temp_dir, exist_ok=True)
+                                    img_to_insert = os.path.abspath(os.path.join(temp_dir, f"excel_{os.path.basename(d_path)}"))
+                                    final_img.save(img_to_insert, "PNG")
+                                    created_temp_files.append(img_to_insert)
+                                else:
+                                    img_to_insert = d_path
+
+                                # Find merged range for target cell to compute exact cell box dimensions
+                                target_range = None
+                                for rng in ws.merged_cells.ranges:
+                                    if rng.start_cell.coordinate == target_cell:
+                                        target_range = rng
+                                        break
+                                        
+                                # 1. Determine exact merged cell box dimensions dynamically for any box
+                                cell_w_px = 500
+                                cell_h_px = 200
+                                if target_range:
+                                    col_letters = [openpyxl.utils.get_column_letter(c) for c in range(target_range.min_col, target_range.max_col + 1)]
+                                    total_w = sum((ws.column_dimensions[c].width or 13.0) for c in col_letters)
+                                    total_h = sum((ws.row_dimensions[r].height or 16.5) for r in range(target_range.min_row, target_range.max_row + 1))
+                                    cell_w_px = int(total_w * 7.5 + len(col_letters) * 4)
+                                    cell_h_px = int(total_h * 1.333)
+                                    
+                                # 2. Resize image dynamically leaving 12px margin padding (Preserves black cell borders 100%)
+                                avail_w = max(50, cell_w_px - 30)
+                                avail_h = max(30, cell_h_px - 24)  # Leave 12px padding top and bottom so borders remain clear
                                 
-                            # 2. Resize image dynamically leaving 12px margin padding (Preserves black cell borders 100%)
-                            avail_w = max(50, cell_w_px - 30)
-                            avail_h = max(30, cell_h_px - 24)  # Leave 12px padding top and bottom so borders remain clear
-                            
-                            pil_img = PILImage.open(img_to_insert)
-                            pil_img.thumbnail((avail_w, avail_h), PILImage.Resampling.LANCZOS)
-                            
-                            temp_fit_dir = os.path.join("static", "uploads", "temp_composites")
-                            os.makedirs(temp_fit_dir, exist_ok=True)
-                            fit_path = os.path.abspath(os.path.join(temp_fit_dir, f"centered_{os.path.basename(d_path)}"))
-                            pil_img.save(fit_path, "PNG")
+                                pil_img = PILImage.open(img_to_insert)
+                                pil_img.thumbnail((avail_w, avail_h), PILImage.Resampling.LANCZOS)
+                                
+                                temp_fit_dir = os.path.join("static", "uploads", "temp_composites")
+                                os.makedirs(temp_fit_dir, exist_ok=True)
+                                fit_path = os.path.abspath(os.path.join(temp_fit_dir, f"centered_{os.path.basename(d_path)}"))
+                                pil_img.save(fit_path, "PNG")
+                                created_temp_files.append(fit_path)
 
-                            # 3. Calculate horizontal and vertical offset to center image with clean margins around borders
-                            img_w, img_h = pil_img.size
-                            offset_x_px = max(0, (cell_w_px - img_w) // 2)
-                            offset_y_px = max(0, (cell_h_px - img_h) // 2)
+                                # 3. Calculate horizontal and vertical offset to center image with clean margins around borders
+                                img_w, img_h = pil_img.size
+                                offset_x_px = max(0, (cell_w_px - img_w) // 2)
+                                offset_y_px = max(0, (cell_h_px - img_h) // 2)
 
-                            # 1 Pixel = 9525 EMUs (English Metric Units) in openpyxl
-                            from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
-                            from openpyxl.drawing.xdr import XDRPositiveSize2D
-                            
-                            col_idx = (target_range.min_col - 1) if target_range else 1
-                            row_idx = (target_range.min_row - 1) if target_range else 91
-                            
-                            marker = AnchorMarker(
-                                col=col_idx,
-                                colOff=int(offset_x_px * 9525),
-                                row=row_idx,
-                                rowOff=int(offset_y_px * 9525)
-                            )
-                            size = XDRPositiveSize2D(int(img_w * 9525), int(img_h * 9525))
-                            
-                            img = OpenPyxlImage(fit_path)
-                            img.anchor = OneCellAnchor(_from=marker, ext=size)
-                            ws.add_image(img)
-                        except Exception as img_err:
-                            print(f"Error adding image to Excel: {img_err}")
+                                # 1 Pixel = 9525 EMUs (English Metric Units) in openpyxl
+                                from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
+                                from openpyxl.drawing.xdr import XDRPositiveSize2D
+                                
+                                col_idx = (target_range.min_col - 1) if target_range else 1
+                                row_idx = (target_range.min_row - 1) if target_range else 91
+                                
+                                marker = AnchorMarker(
+                                    col=col_idx,
+                                    colOff=int(offset_x_px * 9525),
+                                    row=row_idx,
+                                    rowOff=int(offset_y_px * 9525)
+                                )
+                                size = XDRPositiveSize2D(int(img_w * 9525), int(img_h * 9525))
+                                
+                                img = OpenPyxlImage(fit_path)
+                                img.anchor = OneCellAnchor(_from=marker, ext=size)
+                                ws.add_image(img)
+                            except Exception as img_err:
+                                print(f"Error adding image to Excel: {img_err}")
 
-    # Set Page Setup Properties: Dynamic Orientation & Fit All Columns on One Page
-    if str(orientation).lower() == 'landscape':
-        ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
-    else:
-        ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
-        
-    ws.page_setup.paperSize = ws.PAPERSIZE_A4
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.page_setup.fitToWidth = 1
-    ws.page_setup.fitToHeight = 0
+        # Set Page Setup Properties: Dynamic Orientation & Fit All Columns on One Page
+        if str(orientation).lower() == 'landscape':
+            ws.page_setup.orientation = ws.ORIENTATION_LANDSCAPE
+        else:
+            ws.page_setup.orientation = ws.ORIENTATION_PORTRAIT
+            
+        ws.page_setup.paperSize = ws.PAPERSIZE_A4
+        ws.sheet_properties.pageSetUpPr.fitToPage = True
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 0
 
-    # Ensure target output directory exists
-    os.makedirs(os.path.dirname(output_xlsx_path), exist_ok=True)
-    wb.save(output_xlsx_path)
-    return output_xlsx_path
+        # Ensure target output directory exists
+        os.makedirs(os.path.dirname(output_xlsx_path), exist_ok=True)
+        wb.save(output_xlsx_path)
+        return output_xlsx_path
+    finally:
+        # Clean up temporary composite image files after saving Excel report
+        for temp_file in created_temp_files:
+            if os.path.exists(temp_file):
+                try:
+                    os.remove(temp_file)
+                except Exception as clean_err:
+                    print(f"Warning: Could not remove temporary file {temp_file}: {clean_err}")
