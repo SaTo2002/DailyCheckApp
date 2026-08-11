@@ -5,7 +5,9 @@
 
 import os
 import json
+import time
 from flask import Blueprint, render_template, request, session, redirect, url_for
+
 from werkzeug.security import check_password_hash
 from sqlalchemy import func
 from extensions import db, MASTER_ADMIN_HASH
@@ -113,11 +115,14 @@ def dashboard():
                 'monitor_name': r.monitor_name,
                 'area_id': r.area_id,
                 'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                'pdf_file_path': r.pdf_file_path if r.pdf_file_path else '',
                 'games': [],
                 'has_issues': False,
                 'total_checks_count': 0,
                 'issue_checks_count': 0
             }
+        elif r.pdf_file_path and not grouped_reports[r.session_id]['pdf_file_path']:
+            grouped_reports[r.session_id]['pdf_file_path'] = r.pdf_file_path
         
         game_model = GameModel.query.filter((GameModel.id == r.game_id) | (GameModel.name == r.game_id)).first()
         actual_check_names = [c['name'] for c in json.loads(game_model.checks)] if game_model and game_model.checks else []
@@ -225,22 +230,44 @@ def download_pdf(session_id):
 
     is_view = request.args.get('view') == '1'
     
-    # البحث عن ملف الـ PDF الجاهز في المجلدات
+    # 1. القراءة الفورية O(1) للمسار المسجل في قاعدة البيانات
     pdf_file_path = None
-    for root, dirs, files in os.walk('pdfs'):
-        for file in files:
-            if file.endswith('.pdf') and (session_id[:6] in file or session_id in file):
-                pdf_file_path = os.path.join(root, file)
-                break
+    rep = GameReport.query.filter_by(session_id=session_id).first()
+    
+    if rep and rep.pdf_file_path and os.path.exists(rep.pdf_file_path):
+        pdf_file_path = rep.pdf_file_path
+    else:
+        # لو الملف مش موجود في المسار المسجل (أو بيتم توليده حالياً بالخلفية)، نفحص المسار المتوقع أو ننتظر ثواني معدودة
+        if rep:
+            year_folder = rep.timestamp.strftime('%Y')
+            month_folder = rep.timestamp.strftime('%m')
+            ddmmyy_date = rep.timestamp.strftime('%d%m%y')
+            branch_code = os.getenv('BRANCH_CODE', 'alm').lower().strip()
+            area_folder_name = "".join([c if c.isalnum() or c in (' ', '_', '-') else '' for c in rep.area_id]).strip() or "General"
+            
+            expected_filename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}.pdf"
+            direct_path = os.path.abspath(os.path.join('pdfs', year_folder, month_folder, area_folder_name, expected_filename))
+            
+            for _ in range(10):  # محاولة فحص المسار المباشر إن كان التقرير يتولد حالياً بالخلفية
+                if os.path.exists(direct_path):
+                    pdf_file_path = direct_path
+                    # تحديث المسار بجدول الداتابيز للإلحاق السريع بالمستقبل
+                    rep.pdf_file_path = direct_path
+                    db.session.commit()
+                    break
+                time.sleep(0.5)
 
+    # 2. إن لم يكن الملف موجوداً على الجهاز إطلاقاً (أو اتمسح من القرص)، نقوم بإعادة توليده فوراً وتحديث الداتابيز
     if not pdf_file_path or not os.path.exists(pdf_file_path):
-        # إنشاء التقرير فوراً إن لم يكن موجوداً
         try:
             from pdf_generator import generate_report_excel_and_pdf
             _, pdf_file_path = generate_report_excel_and_pdf(session_id)
         except Exception as e:
-            return redirect(url_for('admin.print_report', session_id=session_id))
+            return f"حدث خطأ أثناء توليد ملف الـ PDF: {str(e)}", 500
 
+
+
+    # 3. إرسال الملف للمستخدم (عرض أو تحميل)
     if pdf_file_path and os.path.exists(pdf_file_path):
         from flask import send_file
         return send_file(
@@ -250,7 +277,9 @@ def download_pdf(session_id):
             mimetype='application/pdf'
         )
     else:
-        return redirect(url_for('admin.print_report', session_id=session_id))
+        return "لم يتم العثور على ملف الـ PDF المعني.", 404
+
+
 
 # ------------------------------------------------------------------------------
 # 5. حذف التقرير يدوياً وتنظيف صوره نهائياً من النظام (POST)

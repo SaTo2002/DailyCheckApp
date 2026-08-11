@@ -48,8 +48,20 @@ def generate_report_excel_and_pdf(session_id):
         if r.notes and r.notes.strip():
             game_notes[game_name] = r.notes.strip()
             
+        base_map_path = (game_model.map_image.lstrip('/') if game_model and game_model.map_image else "")
+
         if r.map_image_path:
-            game_maps[game_name] = r.map_image_path
+            game_maps[game_name] = {
+                'drawing': r.map_image_path,
+                'base': base_map_path
+            }
+        elif base_map_path:
+            game_maps[game_name] = {
+                'drawing': '',
+                'base': base_map_path
+            }
+
+
 
     year_folder = ts.strftime('%Y')
     month_folder = ts.strftime('%m')
@@ -114,9 +126,9 @@ def generate_report_excel_and_pdf(session_id):
             wb.Close(False)
             excel_app.Quit()
             pdf_generated = True
-            print(f"✅ [Windows] Excel → PDF via COM: {pdf_path}")
+            print(f"[Windows] Excel -> PDF via COM success: {pdf_path}")
         except Exception as win_err:
-            print(f"⚠️ [Windows] win32com failed: {win_err}")
+            print(f"[Windows] win32com failed: {win_err}")
 
     # --- الطريقة الثانية: Linux / Mac عبر LibreOffice headless ---
     if not pdf_generated:
@@ -125,7 +137,7 @@ def generate_report_excel_and_pdf(session_id):
             result = subprocess.run(
                 [
                     'libreoffice', '--headless', '--convert-to', 'pdf',
-                    '--outdir', pdf_dir, xlsx_path
+                    '--outdir', pdf_dir_lo, xlsx_path
                 ],
                 timeout=60,
                 capture_output=True,
@@ -141,22 +153,29 @@ def generate_report_excel_and_pdf(session_id):
 
             if os.path.exists(pdf_path):
                 pdf_generated = True
-                print(f"✅ [Linux] Excel → PDF via LibreOffice: {pdf_path}")
+                print(f"[Linux] Excel -> PDF via LibreOffice success: {pdf_path}")
             else:
-                print(f"⚠️ [Linux] LibreOffice ran but PDF not found. stdout: {result.stdout} stderr: {result.stderr}")
+                print(f"[Linux] LibreOffice ran but PDF not found. stdout: {result.stdout} stderr: {result.stderr}")
         except FileNotFoundError:
-            print("⚠️ [Linux] LibreOffice not installed. Install it with: sudo apt install libreoffice")
+            print("[Linux] LibreOffice not installed. Install it with: sudo apt install libreoffice")
         except Exception as lo_err:
-            print(f"⚠️ [Linux] LibreOffice conversion failed: {lo_err}")
+            print(f"[Linux] LibreOffice conversion failed: {lo_err}")
 
-    if not pdf_generated:
-        print("❌ PDF generation failed on both Windows (COM) and Linux (LibreOffice).")
+    if pdf_generated and os.path.exists(pdf_path):
+        try:
+            from extensions import db
+            from models import GameReport
+            GameReport.query.filter_by(session_id=session_id).update({'pdf_file_path': pdf_path})
+            db.session.commit()
+            print(f"[DB] Saved pdf_file_path '{pdf_path}' for session {session_id}")
+        except Exception as db_err:
+            print(f"[DB Error] Could not save pdf_file_path: {db_err}")
 
     # تنظيف المجلد المؤقت بالكامل (يشمل الـ xlsx وأي ملفات مؤقتة أخرى)
     shutil.rmtree(temp_dir, ignore_errors=True)
 
-
     return None, pdf_path
+
 
 
 def json_loads(data):

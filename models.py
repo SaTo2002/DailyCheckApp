@@ -73,4 +73,6 @@ class GameReport(db.Model):
     notes = db.Column(db.Text, nullable=True)                           # ملاحظات المراقب على اللعبة
     map_image_path = db.Column(db.String(255), nullable=True)          # مسار صورة الخريطة المرسومة بعد التحديد
     photos_paths = db.Column(db.Text, nullable=True)                    # مسارات صور التلفيات والأعطال المرفقة بصيغة JSON
+    pdf_file_path = db.Column(db.String(255), nullable=True)           # المسار المخزن المباشر لملف الـ PDF المتولد
     timestamp = db.Column(db.DateTime, default=db.func.now())           # تاريخ ووقت حفظ التقرير
+

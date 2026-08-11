@@ -73,17 +73,20 @@
                 </div>
             {% endif %}
 
-            {% if game.map_drawing %}
+            {% if game.map_drawing or game.base_map %}
                 <div style="margin-top: 15px;">
                     <strong>{% if is_ar %}رسم المشكلة على الخريطة:{% else %}Issue Map Diagram:{% endif %}</strong>
                     <div class="map-container">
                         {% if game.base_map %}
                             <img src="{% if game.base_map.startswith('http') or game.base_map.startswith('/') %}{{ game.base_map }}{% else %}/static/{{ game.base_map }}{% endif %}" class="map-base" onerror="this.style.display='none';">
                         {% endif %}
-                        <img src="{{ game.map_drawing }}" class="map-draw">
+                        {% if game.map_drawing %}
+                            <img src="{{ game.map_drawing }}" class="map-draw">
+                        {% endif %}
                     </div>
                 </div>
             {% endif %}
+
 
             {% if game.photos %}
                 <div style="margin-top: 15px;">

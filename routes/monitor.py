@@ -124,7 +124,9 @@ def check_game(game_id):
         map_drawing_data = request.form.get('map_drawing', '')
         old_map_path = session.get('game_data', {}).get(game_id, {}).get('map_drawing', '')
 
-        if map_drawing_data == '': current_answers['map_drawing'] = ''
+        if map_drawing_data == '': 
+            # لو المونيتور ما رسمش حاجة، نحفظ صورة الماب الأصلية النظيفة تلقائياً إن وجدت
+            current_answers['map_drawing'] = game.map_image if game and game.map_image else ''
         elif map_drawing_data.startswith('data:image'):
             _, encoded = map_drawing_data.split(',', 1)
             filename = f"map_{game_id}_{uuid.uuid4().hex}.png"
@@ -141,7 +143,9 @@ def check_game(game_id):
                 with open(filepath, "wb") as fh: fh.write(img_bytes)
                 
             current_answers['map_drawing'] = f"/{filepath}".replace("\\", "/") 
-        else: current_answers['map_drawing'] = old_map_path
+        else: 
+            current_answers['map_drawing'] = old_map_path if old_map_path else (game.map_image if game and game.map_image else '')
+
 
         session['game_data'][game_id] = current_answers
         session.modified = True
@@ -225,12 +229,17 @@ def submit_report():
         ))
     db.session.commit()
     
-    # 2. إنشاء وتصدير ملف الـ Excel وملف الـ PDF تلقائياً فور حفظ التقرير
-    try:
-        from pdf_generator import generate_report_excel_and_pdf
-        generate_report_excel_and_pdf(session_id)
-    except Exception as exp_err:
-        print(f"Error auto-generating Excel/PDF report: {exp_err}")
+    # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية (Subprocess) لضمان استجابة لحظية 100%
+    import subprocess
+    import sys
+    cmd = [
+        sys.executable, "-c",
+        f"from dotenv import load_dotenv; load_dotenv(); from app import app; app.app_context().push(); from pdf_generator import generate_report_excel_and_pdf; generate_report_excel_and_pdf('{session_id}')"
+    ]
+    subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
+
+
+
     
     games_count = len(completed_games)
 

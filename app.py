@@ -6,7 +6,8 @@
 import os
 from flask import Flask
 from dotenv import load_dotenv
-from sqlalchemy import text
+# 1. تحميل متغيرات البيئة من ملف .env فوراً قبل أي استدعاء للملفات الأُخرى
+load_dotenv()
 
 # استدعاء كائن قاعدة البيانات الامتدادي والماكينات
 from extensions import db
@@ -15,8 +16,6 @@ from models import User, Area, GameModel, GameReport
 # استدعاء الـ Blueprints مباشرة من حزمة المسارات (routes)
 from routes import monitor_bp, admin_bp, manage_bp
 
-# 1. تحميل متغيرات البيئة من ملف .env
-load_dotenv()
 
 # 2. إنشاء وتكوين تطبيق فلاسك
 app = Flask(__name__)

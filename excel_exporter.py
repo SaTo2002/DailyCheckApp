@@ -28,18 +28,14 @@ GAME_COMMENT_CELLS = {
 
 GAME_MAP_IMAGE_CELLS = {
     'Free Jump': 'B92',
-    'Airbag, Dodgeball & Performance': 'B113',
-    'Airbag,Dodgeball & Performance(OK or NOK)': 'B113',
     'Performance(map)': 'B113',
     'Performance': 'B113',
     'Dodgeball(map)': 'B122',
     'Dodgeball': 'B122',
-    'Entrance Of Dodge': 'B134',
     'Airbag(map)': 'B134',
     'Airbag': 'B134',
     'Matrix(map)': 'B165',
-    'Matrix': 'B165',
-    'MATRIX': 'B165'
+    'Matrix': 'B165'
 }
 
 def export_report_to_excel(report_session_id, monitor_name, area_name, checks_dict, game_notes_dict, game_maps_dict, date_str, output_xlsx_path, orientation='portrait'):
@@ -164,51 +160,35 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
                 drawing_path = map_info.get('drawing', '') if isinstance(map_info, dict) else map_info
                 base_path = map_info.get('base', '') if isinstance(map_info, dict) else ''
                 
-                if drawing_path:
-                    d_path = drawing_path.lstrip('/')
+                if drawing_path or base_path:
+                    d_path = drawing_path.lstrip('/') if drawing_path else ''
                     b_path = base_path.lstrip('/') if base_path else ''
                     
-                    if not os.path.isabs(d_path): d_path = os.path.abspath(d_path)
+                    if d_path and not os.path.isabs(d_path): d_path = os.path.abspath(d_path)
                     if b_path and not os.path.isabs(b_path): b_path = os.path.abspath(b_path)
 
-                    if os.path.exists(d_path):
+                    img_to_use = d_path if (d_path and os.path.exists(d_path)) else b_path
+
+                    if img_to_use and os.path.exists(img_to_use):
                         target_cell = None
-                        gn_clean = game_name.lower().replace('(map)', '').strip()
+                        gn_clean = game_name.strip()
                         for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
-                            mg_clean = mapped_game.lower().replace('(map)', '').strip()
-                            if mg_clean == gn_clean:
+                            if mapped_game.lower() == gn_clean.lower() or mapped_game.lower().replace('(map)', '').strip() == gn_clean.lower().replace('(map)', '').strip():
                                 target_cell = cell_addr
                                 break
-                        if not target_cell:
-                            for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
-                                mg_clean = mapped_game.lower().replace('(map)', '').strip()
-                                if mg_clean in gn_clean or gn_clean in mg_clean:
-                                    target_cell = cell_addr
-                                    break
+
                         if target_cell:
                             try:
-                                # 1. Overlay Drawing onto Base Map if present
-                                if b_path and os.path.exists(b_path):
-                                    base_img = PILImage.open(b_path).convert("RGBA")
-                                    draw_img = PILImage.open(d_path).convert("RGBA")
-                                    draw_resized = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
-                                    final_img = PILImage.alpha_composite(base_img, draw_resized)
-                                    
-                                    temp_dir = os.path.join("static", "uploads", "temp_composites")
-                                    os.makedirs(temp_dir, exist_ok=True)
-                                    img_to_insert = os.path.abspath(os.path.join(temp_dir, f"excel_{os.path.basename(d_path)}"))
-                                    final_img.save(img_to_insert, "PNG")
-                                    created_temp_files.append(img_to_insert)
-                                else:
-                                    img_to_insert = d_path
+                                # Clear any legacy formula/text like #VALUE! from the top-left target cell
+                                ws[target_cell].value = None
 
-                                # Find merged range for target cell to compute exact cell box dimensions
                                 target_range = None
                                 for rng in ws.merged_cells.ranges:
                                     if rng.start_cell.coordinate == target_cell:
                                         target_range = rng
                                         break
-                                        
+
+
                                 # 1. Determine exact merged cell box dimensions dynamically for any box
                                 cell_w_px = 500
                                 cell_h_px = 200
@@ -223,12 +203,27 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
                                 avail_w = max(50, cell_w_px - 30)
                                 avail_h = max(30, cell_h_px - 24)  # Leave 12px padding top and bottom so borders remain clear
                                 
+                                # Overlay Drawing onto Base Map if both present
+                                if d_path and os.path.exists(d_path) and b_path and os.path.exists(b_path):
+                                    base_img = PILImage.open(b_path).convert("RGBA")
+                                    draw_img = PILImage.open(d_path).convert("RGBA")
+                                    draw_resized = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
+                                    final_img = PILImage.alpha_composite(base_img, draw_resized)
+                                    
+                                    temp_dir = os.path.join("static", "uploads", "temp_composites")
+                                    os.makedirs(temp_dir, exist_ok=True)
+                                    img_to_insert = os.path.abspath(os.path.join(temp_dir, f"excel_{os.path.basename(img_to_use)}"))
+                                    final_img.save(img_to_insert, "PNG")
+                                    created_temp_files.append(img_to_insert)
+                                else:
+                                    img_to_insert = img_to_use
+
                                 pil_img = PILImage.open(img_to_insert)
                                 pil_img.thumbnail((avail_w, avail_h), PILImage.Resampling.LANCZOS)
                                 
                                 temp_fit_dir = os.path.join("static", "uploads", "temp_composites")
                                 os.makedirs(temp_fit_dir, exist_ok=True)
-                                fit_path = os.path.abspath(os.path.join(temp_fit_dir, f"centered_{os.path.basename(d_path)}"))
+                                fit_path = os.path.abspath(os.path.join(temp_fit_dir, f"centered_{os.path.basename(img_to_use)}"))
                                 pil_img.save(fit_path, "PNG")
                                 created_temp_files.append(fit_path)
 
