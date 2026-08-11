@@ -121,8 +121,13 @@
             <h1 class="monitor-title" style="margin: 0; font-size: 20px;">
                 {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: #198754;">{{ game.name }}</span>
             </h1>
-            <a href="/games/{{ session.get('area_id') }}"
-                style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
+            {% if single_game_mode %}
+                <a href="/cancel_area" onclick="return confirm('{% if is_ar %}⚠️ هل أنت متأكد من إلغاء الفحص؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!{% endif %}');"
+                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
+            {% else %}
+                <a href="/games/{{ session.get('area_id') }}?cancel=1"
+                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
+            {% endif %}
         </div>
 
         <!-- Form -->
@@ -242,14 +247,20 @@
 
             <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar">
-                <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch" style="cursor: pointer;">
-                    💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
-                </button>
+                {% if single_game_mode %}
+                    <button type="submit" name="action" value="submit_report" class="btn-touch btn-primary-touch" style="flex: 1.5; font-size: 16px; cursor: pointer;">
+                        📝 {% if is_ar %}إرسال التقرير النهائي{% else %}Submit Final Report{% endif %}
+                    </button>
+                {% else %}
+                    <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch" style="cursor: pointer;">
+                        💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
+                    </button>
 
-                {% if next_game_id %}
-                <button type="submit" name="action" value="next" class="btn-touch btn-success-touch" style="cursor: pointer;">
-                    {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
-                </button>
+                    {% if next_game_id %}
+                    <button type="submit" name="action" value="next" class="btn-touch btn-success-touch" style="cursor: pointer;">
+                        {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
+                    </button>
+                    {% endif %}
                 {% endif %}
             </div>
 

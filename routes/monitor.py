@@ -90,7 +90,12 @@ def show_games(area_id):
     games = GameModel.query.filter_by(area_id=area.id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
     completed = session.get('completed_games', [])
     all_completed = len(games) > 0 and all(str(g.id) in completed for g in games)
+    cancel_flag = request.args.get('cancel')
     
+    # تحسين تجربة المستخدم: لو المنطقة فيها لعبة واحدة بس ولسه ماتفحصتش، ندخله عليها دايركت
+    if len(games) == 1 and not all_completed and not cancel_flag:
+        return redirect(url_for('monitor.check_game', game_id=games[0].id))
+        
     return render_template('games.html', area_name=area.name, games=games, monitor_name=session['monitor_name'], completed_games=completed, all_completed=all_completed)
 
 # ------------------------------------------------------------------------------
@@ -142,8 +147,12 @@ def check_game(game_id):
     if not game: return "هذه اللعبة غير موجودة في النظام!"
     game_checks = json.loads(game.checks) if game.checks else []
     # تحديد اللعبة التالية في الترتيب التلقائي
-    next_game_id = _get_next_game_id(session.get('area_id'), game_id)
+    area_id = session.get('area_id')
+    next_game_id = _get_next_game_id(area_id, game_id)
     saved_data = session.get('game_data', {}).get(game_id, {})
+    
+    area_games_count = GameModel.query.filter_by(area_id=area_id).count() if area_id else 0
+    single_game_mode = (area_games_count == 1)
         
     if request.method == 'POST':
         if 'completed_games' not in session: session['completed_games'] = []
@@ -161,10 +170,14 @@ def check_game(game_id):
         session.modified = True
         
         user_action = request.form.get('action')
-        if user_action == 'next' and next_game_id: return redirect(url_for('monitor.check_game', game_id=next_game_id))
-        else: return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
+        if user_action == 'submit_report':
+            return redirect(url_for('monitor.submit_report'))
+        elif user_action == 'next' and next_game_id: 
+            return redirect(url_for('monitor.check_game', game_id=next_game_id))
+        else: 
+            return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
 
-    return render_template('form.html', game=game, checks=game_checks, next_game_id=next_game_id, saved_data=saved_data, game_id=game_id)
+    return render_template('form.html', game=game, checks=game_checks, next_game_id=next_game_id, saved_data=saved_data, game_id=game_id, single_game_mode=single_game_mode)
 
 # ------------------------------------------------------------------------------
 # 4. رفع صور التلفيات عبر AJAX (POST) مع ضغط الحجم التلقائي
@@ -218,9 +231,9 @@ def delete_photo():
     return {"status": "error"}, 400
 
 # ------------------------------------------------------------------------------
-# 6. إرسال تقرير المنطقة النهائي وحفظه نهائياً في قاعدة البيانات (POST)
+# 6. إرسال تقرير المنطقة النهائي وحفظه نهائياً في قاعدة البيانات (GET & POST)
 # ------------------------------------------------------------------------------
-@monitor_bp.route('/submit_report', methods=['POST'])
+@monitor_bp.route('/submit_report', methods=['GET', 'POST'])
 def submit_report():
     if 'monitor_name' not in session or 'area_id' not in session: return redirect(url_for('monitor.home'))
     monitor_name, area_id = session['monitor_name'], session['area_id']

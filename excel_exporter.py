@@ -1,4 +1,5 @@
 import os
+import re
 import openpyxl
 from openpyxl.drawing.image import Image as OpenPyxlImage
 from openpyxl.utils import get_column_letter, column_index_from_string
@@ -8,7 +9,7 @@ from PIL import Image as PILImage, ImageOps
 EXCEL_TEMPLATES = {
     'park': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Park.xlsx'),
     'kids': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Kids.xlsx'),
-    'kickerz': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Kickerz.xlsx'),
+    'kickstrez': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Kickerz.xlsx'),
     'bowling': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Bowling.xlsx')
 }
 
@@ -50,9 +51,7 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
     wb = openpyxl.load_workbook(template_path)
     ws = wb.active
 
-    # 1. Fill Header (B5: Name, H5: Date)
-    ws['B5'] = f"Name: {monitor_name}"
-    ws['H5'] = f"Date: {date_str}"
+    # Header (Name and Date) will be filled dynamically during the tag scan
 
     # 2. Map questions rows per Section in Column B
     # Each section (e.g. F.O, Lounge, Airtrack...) maps its own question text -> row number
@@ -61,7 +60,7 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
     section_map[current_sec] = {}
     section_title_rows = set()
     
-    for r in range(6, ws.max_row + 1):
+    for r in range(1, ws.max_row + 1):
         col_g = str(ws.cell(row=r, column=7).value or '').strip()
         col_h = str(ws.cell(row=r, column=8).value or '').strip()
         cell_val = ws.cell(row=r, column=2).value
@@ -107,6 +106,11 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
                     game_tag = val[6:-1].strip().lower()
                     dynamic_note_cells[game_tag] = cell.coordinate
                     cell.value = '' # Clear the tag
+                    
+                elif '[name]' in val.lower() or '[date]' in val.lower():
+                    new_val = re.sub(r'\[name\]', monitor_name, val, flags=re.IGNORECASE)
+                    new_val = re.sub(r'\[date\]', date_str, new_val, flags=re.IGNORECASE)
+                    cell.value = new_val
                     
     # 3. Fill Checkmarks (Col G: OK, Col H: NOK) per exact section
     for game_name, game_checks in checks_dict.items():
