@@ -129,49 +129,7 @@
         <form action="/check/{{ game_id }}" method="POST" id="checkForm" enctype="multipart/form-data"
             data-map-mandatory="{{ 'true' if game.map_mandatory else 'false' }}">
 
-            <!-- 1. Check Items -->
-            {% if checks %}
-            <div class="section-header">📋 {% if is_ar %}عناصر الفحص{% else %}Check Items{% endif %}</div>
-            {% for check in checks %}
-            <div class="question-card">
-                <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1e293b;">
-                    {{ check.name }} {% if check.is_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}
-                </div>
-                <!-- Pills Options -->
-                <div class="pill-options">
-                    <!-- Option: OK -->
-                    <div class="pill-option">
-                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="OK" {%
-                            if saved_data.get('check_' ~ loop.index)=='OK' or saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if
-                            check.is_mandatory %}required{% endif %}>
-                        <label for="check_{{ loop.index }}_ok" class="pill-label">
-                            OK
-                        </label>
-                    </div>
-                    <!-- Option: NOK -->
-                    <div class="pill-option">
-                        <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}"
-                            value="NOK" {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة'
-                            %}checked{% endif %}>
-                        <label for="check_{{ loop.index }}_bad" class="pill-label">
-                            NOK
-                        </label>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-            {% endif %}
-
-            <!-- 2. Notes / Description Section -->
-            {% if game.allow_notes is not defined or game.allow_notes %}
-            <div class="section-header">📝 {% if is_ar %}ملاحظات إضافية / الوصف{% else %}Additional Notes / Description{% endif %} {% if game.notes_mandatory %}<span
-                    style="color: #dc3545;">*</span>{% endif %}</div>
-            <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
-                placeholder="{% if is_ar %}اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا...{% else %}Write any additional notes or details about the game condition...{% endif %}" {% if game.notes_mandatory %}required{%
-                endif %}>{{ saved_data.get('notes', '') }}</textarea>
-            {% endif %}
-
-            <!-- 3. Interactive Map Drawing Section -->
+            <!-- 1. Interactive Map Drawing Section -->
             {% if game.has_map %}
             <div class="section-header">🗺️ {% if is_ar %}تحديد المشكلة على الخريطة{% else %}Mark Issue on Map{% endif %} {% if game.map_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
@@ -225,6 +183,48 @@
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="">
             {% endif %}
 
+            {% endif %}
+
+            <!-- 2. Notes / Description Section -->
+            {% if game.allow_notes is not defined or game.allow_notes %}
+            <div class="section-header">📝 {% if is_ar %}ملاحظات إضافية / الوصف{% else %}Additional Notes / Description{% endif %} {% if game.notes_mandatory %}<span
+                    style="color: #dc3545;">*</span>{% endif %}</div>
+            <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
+                placeholder="{% if is_ar %}اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا...{% else %}Write any additional notes or details about the game condition...{% endif %}" {% if game.notes_mandatory %}required{%
+                endif %}>{{ saved_data.get('notes', '') }}</textarea>
+            {% endif %}
+
+            <!-- 3. Check Items -->
+            {% if checks %}
+            <div class="section-header">📋 {% if is_ar %}عناصر الفحص{% else %}Check Items{% endif %}</div>
+            {% for check in checks %}
+            <div class="question-card">
+                <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1e293b;">
+                    {{ check.name }} {% if check.is_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}
+                </div>
+                <!-- Pills Options -->
+                <div class="pill-options">
+                    <!-- Option: OK -->
+                    <div class="pill-option">
+                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="OK" {%
+                            if saved_data.get('check_' ~ loop.index)=='OK' or saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if
+                            check.is_mandatory %}required{% endif %}>
+                        <label for="check_{{ loop.index }}_ok" class="pill-label">
+                            OK
+                        </label>
+                    </div>
+                    <!-- Option: NOK -->
+                    <div class="pill-option">
+                        <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}"
+                            value="NOK" {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة'
+                            %}checked{% endif %}>
+                        <label for="check_{{ loop.index }}_bad" class="pill-label">
+                            NOK
+                        </label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
             {% endif %}
 
             <!-- 4. Photos Section -->
