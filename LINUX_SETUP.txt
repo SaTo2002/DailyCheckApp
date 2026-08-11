@@ -1,0 +1,32 @@
+# ==============================================================================
+# Linux Setup & Auto-Start Guide for DailyCheckApp
+# ==============================================================================
+
+1. Grant Execution Permission (Run Once in Terminal):
+   chmod +x run_app.sh
+
+2. Manual Run:
+   ./run_app.sh
+
+------------------------------------------------------------------------------
+3. Configure Auto-Start on System Boot:
+------------------------------------------------------------------------------
+
+Method 1 (Recommended - via Crontab):
+--------------------------------------
+1. Open Terminal and run:
+   crontab -e
+
+2. Add the following line at the end of the file (replace with your actual project path):
+   @reboot /path/to/DailyCheckApp/run_app.sh > /dev/null 2>&1 &
+
+3. Save and exit. The app will now start automatically whenever Linux boots up!
+
+
+Method 2 (Desktop GUI - Ubuntu / Debian / Linux Mint):
+------------------------------------------------------
+1. Open Application Menu and search for: Startup Applications
+2. Click 'Add'.
+3. Name: DailyCheckApp
+4. Command: Click 'Browse' and select your run_app.sh file.
+5. Click 'Save'.

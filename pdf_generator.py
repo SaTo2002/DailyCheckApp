@@ -108,8 +108,15 @@ def generate_report_excel_and_pdf(session_id):
         print(f"✅ Excel to PDF conversion successful: {pdf_path}")
     except Exception as pdf_err:
         print(f"⚠️ Warning: Could not convert Excel to PDF via COM: {pdf_err}")
-        
-    return xlsx_path, pdf_path
+    finally:
+        # Clean up temporary Excel file from disk immediately (Keep PDFs only)
+        if os.path.exists(xlsx_path):
+            try:
+                os.remove(xlsx_path)
+            except Exception as e:
+                print(f"Error removing temp excel file: {e}")
+
+    return None, pdf_path
 
 def json_loads(data):
     import json
