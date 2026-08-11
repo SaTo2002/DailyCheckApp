@@ -1,11 +1,16 @@
 import os
+import json
+import shutil
+import tempfile
+import subprocess
 import openpyxl
 
 def generate_report_excel_and_pdf(session_id):
     """
-    يقوم بتصدير تقرير الـ Excel من القوالب المحلية الرسمية في Exsl/،
-    ثم يحوله فوراً إلى ملف PDF رسمي بنفس الشكل في مجلد pdfs/YYYY/MM/.
-    يرجع مسار ملف الـ XLSX ومسار ملف الـ PDF.
+    يقوم بتصدير تقرير الـ Excel في مجلد مؤقت،
+    ثم يحوله فوراً إلى ملف PDF في مجلد pdfs/YYYY/MM/Area/
+    ويمسح ملف الـ Excel المؤقت فور الانتهاء.
+    يرجع (None, pdf_path).
     """
     from models import GameReport, GameModel
     
@@ -65,8 +70,7 @@ def generate_report_excel_and_pdf(session_id):
     file_basename = f"{ddmmyy_date}_{branch_code}_{session_id[:6]}"
     pdf_path = os.path.abspath(os.path.join(pdf_dir, f"{file_basename}.pdf"))
 
-    # مجلد مؤقت للـ xlsx فقط — يُمسح تلقائياً بعد التحويل (لا يُحفظ على الديسك نهائياً)
-    import tempfile
+    # مجلد مؤقت للـ xlsx فقط — يُمسح تلقائياً بعد التحويل
     temp_dir = tempfile.mkdtemp()
     xlsx_path = os.path.abspath(os.path.join(temp_dir, f"{file_basename}.xlsx"))
 
@@ -117,8 +121,7 @@ def generate_report_excel_and_pdf(session_id):
     # --- الطريقة الثانية: Linux / Mac عبر LibreOffice headless ---
     if not pdf_generated:
         try:
-            import subprocess
-            pdf_dir = os.path.dirname(pdf_path)
+            pdf_dir_lo = os.path.dirname(pdf_path)
             result = subprocess.run(
                 [
                     'libreoffice', '--headless', '--convert-to', 'pdf',
@@ -130,7 +133,7 @@ def generate_report_excel_and_pdf(session_id):
             )
             # LibreOffice saves as <filename>.pdf in the same outdir
             generated_name = os.path.splitext(os.path.basename(xlsx_path))[0] + '.pdf'
-            generated_path = os.path.join(pdf_dir, generated_name)
+            generated_path = os.path.join(pdf_dir_lo, generated_name)
 
             # Rename to match expected pdf_path if different
             if os.path.exists(generated_path) and generated_path != pdf_path:
@@ -150,17 +153,13 @@ def generate_report_excel_and_pdf(session_id):
         print("❌ PDF generation failed on both Windows (COM) and Linux (LibreOffice).")
 
     # تنظيف المجلد المؤقت بالكامل (يشمل الـ xlsx وأي ملفات مؤقتة أخرى)
-    try:
-        import shutil
-        shutil.rmtree(temp_dir, ignore_errors=True)
-    except Exception as e:
-        print(f"Error removing temp directory: {e}")
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
     return None, pdf_path
 
+
 def json_loads(data):
-    import json
     try:
         return json.loads(data)
     except Exception:
