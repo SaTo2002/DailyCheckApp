@@ -12,33 +12,7 @@ EXCEL_TEMPLATES = {
     'bowling': os.path.join(os.path.dirname(__file__), 'Exsl', 'DailyCheck_Bowling.xlsx')
 }
 
-GAME_COMMENT_CELLS = {
-    'Free Jump': 'G92',
-    'Airtrack': 'B102',
-    'Performance(map)': 'G113',
-    'Dodgeball(map)': 'G122',
-    'Airbag(map)': 'G133',
-    'Ninja Course': 'B143',
-    'Laser Room': 'B154',
-    'Matrix': 'G165',
-    'Preparation Area': 'B176',
-    'Lounge': 'B187',
-    'F.O': 'B198',
-    'Health & Safety': 'B84'
-}
-
-# Each entry: 'Game Name': ('top_left_cell', 'bottom_right_cell') — matches merged cell range in template
-GAME_MAP_IMAGE_CELLS = {
-    'Free Jump':       ('B92',  'F100'),
-    'Performance(map)':('B113', 'F120'),
-    'Performance':     ('B113', 'F120'),
-    'Dodgeball(map)':  ('B122', 'F132'),
-    'Dodgeball':       ('B122', 'F132'),
-    'Airbag(map)':     ('B134', 'F141'),
-    'Airbag':          ('B134', 'F141'),
-    'Matrix(map)':     ('B165', 'F174'),
-    'Matrix':          ('B165', 'F174'),
-}
+# Hardcoded dictionaries removed. Using dynamic tags.
 
 def _cell_area_px(ws, fc, fr, tc, tr):
     """
@@ -87,7 +61,7 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
     section_map[current_sec] = {}
     section_title_rows = set()
     
-    for r in range(6, 90):
+    for r in range(6, ws.max_row + 1):
         col_g = str(ws.cell(row=r, column=7).value or '').strip()
         col_h = str(ws.cell(row=r, column=8).value or '').strip()
         cell_val = ws.cell(row=r, column=2).value
@@ -100,6 +74,40 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
             clean_txt = ' '.join(str(cell_val).strip().split()).lower()
             section_map[current_sec][clean_txt] = r
 
+
+    # 2.5 Scan sheet for Tags ([MAP:*] and [NOTE:*])
+    dynamic_map_cells = {}
+    dynamic_note_cells = {}
+    
+    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+        for cell in row:
+            if cell.value and isinstance(cell.value, str):
+                val = cell.value.strip()
+                if val.startswith('[MAP:') and val.endswith(']'):
+                    game_tag = val[5:-1].strip().lower()
+                    
+                    merged_range = None
+                    for merged in ws.merged_cells.ranges:
+                        if cell.coordinate in merged:
+                            merged_range = merged
+                            break
+                    
+                    if merged_range:
+                        fc = get_column_letter(merged_range.min_col)
+                        fr = merged_range.min_row
+                        tc = get_column_letter(merged_range.max_col)
+                        tr = merged_range.max_row
+                        dynamic_map_cells[game_tag] = (f'{fc}{fr}', f'{tc}{tr}')
+                    else:
+                        dynamic_map_cells[game_tag] = (cell.coordinate, cell.coordinate)
+                    
+                    cell.value = '' # Clear the tag
+                    
+                elif val.startswith('[NOTE:') and val.endswith(']'):
+                    game_tag = val[6:-1].strip().lower()
+                    dynamic_note_cells[game_tag] = cell.coordinate
+                    cell.value = '' # Clear the tag
+                    
     # 3. Fill Checkmarks (Col G: OK, Col H: NOK) per exact section
     for game_name, game_checks in checks_dict.items():
         gn_clean = ' '.join(game_name.strip().split()).lower()
@@ -134,15 +142,11 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
         if note_text and note_text.strip():
             target_cell = None
             gn_clean = ' '.join(game_name.strip().split()).lower()
-            for mapped_game, cell_addr in GAME_COMMENT_CELLS.items():
-                mg_clean = ' '.join(mapped_game.strip().split()).lower()
-                if mg_clean == gn_clean:
-                    target_cell = cell_addr
-                    break
-            if not target_cell:
-                for mapped_game, cell_addr in GAME_COMMENT_CELLS.items():
-                    mg_clean = ' '.join(mapped_game.strip().split()).lower()
-                    if mg_clean in gn_clean or gn_clean in mg_clean:
+            if gn_clean in dynamic_note_cells:
+                target_cell = dynamic_note_cells[gn_clean]
+            else:
+                for tag_game, cell_addr in dynamic_note_cells.items():
+                    if tag_game in gn_clean or gn_clean in tag_game:
                         target_cell = cell_addr
                         break
             if target_cell:
@@ -189,13 +193,15 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
 
                     if img_to_use and os.path.exists(img_to_use):
                         cell_range = None
-                        gn_clean   = game_name.strip()
-                        for mapped_game, cell_tuple in GAME_MAP_IMAGE_CELLS.items():
-                            if (mapped_game.lower() == gn_clean.lower() or
-                                    mapped_game.lower().replace('(map)', '').strip() ==
-                                    gn_clean.lower().replace('(map)', '').strip()):
-                                cell_range = cell_tuple   # ('B92', 'F100')
-                                break
+                        gn_clean = game_name.strip().lower().replace('(map)', '').strip()
+                        
+                        if gn_clean in dynamic_map_cells:
+                            cell_range = dynamic_map_cells[gn_clean]
+                        else:
+                            for tag_game, cell_tuple in dynamic_map_cells.items():
+                                if tag_game in gn_clean or gn_clean in tag_game:
+                                    cell_range = cell_tuple
+                                    break
 
                         if cell_range:
                             try:

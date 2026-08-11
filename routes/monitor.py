@@ -96,22 +96,53 @@ def show_games(area_id):
 # ------------------------------------------------------------------------------
 # 3. صفحة فحص لعبة معينة (نموذج الأسئلة والخريطة والصور) (GET & POST)
 # ------------------------------------------------------------------------------
+
+def _get_next_game_id(area_id, current_game_id):
+    if not area_id: return None
+    area_games = GameModel.query.filter_by(area_id=area_id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
+    game_ids = [str(g.id) for g in area_games]
+    if current_game_id in game_ids:
+        current_index = game_ids.index(current_game_id)
+        if current_index + 1 < len(game_ids):
+            return game_ids[current_index + 1]
+    return None
+
+def _process_map_drawing(map_drawing_data, game, old_map_path):
+    if map_drawing_data == '': 
+        return game.map_image if game and game.map_image else ''
+        
+    if map_drawing_data.startswith('data:image'):
+        if old_map_path and old_map_path.startswith('/static/uploads/drawings/'):
+            old_file_on_disk = old_map_path.lstrip('/')
+            if os.path.exists(old_file_on_disk):
+                try: os.remove(old_file_on_disk)
+                except Exception: pass
+
+        _, encoded = map_drawing_data.split(',', 1)
+        filename = f"map_{game.id}_{uuid.uuid4().hex}.png"
+        drawings_dir = os.path.join(UPLOAD_FOLDER, 'drawings')
+        os.makedirs(drawings_dir, exist_ok=True)
+        filepath = os.path.join(drawings_dir, filename)
+        img_bytes = base64.b64decode(encoded)
+        
+        try:
+            from PIL import Image
+            import io
+            image = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
+            image.save(filepath, "PNG", optimize=True)
+        except Exception:
+            with open(filepath, "wb") as fh: fh.write(img_bytes)
+            
+        return f"/{filepath}".replace("\\", "/") 
+        
+    return old_map_path if old_map_path else (game.map_image if game and game.map_image else '')
 @monitor_bp.route('/check/<game_id>', methods=['GET', 'POST'])
 def check_game(game_id):
     game = GameModel.query.get(game_id)
     if not game: return "هذه اللعبة غير موجودة في النظام!"
     game_checks = json.loads(game.checks) if game.checks else []
-    next_game_id = None
-    area_id = session.get('area_id')
-    
     # تحديد اللعبة التالية في الترتيب التلقائي
-    if area_id:
-        area_games = GameModel.query.filter_by(area_id=area_id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
-        game_ids = [str(g.id) for g in area_games]
-        if game_id in game_ids:
-            current_index = game_ids.index(game_id)
-            if current_index + 1 < len(game_ids): next_game_id = game_ids[current_index + 1]
-
+    next_game_id = _get_next_game_id(session.get('area_id'), game_id)
     saved_data = session.get('game_data', {}).get(game_id, {})
         
     if request.method == 'POST':
@@ -119,49 +150,12 @@ def check_game(game_id):
         if game_id not in session['completed_games']: session['completed_games'].append(game_id)
         if 'game_data' not in session: session['game_data'] = {}
             
-        current_answers = {}
-        for i in range(1, len(game_checks) + 1):
-            check_name = f'check_{i}'
-            current_answers[check_name] = request.form.get(check_name)
+        current_answers = {f'check_{i}': request.form.get(f'check_{i}') for i in range(1, len(game_checks) + 1)}
         current_answers['notes'] = request.form.get('notes', '')
         current_answers['photos'] = session.get('game_data', {}).get(game_id, {}).get('photos', [])
-
-        # حفظ الرسم على الخريطة الموقعية بصيغة base64 إلى ملف صورة
-        map_drawing_data = request.form.get('map_drawing', '')
+        
         old_map_path = session.get('game_data', {}).get(game_id, {}).get('map_drawing', '')
-
-        if map_drawing_data == '': 
-            # لو المونيتور ما رسمش حاجة، نحفظ صورة الماب الأصلية النظيفة تلقائياً إن وجدت
-            current_answers['map_drawing'] = game.map_image if game and game.map_image else ''
-        elif map_drawing_data.startswith('data:image'):
-            # مسح رسمة الخريطة القديمة لنفس اللعبة في السيشن إن وجدت لمنع تكرار الصور
-            if old_map_path and old_map_path.startswith('/static/uploads/drawings/'):
-                old_file_on_disk = old_map_path.lstrip('/')
-                if os.path.exists(old_file_on_disk):
-                    try: os.remove(old_file_on_disk)
-                    except Exception: pass
-
-            _, encoded = map_drawing_data.split(',', 1)
-            filename = f"map_{game_id}_{uuid.uuid4().hex}.png"
-            drawings_dir = os.path.join(UPLOAD_FOLDER, 'drawings')
-            os.makedirs(drawings_dir, exist_ok=True)
-            filepath = os.path.join(drawings_dir, filename)
-            img_bytes = base64.b64decode(encoded)
-            
-            # Compress drawing image using PIL to save disk space (~100KB)
-            try:
-                from PIL import Image
-                import io
-                image = Image.open(io.BytesIO(img_bytes)).convert("RGBA")
-                image.save(filepath, "PNG", optimize=True)
-            except Exception:
-                with open(filepath, "wb") as fh: fh.write(img_bytes)
-                
-            current_answers['map_drawing'] = f"/{filepath}".replace("\\", "/") 
-        else: 
-            current_answers['map_drawing'] = old_map_path if old_map_path else (game.map_image if game and game.map_image else '')
-
-
+        current_answers['map_drawing'] = _process_map_drawing(request.form.get('map_drawing', ''), game, old_map_path)
 
         session['game_data'][game_id] = current_answers
         session.modified = True

@@ -25,13 +25,18 @@ if not secret_key:
 app.secret_key = secret_key
 
 
+import urllib.parse
+
 # إعدادات الاتصال بقاعدة بيانات MySQL
 DB_USER = os.getenv('DB_USER')
 DB_PASSWORD = os.getenv('DB_PASSWORD')
 DB_HOST = os.getenv('DB_HOST')
 DB_NAME = os.getenv('DB_NAME')
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}"
+# تشفير الباسورد عشان لو فيه علامات خاصة زي @ أو : ميضربش إيرور
+encoded_password = urllib.parse.quote_plus(DB_PASSWORD) if DB_PASSWORD else ""
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{encoded_password}@{DB_HOST}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Max payload upload limit (512 Megabytes to allow high-res canvas Base64 data)
 app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024

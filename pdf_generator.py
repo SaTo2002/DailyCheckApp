@@ -130,36 +130,46 @@ def generate_report_excel_and_pdf(session_id):
         except Exception as win_err:
             print(f"[Windows] win32com failed: {win_err}")
 
-    # --- الطريقة الثانية: Linux / Mac عبر LibreOffice headless ---
+    # --- الطريقة الثانية: LibreOffice headless (Windows & Linux fallback) ---
     if not pdf_generated:
         try:
+            libreoffice_cmd = 'libreoffice'
+            if os.name == 'nt':
+                lo_path_1 = r"C:\Program Files\LibreOffice\program\soffice.exe"
+                lo_path_2 = r"C:\Program Files (x86)\LibreOffice\program\soffice.exe"
+                if os.path.exists(lo_path_1):
+                    libreoffice_cmd = lo_path_1
+                elif os.path.exists(lo_path_2):
+                    libreoffice_cmd = lo_path_2
+                else:
+                    libreoffice_cmd = 'soffice'
+
             pdf_dir_lo = os.path.dirname(pdf_path)
             result = subprocess.run(
                 [
-                    'libreoffice', '--headless', '--convert-to', 'pdf',
+                    libreoffice_cmd, '--headless', '--convert-to', 'pdf',
                     '--outdir', pdf_dir_lo, xlsx_path
                 ],
                 timeout=60,
                 capture_output=True,
                 text=True
             )
-            # LibreOffice saves as <filename>.pdf in the same outdir
+            
             generated_name = os.path.splitext(os.path.basename(xlsx_path))[0] + '.pdf'
             generated_path = os.path.join(pdf_dir_lo, generated_name)
 
-            # Rename to match expected pdf_path if different
             if os.path.exists(generated_path) and generated_path != pdf_path:
                 os.rename(generated_path, pdf_path)
 
             if os.path.exists(pdf_path):
                 pdf_generated = True
-                print(f"[Linux] Excel -> PDF via LibreOffice success: {pdf_path}")
+                print(f"[Fallback] Excel -> PDF via LibreOffice success: {pdf_path}")
             else:
-                print(f"[Linux] LibreOffice ran but PDF not found. stdout: {result.stdout} stderr: {result.stderr}")
+                print(f"[Fallback] LibreOffice ran but PDF not found. stdout: {result.stdout} stderr: {result.stderr}")
         except FileNotFoundError:
-            print("[Linux] LibreOffice not installed. Install it with: sudo apt install libreoffice")
+            print("[Fallback] LibreOffice not found. Windows: Install LibreOffice. Linux: sudo apt install libreoffice")
         except Exception as lo_err:
-            print(f"[Linux] LibreOffice conversion failed: {lo_err}")
+            print(f"[Fallback] LibreOffice error: {lo_err}")
 
     if pdf_generated and os.path.exists(pdf_path):
         try:
