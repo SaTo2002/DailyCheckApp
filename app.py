@@ -35,6 +35,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # Max payload upload limit (512 Megabytes to allow high-res canvas Base64 data)
 app.config['MAX_CONTENT_LENGTH'] = 512 * 1024 * 1024
+# Max form memory size (50 Megabytes to allow large base64 strings in hidden inputs without 413 error)
+app.config['MAX_FORM_MEMORY_SIZE'] = 50 * 1024 * 1024
 
 # 3. ربط قاعدة البيانات بتطبيق فلاسك
 db.init_app(app)

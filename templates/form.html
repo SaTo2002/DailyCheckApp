@@ -363,21 +363,9 @@
             isDrawing = false;
             ctx.beginPath();
             
-            // Create a scaled down lightweight compressed image of the drawing + map
-            try {
-                const tempCanvas = document.createElement('canvas');
-                const targetW = Math.min(600, canvas.width);
-                const targetH = Math.round(canvas.height * (targetW / canvas.width));
-                tempCanvas.width = targetW;
-                tempCanvas.height = targetH;
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                // Draw full composite onto scaled canvas
-                tempCtx.drawImage(canvas, 0, 0, targetW, targetH);
-                mapInput.value = tempCanvas.toDataURL('image/jpeg', 0.6);
-            } catch (err) {
-                mapInput.value = canvas.toDataURL('image/jpeg', 0.6);
-            }
+            // Export as JPEG with 70% quality to significantly reduce base64 size and prevent 413 error
+            mapInput.value = canvas.toDataURL('image/jpeg', 0.7);
+
 
             if (drawingBadge) drawingBadge.style.display = 'inline';
             saveStateToHistory(); // حفظ الحالة بعد الانتهاء من الرسم
@@ -417,7 +405,7 @@
                 drawingHistory.pop(); // حظر الحالة الحالية
                 const previousState = drawingHistory[drawingHistory.length - 1];
                 ctx.putImageData(previousState, 0, 0);
-                mapInput.value = canvas.toDataURL('image/png');
+                mapInput.value = canvas.toDataURL('image/jpeg', 0.7);
                 if (drawingBadge) drawingBadge.style.display = 'inline';
             } else {
                 clearCanvas();

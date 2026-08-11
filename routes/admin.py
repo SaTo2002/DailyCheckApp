@@ -289,7 +289,12 @@ def delete_report(session_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
     for r in GameReport.query.filter_by(session_id=session_id).all():
         if r.map_image_path and os.path.exists(r.map_image_path.lstrip('/')):
-            os.remove(r.map_image_path.lstrip('/'))
+            filename = os.path.basename(r.map_image_path)
+            # Protect base maps and cover images (either by filename prefix or by folder path)
+            if not filename.startswith('base_map_') and not filename.startswith('area_cover_') and '/maps/' not in r.map_image_path:
+                try: os.remove(r.map_image_path.lstrip('/'))
+                except Exception: pass
+
         if r.photos_paths:
             try:
                 for p in json.loads(r.photos_paths):

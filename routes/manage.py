@@ -45,9 +45,12 @@ def add_area():
         if file and file.filename != '':
             ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
             filename = f"area_cover_{uuid.uuid4().hex}.{ext}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            covers_dir = os.path.join(UPLOAD_FOLDER, 'covers')
+            os.makedirs(covers_dir, exist_ok=True)
+            filepath = os.path.join(covers_dir, filename)
             file.save(filepath)
             image_path = f"/{filepath}".replace("\\", "/")
+
 
     if name:
         max_order = db.session.query(db.func.max(Area.sort_order)).scalar() or 0
@@ -98,9 +101,12 @@ def edit_area(area_id):
                 
                 ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
                 filename = f"area_cover_{uuid.uuid4().hex}.{ext}"
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                covers_dir = os.path.join(UPLOAD_FOLDER, 'covers')
+                os.makedirs(covers_dir, exist_ok=True)
+                filepath = os.path.join(covers_dir, filename)
                 file.save(filepath)
                 area.image = f"/{filepath}".replace("\\", "/")
+
                 
         db.session.commit()
         return redirect(url_for('manage.manage_system'))
@@ -164,7 +170,9 @@ def add_game_to_area(area_id):
         if file and file.filename != '':
             ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
             filename = f"base_map_area{area_id}_{uuid.uuid4().hex}.{ext}"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            maps_dir = os.path.join(UPLOAD_FOLDER, 'maps')
+            os.makedirs(maps_dir, exist_ok=True)
+            filepath = os.path.join(maps_dir, filename)
             file.save(filepath)
             map_image_path = f"/{filepath}".replace("\\", "/")
 
@@ -221,10 +229,13 @@ def edit_game(game_id):
                 
                 ext = file.filename.split('.')[-1].lower() if '.' in file.filename else 'png'
                 filename = f"base_map_game{game.id}_{uuid.uuid4().hex}.{ext}"
-                filepath = os.path.join(UPLOAD_FOLDER, filename)
+                maps_dir = os.path.join(UPLOAD_FOLDER, 'maps')
+                os.makedirs(maps_dir, exist_ok=True)
+                filepath = os.path.join(maps_dir, filename)
                 file.save(filepath)
                 
                 game.map_image = f"/{filepath}".replace("\\", "/")
+
 
         db.session.commit()
         return redirect(url_for('manage.area_games', area_id=game.area_id))

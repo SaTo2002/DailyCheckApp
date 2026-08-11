@@ -1,7 +1,8 @@
 import os
 import openpyxl
 from openpyxl.drawing.image import Image as OpenPyxlImage
-from PIL import Image as PILImage
+from openpyxl.utils import get_column_letter, column_index_from_string
+from PIL import Image as PILImage, ImageOps
 
 # Exact template paths for each area/branch
 EXCEL_TEMPLATES = {
@@ -26,17 +27,34 @@ GAME_COMMENT_CELLS = {
     'Health & Safety': 'B84'
 }
 
+# Each entry: 'Game Name': ('top_left_cell', 'bottom_right_cell') — matches merged cell range in template
 GAME_MAP_IMAGE_CELLS = {
-    'Free Jump': 'B92',
-    'Performance(map)': 'B113',
-    'Performance': 'B113',
-    'Dodgeball(map)': 'B122',
-    'Dodgeball': 'B122',
-    'Airbag(map)': 'B134',
-    'Airbag': 'B134',
-    'Matrix(map)': 'B165',
-    'Matrix': 'B165'
+    'Free Jump':       ('B92',  'F100'),
+    'Performance(map)':('B113', 'F120'),
+    'Performance':     ('B113', 'F120'),
+    'Dodgeball(map)':  ('B122', 'F132'),
+    'Dodgeball':       ('B122', 'F132'),
+    'Airbag(map)':     ('B134', 'F141'),
+    'Airbag':          ('B134', 'F141'),
+    'Matrix(map)':     ('B165', 'F174'),
+    'Matrix':          ('B165', 'F174'),
 }
+
+def _cell_area_px(ws, fc, fr, tc, tr):
+    """
+    Calculate the pixel dimensions of a merged cell area (fc:fr → tc:tr, 1-indexed).
+    Column width (chars) → px  : (width * 7 + 5)
+    Row height   (pts)   → px  : height * 96 / 72
+    """
+    w = sum(
+        int((ws.column_dimensions[get_column_letter(c)].width or 8) * 7 + 5)
+        for c in range(fc, tc + 1)
+    )
+    h = sum(
+        int((ws.row_dimensions[r].height or 15) * 96 / 72)
+        for r in range(fr, tr + 1)
+    )
+    return max(w, 1), max(h, 1)
 
 def export_report_to_excel(report_session_id, monitor_name, area_name, checks_dict, game_notes_dict, game_maps_dict, date_str, output_xlsx_path, orientation='portrait'):
     """
@@ -154,104 +172,90 @@ def export_report_to_excel(report_session_id, monitor_name, area_name, checks_di
 
     created_temp_files = []
     try:
-        # 5. Insert Map Images directly inside cells (In-Cell Anchoring)
+        # 5. Insert Map Images stretched to fill merged cells exactly (TwoCellAnchor)
         if game_maps_dict:
             for game_name, map_info in game_maps_dict.items():
                 drawing_path = map_info.get('drawing', '') if isinstance(map_info, dict) else map_info
-                base_path = map_info.get('base', '') if isinstance(map_info, dict) else ''
-                
+                base_path    = map_info.get('base',    '') if isinstance(map_info, dict) else ''
+
                 if drawing_path or base_path:
                     d_path = drawing_path.lstrip('/') if drawing_path else ''
-                    b_path = base_path.lstrip('/') if base_path else ''
-                    
+                    b_path = base_path.lstrip('/')    if base_path    else ''
+
                     if d_path and not os.path.isabs(d_path): d_path = os.path.abspath(d_path)
                     if b_path and not os.path.isabs(b_path): b_path = os.path.abspath(b_path)
 
                     img_to_use = d_path if (d_path and os.path.exists(d_path)) else b_path
 
                     if img_to_use and os.path.exists(img_to_use):
-                        target_cell = None
-                        gn_clean = game_name.strip()
-                        for mapped_game, cell_addr in GAME_MAP_IMAGE_CELLS.items():
-                            if mapped_game.lower() == gn_clean.lower() or mapped_game.lower().replace('(map)', '').strip() == gn_clean.lower().replace('(map)', '').strip():
-                                target_cell = cell_addr
+                        cell_range = None
+                        gn_clean   = game_name.strip()
+                        for mapped_game, cell_tuple in GAME_MAP_IMAGE_CELLS.items():
+                            if (mapped_game.lower() == gn_clean.lower() or
+                                    mapped_game.lower().replace('(map)', '').strip() ==
+                                    gn_clean.lower().replace('(map)', '').strip()):
+                                cell_range = cell_tuple   # ('B92', 'F100')
                                 break
 
-                        if target_cell:
+                        if cell_range:
                             try:
-                                # Clear any legacy formula/text like #VALUE! from the top-left target cell
-                                ws[target_cell].value = None
+                                from_cell, to_cell = cell_range
 
-                                target_range = None
-                                for rng in ws.merged_cells.ranges:
-                                    if rng.start_cell.coordinate == target_cell:
-                                        target_range = rng
-                                        break
+                                # 1. مسح أي قيمة نصية قديمة في الخلية الأولى
+                                ws[from_cell].value = None
 
+                                # 2. إزالة الصور القديمة المحطوطة فوق نفس المنطقة في القالب
+                                fc = column_index_from_string(''.join(filter(str.isalpha, from_cell)))
+                                fr = int(''.join(filter(str.isdigit, from_cell)))
+                                tc = column_index_from_string(''.join(filter(str.isalpha, to_cell)))
+                                tr = int(''.join(filter(str.isdigit, to_cell)))
 
-                                # 1. Determine exact merged cell box dimensions dynamically for any box
-                                cell_w_px = 500
-                                cell_h_px = 200
-                                if target_range:
-                                    col_letters = [openpyxl.utils.get_column_letter(c) for c in range(target_range.min_col, target_range.max_col + 1)]
-                                    total_w = sum((ws.column_dimensions[c].width or 13.0) for c in col_letters)
-                                    total_h = sum((ws.row_dimensions[r].height or 16.5) for r in range(target_range.min_row, target_range.max_row + 1))
-                                    cell_w_px = int(total_w * 7.5 + len(col_letters) * 4)
-                                    cell_h_px = int(total_h * 1.333)
-                                    
-                                # 2. Resize image dynamically leaving 12px margin padding (Preserves black cell borders 100%)
-                                avail_w = max(50, cell_w_px - 30)
-                                avail_h = max(30, cell_h_px - 24)  # Leave 12px padding top and bottom so borders remain clear
-                                
-                                # Overlay Drawing onto Base Map if both present
+                                imgs_to_remove = [
+                                    im for im in ws._images
+                                    if hasattr(im, 'anchor') and hasattr(im.anchor, '_from')
+                                    and fr - 1 <= im.anchor._from.row <= tr
+                                    and fc - 1 <= im.anchor._from.col <= tc
+                                ]
+                                for old_im in imgs_to_remove:
+                                    if old_im in ws._images:
+                                        ws._images.remove(old_im)
+
+                                # 3. دمج الرسمة مع الخريطة الأصلية لو الاثنين موجودين
                                 if d_path and os.path.exists(d_path) and b_path and os.path.exists(b_path):
-                                    base_img = PILImage.open(b_path).convert("RGBA")
-                                    draw_img = PILImage.open(d_path).convert("RGBA")
-                                    draw_resized = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
-                                    final_img = PILImage.alpha_composite(base_img, draw_resized)
-                                    
-                                    temp_dir = os.path.join("static", "uploads", "temp_composites")
+                                    base_img = PILImage.open(b_path).convert('RGBA')
+                                    draw_img = PILImage.open(d_path).convert('RGBA')
+                                    draw_rszd  = draw_img.resize(base_img.size, PILImage.Resampling.LANCZOS)
+                                    final_img  = PILImage.alpha_composite(base_img, draw_rszd)
+                                    temp_dir   = os.path.join('static', 'uploads', 'temp_composites')
                                     os.makedirs(temp_dir, exist_ok=True)
-                                    img_to_insert = os.path.abspath(os.path.join(temp_dir, f"excel_{os.path.basename(img_to_use)}"))
-                                    final_img.save(img_to_insert, "PNG")
+                                    img_to_insert = os.path.abspath(
+                                        os.path.join(temp_dir, f'excel_{os.path.basename(img_to_use)}'))
+                                    final_img.save(img_to_insert, 'PNG')
                                     created_temp_files.append(img_to_insert)
                                 else:
                                     img_to_insert = img_to_use
 
-                                pil_img = PILImage.open(img_to_insert)
-                                pil_img.thumbnail((avail_w, avail_h), PILImage.Resampling.LANCZOS)
-                                
-                                temp_fit_dir = os.path.join("static", "uploads", "temp_composites")
-                                os.makedirs(temp_fit_dir, exist_ok=True)
-                                fit_path = os.path.abspath(os.path.join(temp_fit_dir, f"centered_{os.path.basename(img_to_use)}"))
-                                pil_img.save(fit_path, "PNG")
-                                created_temp_files.append(fit_path)
+                                # 4. Contain-fit بدون أي تعديلات على الاتجاه
+                                cell_w, cell_h = _cell_area_px(ws, fc, fr, tc, tr)
 
-                                # 3. Calculate horizontal and vertical offset to center image with clean margins around borders
-                                img_w, img_h = pil_img.size
-                                offset_x_px = max(0, (cell_w_px - img_w) // 2)
-                                offset_y_px = max(0, (cell_h_px - img_h) // 2)
+                                src = PILImage.open(img_to_insert)
+                                src_w, src_h = src.size
 
-                                # 1 Pixel = 9525 EMUs (English Metric Units) in openpyxl
-                                from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker
-                                from openpyxl.drawing.xdr import XDRPositiveSize2D
-                                
-                                col_idx = (target_range.min_col - 1) if target_range else 1
-                                row_idx = (target_range.min_row - 1) if target_range else 91
-                                
-                                marker = AnchorMarker(
-                                    col=col_idx,
-                                    colOff=int(offset_x_px * 9525),
-                                    row=row_idx,
-                                    rowOff=int(offset_y_px * 9525)
-                                )
-                                size = XDRPositiveSize2D(int(img_w * 9525), int(img_h * 9525))
-                                
-                                img = OpenPyxlImage(fit_path)
-                                img.anchor = OneCellAnchor(_from=marker, ext=size)
-                                ws.add_image(img)
+                                # حساب نسبة التصغير للحفاظ على الـ Aspect Ratio بدون Stretch
+                                scale = min(cell_w / src_w, cell_h / src_h)
+                                fit_w = int(src_w * scale)
+                                fit_h = int(src_h * scale)
+
+                                img_obj        = OpenPyxlImage(img_to_insert)
+                                img_obj.width  = fit_w
+                                img_obj.height = fit_h
+                                ws.add_image(img_obj, from_cell)
+
                             except Exception as img_err:
-                                print(f"Error adding image to Excel: {img_err}")
+                                print(f'Error adding image to Excel ({game_name}): {img_err}')
+
+
+
 
         # Set Page Setup Properties: Dynamic Orientation & Fit All Columns on One Page
         if str(orientation).lower() == 'landscape':

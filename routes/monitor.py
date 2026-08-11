@@ -39,15 +39,21 @@ def home():
         for a in areas:
             if a.image: valid_filenames.add(os.path.basename(a.image))
 
-        # 2. حظر ومسح الصور المهملة المرفوعة من فحوصات ملغاة وتعدت 24 ساعة
+        # 2. تنظيف الصور المؤقتة المهملة فقط من مجلدي drawings و photos (المستقلين تماماً عن maps و covers)
         current_time = time.time()
-        for filename in os.listdir(UPLOAD_FOLDER):
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
-            if os.path.isfile(filepath) and (current_time - os.path.getmtime(filepath)) > 86400:
-                if filename not in valid_filenames:
-                    os.remove(filepath)
+        for subfolder in ['drawings', 'photos']:
+            target_dir = os.path.join(UPLOAD_FOLDER, subfolder)
+            if os.path.exists(target_dir):
+                for filename in os.listdir(target_dir):
+                    filepath = os.path.join(target_dir, filename)
+                    if os.path.isfile(filepath) and (current_time - os.path.getmtime(filepath)) > 86400:
+                        if filename not in valid_filenames:
+                            try: os.remove(filepath)
+                            except Exception: pass
     except Exception as err:
         current_app.logger.warning(f"Error during orphan upload cleanup: {err}")
+
+
 
     # عند إرسال نموذج دخول المونيتور
     if request.method == 'POST':
@@ -128,9 +134,18 @@ def check_game(game_id):
             # لو المونيتور ما رسمش حاجة، نحفظ صورة الماب الأصلية النظيفة تلقائياً إن وجدت
             current_answers['map_drawing'] = game.map_image if game and game.map_image else ''
         elif map_drawing_data.startswith('data:image'):
+            # مسح رسمة الخريطة القديمة لنفس اللعبة في السيشن إن وجدت لمنع تكرار الصور
+            if old_map_path and old_map_path.startswith('/static/uploads/drawings/'):
+                old_file_on_disk = old_map_path.lstrip('/')
+                if os.path.exists(old_file_on_disk):
+                    try: os.remove(old_file_on_disk)
+                    except Exception: pass
+
             _, encoded = map_drawing_data.split(',', 1)
             filename = f"map_{game_id}_{uuid.uuid4().hex}.png"
-            filepath = os.path.join(UPLOAD_FOLDER, filename)
+            drawings_dir = os.path.join(UPLOAD_FOLDER, 'drawings')
+            os.makedirs(drawings_dir, exist_ok=True)
+            filepath = os.path.join(drawings_dir, filename)
             img_bytes = base64.b64decode(encoded)
             
             # Compress drawing image using PIL to save disk space (~100KB)
@@ -145,6 +160,7 @@ def check_game(game_id):
             current_answers['map_drawing'] = f"/{filepath}".replace("\\", "/") 
         else: 
             current_answers['map_drawing'] = old_map_path if old_map_path else (game.map_image if game and game.map_image else '')
+
 
 
         session['game_data'][game_id] = current_answers
@@ -170,7 +186,10 @@ def upload_photo_ajax():
 
     for file in uploaded_files:
         if file and file.filename != '':
-            photo_filepath = os.path.join(UPLOAD_FOLDER, f"photo_{game_id}_{uuid.uuid4().hex}.jpg")
+            photos_dir = os.path.join(UPLOAD_FOLDER, 'photos')
+            os.makedirs(photos_dir, exist_ok=True)
+            photo_filepath = os.path.join(photos_dir, f"photo_{game_id}_{uuid.uuid4().hex}.jpg")
+
             try:
                 from PIL import Image
                 img = Image.open(file).convert('RGB')
@@ -217,17 +236,45 @@ def submit_report():
     game_data = session.get('game_data', {})
     session_id = uuid.uuid4().hex
 
-    # حفظ سجل تقرير فرعي لكل لعبة مفحوصة
-    for game_id in completed_games:
-        data = game_data.get(game_id, {})
+    # 1. جلب كافة ألعاب المنطقة لضمان تسجيل التقرير لجميع ألعاب المنطقة
+    area_games = GameModel.query.filter_by(area_id=area.id).all() if area else GameModel.query.all()
+
+    # حفظ سجل تقرير فرعي لكل لعبة في المنطقة
+    for gm in area_games:
+        game_id_str = str(gm.id)
+        data = game_data.get(game_id_str, {}) or game_data.get(gm.id, {}) or game_data.get(gm.name, {})
         checks = {k: v for k, v in data.items() if k.startswith('check_')}
+        
+        # الافتراضي دائماً: صورة الخريطة الأصلية من قاعدة البيانات (لو اللعبة عندها ماب)
+        base_map = (gm.map_image or '').strip()
+        final_map_path = base_map if (gm.has_map and base_map) else ''
+        
+        # لو المونيتور رسم على الخريطة فعلاً (الرسمة محفوظة في /drawings/ أو /uploads/map_XX_)
+        user_drawing = data.get('map_drawing', '') or ''
+        is_real_drawing = (
+            user_drawing and
+            user_drawing != base_map and                         # مش نفس صورة الأصل
+            '/uploads/' in user_drawing and
+            'map_' in user_drawing and
+            os.path.exists(user_drawing.lstrip('/'))
+        )
+        if is_real_drawing:
+            final_map_path = user_drawing
+            
+        print(f"[DEBUG SUBMIT] Game: {gm.name} | has_map: {gm.has_map} | base_map: {repr(base_map)} | user_drawing: {repr(user_drawing)} | final: {repr(final_map_path)}", flush=True)
+
         db.session.add(GameReport(
             session_id=session_id, monitor_name=monitor_name, area_id=area_name,
-            game_id=game_id, checks_data=json.dumps(checks, ensure_ascii=False),
-            notes=data.get('notes', ''), map_image_path=data.get('map_drawing', ''),
+            game_id=game_id_str, checks_data=json.dumps(checks, ensure_ascii=False),
+            notes=data.get('notes', ''), map_image_path=final_map_path,
             photos_paths=json.dumps(data.get('photos', []), ensure_ascii=False)
         ))
     db.session.commit()
+
+
+
+
+
     
     # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية (Subprocess) لضمان استجابة لحظية 100%
     import subprocess

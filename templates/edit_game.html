@@ -267,9 +267,15 @@
             </label>
 
             <div style="margin-top: 15px;">
-                <label style="font-weight: bold; color: #495057;">{% if is_ar %}تحديث صورة الخريطة (اختياري - اتركه فارغاً للإبقاء على الحالية):{% else %}Update Map Image (Optional - leave empty to keep existing):{% endif %}</label>
+                <label style="font-weight: bold; color: #495057;">{% if is_ar %}تغيير صورة خريطة اللعبة:{% else %}Change Game Map Image:{% endif %}</label>
+                {% if game.map_image %}
+                <div style="margin-top: 8px; margin-bottom: 12px;">
+                    <img src="{% if game.map_image.startswith('http') or game.map_image.startswith('/') %}{{ game.map_image }}{% else %}/static/{{ game.map_image }}{% endif %}" style="max-width: 180px; max-height: 180px; border-radius: 8px; border: 2px solid #e2e8f0; object-fit: cover;" onerror="this.style.display='none';">
+                </div>
+                {% endif %}
                 <input type="file" name="map_image" accept="image/*" class="form-control" style="cursor: pointer;">
             </div>
+
         </div>
 
         <!-- Check Items -->
