@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_ar %}تم إرسال التقرير بنجاح{% else %}Report Submitted Successfully{% endif %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <style>
+        body {
+            background-color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .success-card {
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 480px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            border: 1px solid #e2e8f0;
+            animation: fadeInScale 0.4s ease-out forwards;
+        }
+
+        @keyframes fadeInScale {
+            0% { opacity: 0; transform: scale(0.92); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        .success-icon-wrapper {
+            width: 90px;
+            height: 90px;
+            background: #dcfce7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px auto;
+            box-shadow: 0 0 0 10px #f0fdf4;
+        }
+
+        .success-icon {
+            font-size: 48px;
+            line-height: 1;
+        }
+
+        .success-title {
+            color: #15803d;
+            font-size: 24px;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+        }
+
+        .success-subtitle {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .info-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 30px;
+            text-align: start;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px dashed #cbd5e1;
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: #1e293b;
+            font-weight: 700;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 15px;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary-action {
+            background: #10b981;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+
+        .btn-primary-action:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary-action {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-secondary-action:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="success-card">
+        <div class="success-icon-wrapper">
+            <span class="success-icon">🎉</span>
+        </div>
+
+        <h1 class="success-title">
+            {% if is_ar %}تم إرسال تقرير المنطقة بنجاح!{% else %}Area Report Submitted Successfully!{% endif %}
+        </h1>
+        
+        <p class="success-subtitle">
+            {% if is_ar %}تم حفظ كافة البيانات والأعطال بنجاح وتوليد تقرير الإكسيل والـ PDF.{% else %}All data and issues have been successfully saved and Excel/PDF reports generated.{% endif %}
+        </p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">📍 {% if is_ar %}المنطقة:{% else %}Area:{% endif %}</span>
+                <span class="info-value">{{ area_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">👤 {% if is_ar %}المسؤول (المونيتور):{% else %}Monitor Name:{% endif %}</span>
+                <span class="info-value">{{ monitor_name }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">🎮 {% if is_ar %}عدد الألعاب المفحوصة:{% else %}Checked Games Count:{% endif %}</span>
+                <span class="info-value">{{ games_count }}</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="/" class="btn-action btn-primary-action">
+                🏠 {% if is_ar %}العودة للصفحة الرئيسية{% else %}Back to Home{% endif %}
+            </a>
+        </div>
+    </div>
+
+</body>
+</html>

@@ -232,11 +232,14 @@ def submit_report():
     except Exception as exp_err:
         print(f"Error auto-generating Excel/PDF report: {exp_err}")
     
+    games_count = len(completed_games)
+
     # تنظيف الجلسة المؤقتة للمونيتور
     session.pop('completed_games', None)
     session.pop('game_data', None)
-    session.pop('area_id', None) 
-    return "<div style='text-align:center; margin-top:100px; direction:rtl;'><h1 style='color:green;'>تم إرسال تقرير المنطقة بنجاح! 🎉</h1><a href='/'>العودة للصفحة الرئيسية</a></div>"
+    session.pop('area_id', None)
+    
+    return render_template('report_success.html', area_name=area_name, monitor_name=monitor_name, games_count=games_count)
 
 # ------------------------------------------------------------------------------
 # 7. إلغاء فحص لعبة محددة وتنظيف ملفاتها غير المحفوظة
