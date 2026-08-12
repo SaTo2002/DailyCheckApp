@@ -8,8 +8,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if is_ar %}تسجيل الدخول - فحص الألعاب{% else %}Login - Games Check{% endif %}</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
     <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
     <style>
         .area-grid {
             display: grid;
@@ -124,6 +132,15 @@
 </head>
 <body>
 
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
+        🌓
+    </div>
+
     <!-- Top Language Switcher Bar -->
     <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
         {% if is_ar %}
@@ -134,14 +151,14 @@
     </div>
 
     <!-- Login Card -->
-    <div class="monitor-container" style="margin-top: 10px;">
-        <h2 class="monitor-title">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else %}Daily Games Check System{% endif %}</h2>
-        <p class="sub-title">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{% endif %}</p>
+    <div class="monitor-container glass-card" style="margin-top: 10px; padding: 24px; border-top: 4px solid var(--brand-blue);">
+        <h2 class="monitor-title" style="color: var(--brand-blue);">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else %}Daily Games Check System{% endif %}</h2>
+        <p class="sub-title" style="color: var(--text-secondary);">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{% endif %}</p>
         
         <!-- Form -->
         <form method="POST" id="loginForm">
             <!-- Area Grid -->
-            <label class="form-label">📍 {% if is_ar %}اختر المنطقة:{% else %}Select Area:{% endif %}</label>
+            <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 {% if is_ar %}اختر المنطقة:{% else %}Select Area:{% endif %}</label>
             <div class="area-grid">
                 {% for area in areas %}
                 <div class="area-card" data-area-id="{{ area.id }}" onclick="selectArea(this)">
@@ -162,12 +179,12 @@
 
             <!-- Inspector Name Input -->
             <div id="nameInputSection">
-                <label class="form-label">👤 {% if is_ar %}اسم الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
-                <input type="text" name="monitor_name" class="touch-input" required placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}" value="{{ session.get('monitor_name', '') }}">
+                <label class="form-label" style="color: var(--text-primary); font-weight: 700;">👤 {% if is_ar %}اسم الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
+                <input type="text" name="monitor_name" class="glass-input" style="padding: 15px;" required placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}" value="{{ session.get('monitor_name', '') }}">
             </div>
             
             <!-- Submit Button -->
-            <button type="submit" class="btn-touch btn-primary-touch" style="width: 100%; font-size: 18px; margin-top: 15px;">
+            <button type="submit" class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 20px; padding: 15px;">
                 🚀 {% if is_ar %}بدء الفحص{% else %}Start Check{% endif %}
             </button>
         </form>
@@ -179,6 +196,12 @@
     </div>
 
     <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+        
         function selectArea(cardElement) {
             document.querySelectorAll('.area-card').forEach(card => {
                 card.classList.remove('selected');

@@ -3,128 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}إدارة القائمة البريدية{% else %}Email Receivers Management{% endif %}</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
-        .container { max-width: 950px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; color: #333; }
-        input[type="text"], input[type="email"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: start; }
-        th, td { padding: 12px; border-bottom: 1px solid #ddd; vertical-align: middle; text-align: start; }
-        th { background-color: #f8f9fa; color: #333; }
-        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
-        .badge-active { background: #28a745; }
-        .badge-inactive { background: #dc3545; }
-        .btn-toggle-active { background: #ffc107; color: #000; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
-        .btn-toggle-inactive { background: #28a745; color: #fff; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-size: 14px; font-weight: bold; }
-        .btn-delete { background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; }
-        .note-box { background: #e9ecef; border-inline-start: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; color: #495057; }
-        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .container { padding: 15px; }
-            .page-top-header { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
-            .page-top-header a { text-align: center; }
-            .create-form { flex-direction: column; }
-            .create-form > div { width: 100% !important; min-width: 100% !important; }
-            button[type="submit"] { width: 100%; text-align: center; }
+    <title>{% if is_ar %}إدارة القائمة البريدية - جرافيتي كود{% else %}Email Receivers Management - Gravity Code{% endif %}</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
         }
+    </script>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; text-align: start; }
+        th, td { padding: 16px; border-bottom: 1px solid var(--surface-border); vertical-align: middle; text-align: start; }
+        th { color: var(--text-secondary); font-weight: 800; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        
+        .badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; display: inline-block; }
+        .badge-active { background: rgba(40, 167, 69, 0.2); color: var(--success); border: 1px solid var(--success); }
+        .badge-inactive { background: rgba(220, 53, 69, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .btn-toggle-active { background: var(--brand-orange) !important; box-shadow: 0 4px 10px rgba(240,158,37,0.3) !important; }
+        .btn-toggle-inactive { background: var(--success) !important; box-shadow: 0 4px 10px rgba(40,167,69,0.3) !important; }
+        
+        .note-box { background: rgba(31, 162, 224, 0.1); border-inline-start: 4px solid var(--brand-blue); padding: 16px; margin-bottom: 24px; border-radius: 0 var(--border-radius-sm) var(--border-radius-sm) 0; font-size: 14px; color: var(--text-primary); }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}">
+        🌓
+    </div>
+
+    <div class="container" style="max-width: 950px; margin: 0 auto; padding: 20px; position: relative; z-index: 1;">
+        
         <!-- Header -->
-        <div class="page-top-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="margin: 0;">📧 {% if is_ar %}إدارة القائمة البريدية{% else %}Email Receivers{% endif %}</h2>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">{% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
+        <div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 15px;">
+            <h2 style="margin: 0; color: var(--brand-blue);">📧 {% if is_ar %}إدارة القائمة البريدية{% else %}Email Receivers{% endif %}</h2>
+            <div class="d-flex gap-2 align-items-center">
+                <a href="/dashboard" class="btn-outline">{% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
             </div>
         </div>
 
         <!-- Info Box -->
-        <div class="note-box">
-            📌 <strong>{% if is_ar %}ملاحظة:{% else %}Note:{% endif %}</strong> {% if is_ar %}جميع الإيميلات المفعلة هنا سيتم إرسال نسخة من تقرير الـ PDF إليها فور الانتهاء من الفحص بنجاح.{% else %}All active emails here will receive a copy of the PDF report immediately upon successful inspection.{% endif %}
+        <div class="note-box glass-card" style="padding: 16px;">
+            📌 <strong style="color: var(--brand-blue);">{% if is_ar %}ملاحظة:{% else %}Note:{% endif %}</strong> {% if is_ar %}جميع الإيميلات المفعلة هنا سيتم إرسال نسخة من تقرير الـ PDF إليها فور الانتهاء من الفحص بنجاح.{% else %}All active emails here will receive a copy of the PDF report immediately upon successful inspection.{% endif %}
         </div>
 
         <!-- 1. Add New Email Form -->
-        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #ddd;">
-            <h3 style="margin-top: 0; color: #007bff;">➕ {% if is_ar %}إضافة بريد إلكتروني جديد{% else %}Add New Email{% endif %}</h3>
-            <form action="/add_email" method="POST" style="display: flex; flex-direction: column; gap: 15px;">
-                <div class="create-form" style="display: flex; gap: 15px; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-weight: bold; margin-bottom: 5px;">{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</label>
-                        <input type="text" name="name" required placeholder="{% if is_ar %}مثال: مدير الفرع{% else %}e.g., Branch Manager{% endif %}">
+        <div class="glass-card mb-4" style="border-top: 4px solid var(--brand-pink);">
+            <h3 style="margin-top: 0; color: var(--brand-pink);">➕ {% if is_ar %}إضافة بريد إلكتروني جديد{% else %}Add New Email{% endif %}</h3>
+            <form action="/add_email" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <div>
+                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</label>
+                        <input type="text" name="name" required class="glass-input" placeholder="{% if is_ar %}مثال: مدير الفرع{% else %}e.g., Branch Manager{% endif %}">
                     </div>
                     
-                    <div style="flex: 1; min-width: 200px;">
-                        <label style="display: block; font-weight: bold; margin-bottom: 5px;">{% if is_ar %}البريد الإلكتروني (Email){% else %}Email Address{% endif %}</label>
-                        <input type="email" name="email" required placeholder="manager@example.com">
+                    <div>
+                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">{% if is_ar %}البريد الإلكتروني (Email){% else %}Email Address{% endif %}</label>
+                        <input type="email" name="email" required class="glass-input" placeholder="manager@example.com">
                     </div>
                 </div>
                 
-                <div style="margin-top: 10px;">
-                    <button type="submit" style="background: #007bff; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; font-weight: bold;">
-                        {% if is_ar %}➕ إضافة للقائمة{% else %}➕ Add to List{% endif %}
+                <div>
+                    <button type="submit" class="btn-primary" style="padding: 12px 24px;">
+                        ➕ {% if is_ar %}إضافة للقائمة{% else %}Add to List{% endif %}
                     </button>
                 </div>
             </form>
         </div>
 
         <!-- 2. Registered Emails Table -->
-        <h3 style="margin-top: 30px; color: #333;">📋 {% if is_ar %}القائمة الحالية{% else %}Current List{% endif %}</h3>
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</th>
-                        <th>{% if is_ar %}الإيميل{% else %}Email{% endif %}</th>
-                        <th>{% if is_ar %}الحالة{% else %}Status{% endif %}</th>
-                        <th>{% if is_ar %}إجراءات{% else %}Actions{% endif %}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for rcv in receivers %}
-                    <tr>
-                        <td><strong>{{ rcv.name }}</strong></td>
-                        <td>{{ rcv.email }}</td>
-                        <td>
-                            {% if rcv.is_active %}
-                                <span class="badge badge-active">{% if is_ar %}مفعل{% else %}Active{% endif %}</span>
-                            {% else %}
-                                <span class="badge badge-inactive">{% if is_ar %}معطل{% else %}Inactive{% endif %}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div style="display: flex; gap: 8px;">
-                                <!-- Toggle Status -->
-                                <a href="/toggle_email/{{ rcv.id }}" class="{% if rcv.is_active %}btn-toggle-active{% else %}btn-toggle-inactive{% endif %}">
-                                    {% if rcv.is_active %}
-                                        {% if is_ar %}تعطيل ⏸️{% else %}Disable ⏸️{% endif %}
-                                    {% else %}
-                                        {% if is_ar %}تفعيل ▶️{% else %}Enable ▶️{% endif %}
-                                    {% endif %}
-                                </a>
+        <div class="glass-card" style="border-top: 4px solid var(--brand-blue);">
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--brand-blue);">📋 {% if is_ar %}القائمة الحالية{% else %}Current List{% endif %}</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</th>
+                            <th>{% if is_ar %}الإيميل{% else %}Email{% endif %}</th>
+                            <th>{% if is_ar %}الحالة{% else %}Status{% endif %}</th>
+                            <th>{% if is_ar %}إجراءات{% else %}Actions{% endif %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rcv in receivers %}
+                        <tr>
+                            <td><strong style="color: var(--text-primary);">{{ rcv.name }}</strong></td>
+                            <td style="color: var(--text-secondary);">{{ rcv.email }}</td>
+                            <td>
+                                {% if rcv.is_active %}
+                                    <span class="badge badge-active">{% if is_ar %}مفعل{% else %}Active{% endif %}</span>
+                                {% else %}
+                                    <span class="badge badge-inactive">{% if is_ar %}معطل{% else %}Inactive{% endif %}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <!-- Toggle Status -->
+                                    <a href="/toggle_email/{{ rcv.id }}" class="btn-primary {{ 'btn-toggle-active' if rcv.is_active else 'btn-toggle-inactive' }}" style="padding: 8px 12px; font-size: 13px;">
+                                        {% if rcv.is_active %}
+                                            {% if is_ar %}تعطيل ⏸️{% else %}Disable ⏸️{% endif %}
+                                        {% else %}
+                                            {% if is_ar %}تفعيل ▶️{% else %}Enable ▶️{% endif %}
+                                        {% endif %}
+                                    </a>
 
-                                <!-- Delete -->
-                                <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('{% if is_ar %}هل أنت متأكد من مسح هذا الإيميل نهائياً؟{% else %}Are you sure you want to permanently delete this email?{% endif %}');">
-                                    <button type="submit" class="btn-delete">
-                                        {% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}
-                                    </button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; color: #666;">{% if is_ar %}لا يوجد إيميلات مسجلة حالياً.{% else %}No emails registered currently.{% endif %}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                                    <!-- Delete -->
+                                    <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('{% if is_ar %}هل أنت متأكد من مسح هذا الإيميل نهائياً؟{% else %}Are you sure you want to permanently delete this email?{% endif %}');">
+                                        <button type="submit" class="btn-secondary" style="background: var(--danger); padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 10px rgba(220,53,69,0.3);">
+                                            {% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">
+                                <h3>{% if is_ar %}لا يوجد إيميلات مسجلة حالياً.{% else %}No emails registered currently.{% endif %}</h3>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
 </body>
 </html>

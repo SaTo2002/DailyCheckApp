@@ -31,8 +31,26 @@
             button { display: none; }
         }
     </style>
+
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
 </head>
 <body onload="window.print()">
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" style="z-index: 9999;">
+        🌓
+    </div>
+
 
     <div style="margin-bottom: 20px; text-align: center; display: flex; justify-content: center; gap: 12px;" class="no-print">
         <a href="/download_pdf/{{ report.session_id }}?view=1" target="_blank" style="background: #0d6efd; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(13,110,253,0.3);">
@@ -105,5 +123,13 @@
         <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">{% if is_ar %}إغلاق الصفحة{% else %}Close Page{% endif %}</button>
     </div>
 
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
 </body>
 </html>

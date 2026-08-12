@@ -11,8 +11,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if is_ar %}فحص لعبة:{% else %}Check Game:{% endif %} {{ game.name }}</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
     <!-- CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
     <style>
         .map-container {
             position: relative;
@@ -105,6 +113,15 @@
 </head>
 
 <body>
+
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
+        🌓
+    </div>
 
     <!-- Language Switcher Bar -->
     <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
@@ -203,9 +220,9 @@
             {% if checks %}
             <div class="section-header">📋 {% if is_ar %}عناصر الفحص{% else %}Check Items{% endif %}</div>
             {% for check in checks %}
-            <div class="question-card">
-                <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: #1e293b;">
-                    {{ check.name }} {% if check.is_mandatory %}<span style="color: #dc3545;">*</span>{% endif %}
+            <div class="glass-card question-card" style="margin-bottom: 16px;">
+                <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">
+                    {{ check.name }} {% if check.is_mandatory %}<span style="color: var(--danger);">*</span>{% endif %}
                 </div>
                 <!-- Pills Options -->
                 <div class="pill-options">
@@ -246,18 +263,18 @@
             {% endif %}
 
             <!-- Sticky Footer Bar -->
-            <div class="sticky-footer-bar">
+            <div class="sticky-footer-bar" style="background: var(--surface-glass); backdrop-filter: blur(10px); border-top: 1px solid var(--surface-border);">
                 {% if single_game_mode %}
-                    <button type="submit" name="action" value="submit_report" class="btn-touch btn-primary-touch" style="flex: 1.5; font-size: 16px; cursor: pointer;">
+                    <button type="submit" name="action" value="submit_report" class="btn-primary" style="flex: 1.5; font-size: 16px; cursor: pointer;">
                         📝 {% if is_ar %}إرسال التقرير النهائي{% else %}Submit Final Report{% endif %}
                     </button>
                 {% else %}
-                    <button type="submit" name="action" value="save" class="btn-touch btn-primary-touch" style="cursor: pointer;">
+                    <button type="submit" name="action" value="save" class="btn-secondary" style="cursor: pointer; flex: 1;">
                         💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
                     </button>
 
                     {% if next_game_id %}
-                    <button type="submit" name="action" value="next" class="btn-touch btn-success-touch" style="cursor: pointer;">
+                    <button type="submit" name="action" value="next" class="btn-primary" style="cursor: pointer; background: var(--success); flex: 1;">
                         {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
                     </button>
                     {% endif %}
@@ -266,6 +283,14 @@
 
         </form>
     </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
 
     <style>
         .btn-map-tool {

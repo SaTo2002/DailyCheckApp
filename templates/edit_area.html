@@ -121,8 +121,26 @@
             .btn-back { text-align: center; }
         }
     </style>
+
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
 </head>
 <body>
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" style="z-index: 9999;">
+        🌓
+    </div>
+
     <div class="container">
         <div class="page-header">
             <h2>📍 {% if is_ar %}تعديل اسم المنطقة:{% else %}Edit Area:{% endif %} <span style="color: var(--primary);">{{ area.name }}</span></h2>
@@ -169,5 +187,13 @@
             <button type="submit" class="btn-submit" style="margin-top: 10px;">💾 {% if is_ar %}حفظ التغييرات{% else %}Save Changes{% endif %}</button>
         </form>
     </div>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        }
+    </script>
 </body>
 </html>

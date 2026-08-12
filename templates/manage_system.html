@@ -34,8 +34,26 @@
             .actions form .btn { width: 100%; }
         }
     </style>
+
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+            document.body.classList.add('dark-mode');
+        }
+    </script>
 </head>
 <body>
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" style="z-index: 9999;">
+        🌓
+    </div>
+
     <div class="container">
         <div class="header">
             <h2>📍 {% if is_ar %}إدارة مناطق الفحص{% else %}Manage Inspection Areas{% endif %}</h2>
@@ -50,7 +68,7 @@
         </div>
 
         {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
-        <div class="card">
+        <div class="glass-card">
             <h3>➕ {% if is_ar %}إضافة منطقة جديدة{% else %}Add New Area{% endif %}</h3>
             <form action="/add_area" method="POST" class="add-area-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;" enctype="multipart/form-data">
                 <input type="text" name="area_name" placeholder="{% if is_ar %}اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)...{% else %}Type area name (e.g. Main Trampoline Area)...{% endif %}" required style="width: 100%;">
@@ -72,7 +90,7 @@
         </div>
         {% endif %}
 
-        <div class="card" style="border-top-color: #007bff;">
+        <div class="glass-card" style="border-top-color: #007bff;">
             <h3>📋 {% if is_ar %}المناطق المسجلة وترتيبها{% else %}Registered Areas & Order{% endif %}</h3>
             <p style="font-size: 14px; color: #666; margin-bottom: 15px;">{% if is_ar %}يمكنك <strong>السحب والإفلات ☰</strong> لإعادة ترتيب المناطق أو استخدام أسهم الترتيب (⬆️ / ⬇️) ثم الحفظ.{% else %}You can <strong>Drag & Drop areas ☰</strong> to reorder or use the arrow buttons (⬆️ / ⬇️) then save.{% endif %}</p>
             
@@ -181,6 +199,14 @@
                     updateIndexes();
                 }
             });
+        }
+    </script>
+
+    <script>
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
 </body>
