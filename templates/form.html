@@ -18,17 +18,17 @@
     <script>
         if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            document.body.classList.add('dark-mode');
+            
         }
     </script>
     <style>
         .map-container {
             position: relative;
             display: inline-block;
-            border: 2px solid #cbd5e1;
+            border: 2px solid var(--surface-border);
             border-radius: 10px;
             overflow: hidden;
-            background: #fff;
+            background: var(--surface-glass);
             max-width: 100%;
             width: 100%;
             box-sizing: border-box;
@@ -58,8 +58,8 @@
         }
 
         .question-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
+            background: var(--surface-glass);
+            border: 1px solid var(--surface-border);
             padding: 18px;
             border-radius: 12px;
             margin-bottom: 16px;
@@ -81,7 +81,7 @@
             width: 28px;
         }
         .map-scroll-container::-webkit-scrollbar-track {
-            background: #e2e8f0;
+            background: var(--input-bg);
             border-radius: 14px;
         }
         .map-scroll-container::-webkit-scrollbar-thumb {
@@ -94,9 +94,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #f1f5f9;
-            color: #334155;
-            border: 1px solid #cbd5e1;
+            background: var(--surface-glass);
+            color: var(--text-primary);
+            border: 1px solid var(--surface-border);
             padding: 6px 14px;
             border-radius: 20px;
             text-decoration: none;
@@ -136,7 +136,7 @@
         <!-- Header & Title -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1 class="monitor-title" style="margin: 0; font-size: 20px;">
-                {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: #198754;">{{ game.name }}</span>
+                {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: var(--success);">{{ game.name }}</span>
             </h1>
             {% if single_game_mode %}
                 <a href="/cancel_area" onclick="return confirm('{% if is_ar %}⚠️ هل أنت متأكد من إلغاء الفحص؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!{% endif %}');"
@@ -161,26 +161,26 @@
             <div
                 style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 6px;">
-                    <button type="button" class="btn-map-tool" style="background: #e2e8f0; color: #334155;"
+                    <button type="button" class="btn-map-tool" style="background: var(--input-bg); color: var(--text-primary);"
                         onclick="undoCanvas()">↩️ {% if is_ar %}تراجع{% else %}Undo{% endif %}</button>
                     <button type="button" class="btn-map-tool" style="background: #dc3545; color: white;"
                         onclick="clearCanvas()">🗑️ {% if is_ar %}مسح الكل{% else %}Clear All{% endif %}</button>
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center;">
-                    <span style="font-size: 13px; font-weight: bold; color: #475569;">{% if is_ar %}الزوم:{% else %}Zoom:{% endif %}</span>
+                    <span style="font-size: 13px; font-weight: bold; color: var(--text-primary);">{% if is_ar %}الزوم:{% else %}Zoom:{% endif %}</span>
                     <button type="button" class="btn-map-tool" style="background: #0d6efd; color: white;"
                         onclick="changeZoom(0.3)">🔍+ {% if is_ar %}تكبير{% else %}Zoom In{% endif %}</button>
                     <button type="button" class="btn-map-tool" style="background: #6c757d; color: white;"
                         onclick="changeZoom(-0.3)">🔍- {% if is_ar %}تصغير{% else %}Zoom Out{% endif %}</button>
                     <button type="button" class="btn-map-tool"
-                        style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;" onclick="resetZoom()">🔄
+                        style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);" onclick="resetZoom()">🔄
                         {% if is_ar %}إعادة{% else %}Reset{% endif %}</button>
                 </div>
             </div>
 
             <!-- Map Container -->
             <div class="map-scroll-container" id="mapScrollContainer"
-                style="position: relative; border: 2px solid #cbd5e1; border-radius: 10px; overflow: auto; background: #fff; max-height: 1400px; max-width: 100%;">
+                style="position: relative; border: 2px solid var(--surface-border); border-radius: 10px; overflow: auto; background: var(--surface-glass); max-height: 1400px; max-width: 100%;">
                 <div id="canvasWrapper" style="display: inline-block; width: 100%; transition: width 0.2s ease;">
                     <canvas id="mapCanvas"
                         style="display: block; width: 100%; touch-action: none; cursor: crosshair;"></canvas>
@@ -190,7 +190,7 @@
             <input type="hidden" name="map_drawing" id="map_drawing_input"
                 value="{{ saved_data.get('map_drawing', '') }}">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                <p style="color: #64748b; font-size: 13px; margin: 0;">{% if is_ar %}(يمكنك التكبير بالأزرار أعلاه والتراجع عن الرسم step-by-step){% else %}(Use zoom buttons above to adjust view and draw step-by-step){% endif %}</p>
+                <p style="color: var(--text-primary); font-size: 13px; margin: 0;">{% if is_ar %}(يمكنك التكبير بالأزرار أعلاه والتراجع عن الرسم step-by-step){% else %}(Use zoom buttons above to adjust view and draw step-by-step){% endif %}</p>
                 {% if saved_data.get('map_drawing') %}
                 <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px;">✅ {% if is_ar %}تم تحديد الرسم{% else %}Drawing Saved{% endif %}</span>
                 {% else %}
@@ -199,7 +199,7 @@
             </div>
             {% else %}
             <div
-                style="padding: 15px; background: #fff3cd; color: #856404; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
+                style="padding: 15px; background: var(--surface-glass); color: #856404; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
                 ⚠️ {% if is_ar %}تم تفعيل الخريطة لهذه اللعبة، لكن لم يتم رفع صورة الخريطة الأساسية بعد.{% else %}Map is enabled for this game, but no base map image has been uploaded yet.{% endif %}
             </div>
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="">
@@ -254,12 +254,12 @@
             <div class="section-header">📸 {% if is_ar %}صور الأعطال والتلفيات{% else %}Attach Photos{% endif %} {% if game.requires_photo %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <div
-                style="background: #f8fafc; padding: 16px; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center;">
+                style="background: var(--surface-glass); padding: 16px; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center;">
                 <input type="file" name="issue_photos" accept="image/*" multiple id="photoInput"
                     style="width: 100%; font-size: 14px;" {% if game.requires_photo and not saved_data.get('photos')
                     %}required{% endif %}>
             </div>
-            <p style="color: #64748b; font-size: 13px; margin-top: 6px;">{% if is_ar %}يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار أكثر من صورة.{% else %}You can capture photos directly using your camera or choose multiple images.{% endif %}</p>
+            <p style="color: var(--text-primary); font-size: 13px; margin-top: 6px;">{% if is_ar %}يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار أكثر من صورة.{% else %}You can capture photos directly using your camera or choose multiple images.{% endif %}</p>
             {% endif %}
 
             <!-- Sticky Footer Bar -->
@@ -286,8 +286,8 @@
 
     <script>
         function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            document.documentElement.classList.toggle('dark-mode');
+            const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>

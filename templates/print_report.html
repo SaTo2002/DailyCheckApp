@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if is_ar %}تقرير فحص{% else %}Inspection Report{% endif %} - {{ report.area_id }}</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #000; background: #fff; margin: 0; padding: 20px; text-align: start; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-primary); background: var(--surface-glass); margin: 0; padding: 20px; text-align: start; }
         .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
         .info-box { border: 1px solid #000; padding: 10px; margin-bottom: 20px; border-radius: 5px; }
-        .game-section { border: 1px solid #ccc; padding: 15px; margin-bottom: 20px; border-radius: 5px; page-break-inside: avoid; }
-        .game-title { color: #000; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-top: 0; }
+        .game-section { border: 1px solid var(--surface-border); padding: 15px; margin-bottom: 20px; border-radius: 5px; page-break-inside: avoid; }
+        .game-title { color: var(--text-primary); border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-top: 0; }
         .check-item { display: inline-block; width: 45%; margin-bottom: 8px; font-weight: bold; }
         .notes-box { border: 1px solid #000; padding: 10px; margin-top: 10px; background: #f9f9f9; white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; unicode-bidi: isolate; }
         .map-container { position: relative; width: 100%; max-width: 400px; aspect-ratio: 2/1; border: 1px solid #000; margin-top: 10px; overflow: hidden; }
@@ -37,7 +37,7 @@
     <script>
         if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            document.body.classList.add('dark-mode');
+            
         }
     </script>
 </head>
@@ -126,8 +126,8 @@
 
     <script>
         function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            document.documentElement.classList.toggle('dark-mode');
+            const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>

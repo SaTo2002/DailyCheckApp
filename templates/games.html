@@ -17,9 +17,9 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #f1f5f9;
-            color: #334155;
-            border: 1px solid #cbd5e1;
+            background: var(--surface-glass);
+            color: var(--text-primary);
+            border: 1px solid var(--surface-border);
             padding: 6px 14px;
             border-radius: 20px;
             text-decoration: none;
@@ -39,7 +39,7 @@
     <script>
         if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            document.body.classList.add('dark-mode');
+            
         }
     </script>
 </head>
@@ -67,11 +67,11 @@
     <div class="monitor-container" style="margin-top: 10px;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <span style="background: #e2e8f0; color: #475569; padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+            <span style="background: var(--input-bg); color: var(--text-primary); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
                 {% if is_ar %}الموظف الحالي:{% else %}Current Inspector:{% endif %} {{ monitor_name }}
             </span>
             <h1 class="monitor-title" style="margin-top: 15px; margin-bottom: 5px;">
-                {% if is_ar %}منطقة:{% else %}Area:{% endif %} <span style="color: #0d6efd;">{{ area_name }}</span>
+                {% if is_ar %}منطقة:{% else %}Area:{% endif %} <span style="color: var(--brand-blue);">{{ area_name }}</span>
             </h1>
         </div>
 
@@ -82,7 +82,7 @@
 
         <!-- Progress Bar -->
         <div style="margin-bottom: 25px;">
-            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #475569;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">
                 <span>{% if is_ar %}نسبة الفحص المكتمل:{% else %}Inspection Progress:{% endif %}</span>
                 <span>{% if is_ar %}{{ completed_count }} من {{ total_games }} ({{ percent }}%){% else %}{{ completed_count }} of {{ total_games }} ({{ percent }}%){% endif %}</span>
             </div>
@@ -143,8 +143,8 @@
 
     <script>
         function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            document.documentElement.classList.toggle('dark-mode');
+            const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>

@@ -32,7 +32,7 @@
     --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-body.dark-mode {
+html.dark-mode body {
     /* Dark Mode Variables */
     --bg-main: #0a0e14;
     --bg-gradient: linear-gradient(135deg, #0a0e14 0%, #151a24 100%);
@@ -65,6 +65,18 @@ body {
     transition: background var(--transition-smooth), color var(--transition-smooth);
     position: relative;
     overflow-x: hidden;
+}
+
+/* Inputs & Placeholders */
+input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    background-color: var(--input-bg) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--input-border);
+}
+
+::placeholder {
+    color: var(--text-secondary) !important;
+    opacity: 0.8;
 }
 
 /* Ambient Blobs for Glassmorphism pop */

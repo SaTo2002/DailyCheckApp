@@ -11,10 +11,10 @@
     --danger: #dc3545;
     --danger-hover: #bb2d3b;
     --warning: #ffc107;
-    --bg-color: #f4f6f9;
-    --card-bg: #ffffff;
-    --text-color: #212529;
-    --text-muted: #6c757d;
+    --bg-color: var(--bg-main, #f4f6f9);
+    --card-bg: var(--surface-glass, #ffffff);
+    --text-color: var(--text-primary, #212529);
+    --text-muted: var(--text-secondary, #6c757d);
     --border-radius: 12px;
     --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
@@ -33,17 +33,21 @@ body {
 .monitor-container {
     max-width: 600px;
     margin: 10px auto;
-    background: var(--card-bg);
+    background: var(--surface-glass, rgba(255, 255, 255, 0.6));
+    backdrop-filter: var(--glass-blur, blur(16px));
+    -webkit-backdrop-filter: var(--glass-blur, blur(16px));
+    border: 1px solid var(--surface-border, rgba(255, 255, 255, 0.4));
+    border-top: 4px solid var(--brand-blue, #1fa2e0);
     padding: 24px;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius-lg, 20px);
+    box-shadow: var(--glass-shadow, 0 8px 32px 0 rgba(31, 38, 135, 0.07));
 }
 
 /* 3. العناوين والنصوص المساعدة */
 .monitor-title {
     font-size: 22px;
     font-weight: 700;
-    color: #1a252f;
+    color: var(--text-primary);
     margin-bottom: 20px;
     text-align: center;
 }
@@ -59,27 +63,27 @@ body {
 .form-label {
     display: block;
     font-size: 15px;
-    font-weight: 600;
-    margin-bottom: 8px;
-    text-align: start;
-    color: #34495e;
+    font-weight: 800;
+    margin-bottom: 5px;
+    color: var(--text-primary);
 }
 
 .touch-input, .touch-select {
     width: 100%;
     padding: 14px 16px;
     margin-bottom: 20px;
-    border: 2px solid #e2e8f0;
+    border: 2px solid var(--input-border, #e2e8f0);
     border-radius: 10px;
     font-size: 16px;
-    background-color: #f8fafc;
+    background-color: var(--input-bg, #f8fafc);
+    color: var(--text-primary, #333);
     box-sizing: border-box;
     transition: all 0.2s ease;
 }
 
 .touch-input:focus, .touch-select:focus {
-    border-color: var(--primary);
-    background-color: #fff;
+    border-color: var(--brand-blue, var(--primary));
+    background-color: var(--surface-glass, #fff);
     outline: none;
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
 }
@@ -107,10 +111,10 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    padding: 14px;
-    background-color: #f1f5f9;
-    border: 2px solid #cbd5e1;
+    padding: 18px 10px;
+    background-color: var(--input-bg, #f1f5f9);
+    border: 2px solid var(--input-border, #cbd5e1);
+    color: var(--text-primary);
     border-radius: 10px;
     font-size: 16px;
     font-weight: 600;
@@ -120,21 +124,20 @@ body {
     user-select: none;
 }
 
-/* تفاعل الأزرار باللون الأخضر (سليم) والأحمر (عطل) عند التحديد */
-.pill-option input[value="سليم"]:checked + .pill-label,
-.pill-option input[value="OK"]:checked + .pill-label {
-    background-color: #d1e7dd;
-    border-color: #0f5132;
-    color: #0f5132;
-    box-shadow: 0 4px 10px rgba(25, 135, 84, 0.2);
+/* Checked State - OK */
+.pill-option input[type="radio"][value="OK"]:checked + .pill-label,
+.pill-option input[type="radio"][value="سليم"]:checked + .pill-label {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: var(--success);
+    color: var(--success);
 }
 
-.pill-option input[value="تالف/يوجد مشكلة"]:checked + .pill-label,
-.pill-option input[value="NOK"]:checked + .pill-label {
-    background-color: #f8d7da;
-    border-color: #842029;
-    color: #842029;
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+/* Checked State - NOK */
+.pill-option input[type="radio"][value="NOK"]:checked + .pill-label,
+.pill-option input[type="radio"][value="تالف/يوجد مشكلة"]:checked + .pill-label {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: var(--danger);
+    color: var(--danger);
 }
 
 /* 6. تصميم كروت الألعاب في قائمة الفحص */
@@ -157,15 +160,19 @@ body {
 }
 
 .game-pending {
-    background: linear-gradient(135deg, #0d6efd, #0b5ed7);
-    color: white;
-    box-shadow: 0 4px 12px rgba(13, 110, 253, 0.25);
+    background: rgba(31, 162, 224, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--brand-blue);
+    color: var(--brand-blue);
+    box-shadow: 0 4px 12px rgba(31, 162, 224, 0.2);
 }
 
 .game-completed {
-    background: linear-gradient(135deg, #198754, #146c43);
-    color: white;
-    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.25);
+    background: rgba(40, 167, 69, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--success);
+    color: var(--success);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
 }
 
 /* 7. الشريط الإجرائي الثابت بأسفل الشاشة على الهاتف (Sticky Footer Bar) */

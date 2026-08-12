@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if is_ar %}إدارة المناطق - جرافيتي كود{% else %}Manage Areas - Daily Check{% endif %}</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--surface-glass); margin: 0; padding: 20px; color: var(--text-primary); }
         .container { max-width: 800px; margin: 0 auto; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
-        .card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #28a745; }
-        h2, h3 { color: #2c3e50; margin-top: 0; }
-        input[type="text"] { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .card { background: var(--surface-glass); padding: 25px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; border-top: 5px solid #28a745; }
+        h2, h3 { color: var(--text-primary); margin-top: 0; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--surface-border); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
         .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 15px; font-weight: bold; text-decoration: none; display: inline-block; transition: 0.3s; }
         .btn-success { background: #28a745; color: white; }
         .btn-success:hover { background: #218838; }
         .btn-secondary { background: #6c757d; color: white; }
         .btn-primary { background: #007bff; color: white; }
         .list-group { list-style: none; padding: 0; margin: 0; }
-        .list-group li { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: #fafafa; margin-bottom: 8px; border-radius: 5px; flex-wrap: wrap; gap: 10px; }
+        .list-group li { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; background: var(--surface-glass); margin-bottom: 8px; border-radius: 5px; flex-wrap: wrap; gap: 10px; }
         .header h2 { margin: 0; font-size: 22px; }
         .actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .actions .btn { width: auto; flex: 1; text-align: center; }
@@ -40,7 +40,7 @@
     <script>
         if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            document.body.classList.add('dark-mode');
+            
         }
     </script>
 </head>
@@ -59,9 +59,9 @@
             <h2>📍 {% if is_ar %}إدارة مناطق الفحص{% else %}Manage Inspection Areas{% endif %}</h2>
             <div style="display: flex; gap: 8px; align-items: center;">
                 {% if is_ar %}
-                <a href="/set_language/en" class="btn btn-secondary" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 English</a>
+                <a href="/set_language/en" class="btn btn-secondary" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 English</a>
                 {% else %}
-                <a href="/set_language/ar" class="btn btn-secondary" style="background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1;">🌐 العربية</a>
+                <a href="/set_language/ar" class="btn btn-secondary" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 العربية</a>
                 {% endif %}
                 <a href="/dashboard" class="btn btn-secondary">🔙 {% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
             </div>
@@ -74,16 +74,16 @@
                 <input type="text" name="area_name" placeholder="{% if is_ar %}اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)...{% else %}Type area name (e.g. Main Trampoline Area)...{% endif %}" required style="width: 100%;">
                 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-weight: bold; font-size: 14px; color: #475569;">📄 {% if is_ar %}اتجاه طباعة تقرير المنطقة (PDF & Excel):{% else %}PDF & Excel Print Orientation:{% endif %}</label>
-                    <select name="pdf_orientation" style="padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #f8fafc; font-weight: bold;">
+                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">📄 {% if is_ar %}اتجاه طباعة تقرير المنطقة (PDF & Excel):{% else %}PDF & Excel Print Orientation:{% endif %}</label>
+                    <select name="pdf_orientation" style="padding: 10px; border: 1px solid var(--surface-border); border-radius: 6px; cursor: pointer; background: var(--surface-glass); font-weight: bold;">
                         <option value="portrait">📱 {% if is_ar %}طولي (Portrait){% else %}Portrait{% endif %}</option>
                         <option value="landscape">🖥️ {% if is_ar %}عرضي (Landscape){% else %}Landscape{% endif %}</option>
                     </select>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-weight: bold; font-size: 14px; color: #475569;">🖼️ {% if is_ar %}صورة غلاف المنطقة:{% else %}Area Cover Image:{% endif %}</label>
-                    <input type="file" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: #f8fafc;">
+                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">🖼️ {% if is_ar %}صورة غلاف المنطقة:{% else %}Area Cover Image:{% endif %}</label>
+                    <input type="file" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid var(--surface-border); border-radius: 6px; cursor: pointer; background: var(--surface-glass);">
                 </div>
                 <button type="submit" class="btn btn-success" style="align-self: flex-start;">{% if is_ar %}حفظ المنطقة{% else %}Save Area{% endif %}</button>
             </form>
@@ -97,20 +97,20 @@
             <form action="/update_areas_order" method="POST">
                 <ul class="list-group" id="areasOrderList" style="margin-top: 15px;">
                     {% for area in areas %}
-                    <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid #cbd5e1; margin-bottom: 8px; border-radius: 8px; background: #fff; cursor: grab; transition: background 0.2s;">
+                    <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid var(--surface-border); margin-bottom: 8px; border-radius: 8px; background: var(--surface-glass); cursor: grab; transition: background 0.2s;">
                         <input type="hidden" name="area_ids[]" value="{{ area.id }}">
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <span style="cursor: grab; font-size: 20px; color: #94a3b8; user-select: none;" title="Drag from here">☰</span>
-                            <span class="area-index" style="background: #e2e8f0; color: #334155; font-weight: bold; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px;">{{ loop.index }}</span>
-                            <strong style="font-size: 18px; color: #333;">{{ area.name }}</strong>
+                            <span class="area-index" style="background: var(--input-bg); color: var(--text-primary); font-weight: bold; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 14px;">{{ loop.index }}</span>
+                            <strong style="font-size: 18px; color: var(--text-primary);">{{ area.name }}</strong>
                             <span style="background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;">
                                 {% if area.pdf_orientation == 'landscape' %}🖥️ Landscape{% else %}📱 Portrait{% endif %}
                             </span>
                             <span style="color: #666; font-size: 14px; margin-right: 10px;">({% if is_ar %}{{ area.games|length }} ألعاب مسجلة{% else %}{{ area.games|length }} games registered{% endif %})</span>
                         </div>
                         <div class="actions">
-                            <button type="button" onclick="moveUp(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Up">⬆️</button>
-                            <button type="button" onclick="moveDown(this)" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Down">⬇️</button>
+                            <button type="button" onclick="moveUp(this)" style="background: var(--surface-glass); border: 1px solid var(--surface-border); border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Up">⬆️</button>
+                            <button type="button" onclick="moveDown(this)" style="background: var(--surface-glass); border: 1px solid var(--surface-border); border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Down">⬇️</button>
                             
                             {% if session.get('can_manage_games') or session.get('can_manage_areas') or session.get('is_master_admin') %}
                             <a href="/area_games/{{ area.id }}" class="btn btn-primary" style="margin-right: 8px;">🎮 {% if is_ar %}إدارة الألعاب{% else %}Manage Games{% endif %}</a>
@@ -204,8 +204,8 @@
 
     <script>
         function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            document.documentElement.classList.toggle('dark-mode');
+            const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
