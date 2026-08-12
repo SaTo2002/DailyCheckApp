@@ -18,3 +18,4 @@ werkzeug
 # --- Windows PDF Export (win32com) ---
 # Required for PDF generation on Windows via MS Excel. Ignored on Linux.
 pywin32; sys_platform == 'win32'
+

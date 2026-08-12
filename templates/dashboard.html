@@ -123,6 +123,7 @@
             {% endif %}
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
                 <a href="/manage_users" class="btn-filter" style="background: #28a745; color: white;">👥 {% if is_ar %}إدارة الحسابات{% else %}User Accounts{% endif %}</a>
+                <a href="/manage_emails" class="btn-filter" style="background: #17a2b8; color: white;">📧 {% if is_ar %}القائمة البريدية{% else %}Email List{% endif %}</a>
             {% endif %}
             <a href="/admin_logout" class="btn-filter" style="background: #dc3545; color: white;">{% if is_ar %}خروج 🔒{% else %}Logout 🔒{% endif %}</a>
         </div>

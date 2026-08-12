@@ -76,3 +76,13 @@ class GameReport(db.Model):
     pdf_file_path = db.Column(db.String(255), nullable=True)           # المسار المخزن المباشر لملف الـ PDF المتولد
     timestamp = db.Column(db.DateTime, default=db.func.now())           # تاريخ ووقت حفظ التقرير
 
+# ------------------------------------------------------------------------------
+# 5. جدول مستلمي الإيميلات (EmailReceiver)
+# ------------------------------------------------------------------------------
+class EmailReceiver(db.Model):
+    __tablename__ = 'email_receivers'
+    
+    id = db.Column(db.Integer, primary_key=True)                        # المعرف
+    name = db.Column(db.String(100), nullable=False)                    # اسم الشخص أو منصبه (مثال: مدير الفرع)
+    email = db.Column(db.String(150), unique=True, nullable=False)      # الإيميل
+    is_active = db.Column(db.Boolean, default=True)                     # مفعل أو معطل

@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from werkzeug.security import check_password_hash
 from sqlalchemy import func
 from extensions import db, MASTER_ADMIN_HASH
-from models import User, GameModel, GameReport
+from models import User, GameModel, GameReport, EmailReceiver
 
 # إنشاء Blueprint للإدارة والداشبورد
 admin_bp = Blueprint('admin', __name__)
@@ -312,3 +312,45 @@ def delete_report(session_id):
 
     db.session.commit()
     return redirect(url_for('admin.dashboard'))
+
+# ------------------------------------------------------------------------------
+# 6. إدارة القائمة البريدية (Email Receivers)
+# ------------------------------------------------------------------------------
+@admin_bp.route('/manage_emails')
+def manage_emails():
+    if not session.get('is_admin') or not session.get('can_manage_system'):
+        return redirect(url_for('admin.dashboard'))
+    receivers = EmailReceiver.query.all()
+    return render_template('manage_emails.html', receivers=receivers)
+
+@admin_bp.route('/add_email', methods=['POST'])
+def add_email():
+    if not session.get('is_admin') or not session.get('can_manage_system'):
+        return redirect(url_for('admin.dashboard'))
+    name = request.form.get('name')
+    email = request.form.get('email')
+    if name and email:
+        new_rcv = EmailReceiver(name=name, email=email)
+        db.session.add(new_rcv)
+        db.session.commit()
+    return redirect(url_for('admin.manage_emails'))
+
+@admin_bp.route('/toggle_email/<int:rcv_id>')
+def toggle_email(rcv_id):
+    if not session.get('is_admin') or not session.get('can_manage_system'):
+        return redirect(url_for('admin.dashboard'))
+    rcv = EmailReceiver.query.get(rcv_id)
+    if rcv:
+        rcv.is_active = not rcv.is_active
+        db.session.commit()
+    return redirect(url_for('admin.manage_emails'))
+
+@admin_bp.route('/delete_email/<int:rcv_id>', methods=['POST'])
+def delete_email(rcv_id):
+    if not session.get('is_admin') or not session.get('can_manage_system'):
+        return redirect(url_for('admin.dashboard'))
+    rcv = EmailReceiver.query.get(rcv_id)
+    if rcv:
+        db.session.delete(rcv)
+        db.session.commit()
+    return redirect(url_for('admin.manage_emails'))

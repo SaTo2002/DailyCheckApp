@@ -174,12 +174,27 @@ def generate_report_excel_and_pdf(session_id):
     if pdf_generated and os.path.exists(pdf_path):
         try:
             from extensions import db
-            from models import GameReport
+            from models import GameReport, EmailReceiver
             GameReport.query.filter_by(session_id=session_id).update({'pdf_file_path': pdf_path})
             db.session.commit()
             print(f"[DB] Saved pdf_file_path '{pdf_path}' for session {session_id}")
+            
+            # --- Email Integration (Attachment) ---
+            from utils_mail import send_notification_emails
+            
+            receivers = [r.email for r in EmailReceiver.query.filter_by(is_active=True).all()]
+            if receivers:
+                print(f"Sending emails with PDF attachment to {len(receivers)} receivers...")
+                success = send_notification_emails(pdf_path, area_name, date_str, receivers)
+                if success:
+                    print("Emails sent successfully!")
+                else:
+                    print("Failed to send emails.")
+            else:
+                print("No active email receivers found. Skipping email.")
+
         except Exception as db_err:
-            print(f"[DB Error] Could not save pdf_file_path: {db_err}")
+            print(f"[Error in post-PDF process]: {db_err}")
 
     # تنظيف المجلد المؤقت بالكامل (يشمل الـ xlsx وأي ملفات مؤقتة أخرى)
     shutil.rmtree(temp_dir, ignore_errors=True)
