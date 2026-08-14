@@ -150,21 +150,26 @@
         }
 
         .btn-save {
-            background: var(--primary-color);
-            color: white;
-            border: none;
+            background: linear-gradient(135deg, rgba(25, 135, 84, 0.1), rgba(25, 135, 84, 0.2));
+            color: var(--text-primary, #fff);
+            border: 2px solid var(--success, #198754);
             padding: 14px 20px;
-            border-radius: 8px;
+            border-radius: 12px;
             font-size: 18px;
             font-weight: bold;
             cursor: pointer;
             width: 100%;
             margin-top: 20px;
-            transition: background 0.3s ease;
+            box-shadow: 0 0 15px rgba(25, 135, 84, 0.4);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
         }
 
         .btn-save:hover {
-            background: var(--primary-hover);
+            background: var(--success, #198754);
+            color: #fff;
+            box-shadow: 0 0 25px rgba(25, 135, 84, 0.6);
+            transform: translateY(-2px);
         }
 
         .inline-flex {
