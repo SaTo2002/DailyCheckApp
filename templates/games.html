@@ -1,8 +1,6 @@
 <!-- ==============================================================================
-  صفحة ألعاب المنطقة للمونيتور (games.html)
-  تعرض قائمة الألعاب بالترتيب، نسبة التقدم في الفحص، وزر إرسال التقرير النهائي
+  صفحة ألعاب المنطقة للمونيتور (games.html) - Collaborative Edition
 ============================================================================== -->
-<!DOCTYPE html>
 <!DOCTYPE html>
 <html dir="{{ dir_attr }}" lang="{{ html_lang }}">
 
@@ -27,19 +25,25 @@
             font-weight: bold;
             transition: all 0.2s ease;
         }
+
         .lang-switch-btn:hover {
             background: #0d6efd;
             color: white;
             border-color: #0d6efd;
+        }
+
+        .game-locked {
+            background: rgba(253, 126, 20, 0.1) !important;
+            border-color: var(--brand-orange) !important;
+            color: var(--brand-orange) !important;
         }
     </style>
 
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <script>
-        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            
         }
     </script>
 </head>
@@ -54,7 +58,6 @@
         🌓
     </div>
 
-
     <!-- Language Switcher Bar -->
     <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
         {% if is_ar %}
@@ -67,13 +70,24 @@
     <div class="monitor-container" style="margin-top: 10px;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <span style="background: var(--input-bg); color: var(--text-primary); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
+            <span
+                style="background: var(--input-bg); color: var(--text-primary); padding: 6px 14px; border-radius: 20px; font-size: 14px; font-weight: 600;">
                 {% if is_ar %}الموظف الحالي:{% else %}Current Inspector:{% endif %} {{ monitor_name }}
             </span>
             <h1 class="monitor-title" style="margin-top: 15px; margin-bottom: 5px;">
-                {% if is_ar %}منطقة:{% else %}Area:{% endif %} <span style="color: var(--brand-blue);">{{ area_name }}</span>
+                {% if is_ar %}منطقة:{% else %}Area:{% endif %} <span style="color: var(--brand-blue);">{{ area_name
+                    }}</span>
             </h1>
         </div>
+
+        <!-- Active Inspectors Banner -->
+        {% if active_inspectors and active_inspectors|length > 0 %}
+        <div
+            style="background: rgba(13, 110, 253, 0.1); color: var(--brand-blue); padding: 12px; border-radius: 12px; margin-bottom: 20px; font-weight: bold; border: 1px solid rgba(13, 110, 253, 0.3); text-align: center; font-size: 14px;">
+            👥 {% if is_ar %}المفتشون بالداخل الآن:{% else %}Active Inspectors:{% endif %}
+            {{ active_inspectors | join('، ') }}
+        </div>
+        {% endif %}
 
         <!-- 1. Progress Calculation -->
         {% set completed_count = completed_games|length %}
@@ -82,9 +96,11 @@
 
         <!-- Progress Bar -->
         <div style="margin-bottom: 25px;">
-            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">
-                <span>{% if is_ar %}نسبة الفحص المكتمل:{% else %}Inspection Progress:{% endif %}</span>
-                <span>{% if is_ar %}{{ completed_count }} من {{ total_games }} ({{ percent }}%){% else %}{{ completed_count }} of {{ total_games }} ({{ percent }}%){% endif %}</span>
+            <div
+                style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary);">
+                <span>{% if is_ar %}نسبة الفحص المشتركة:{% else %}Shared Progress:{% endif %}</span>
+                <span>{% if is_ar %}{{ completed_count }} من {{ total_games }} ({{ percent }}%){% else %}{{
+                    completed_count }} of {{ total_games }} ({{ percent }}%){% endif %}</span>
             </div>
             <div class="progress-bar-container">
                 <div class="progress-bar-fill" style="--percent: {{ percent }}%;"></div>
@@ -94,11 +110,20 @@
         <!-- 2. Games List -->
         <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 30px;">
             {% for game in games %}
-            {% if game.id|string in completed_games %}
+            {% set game_id_str = game.id|string %}
+            {% if game_id_str in completed_games %}
             <!-- Completed Game -->
             <a href="/check/{{ game.id }}" class="game-card-link game-completed">
                 <span>{{ game.name }}</span>
                 <span>✅ {% if is_ar %}تم الفحص{% else %}Checked{% endif %}</span>
+            </a>
+            {% elif game_id_str in game_locks and game_locks[game_id_str] != monitor_name %}
+            <!-- Locked Game (Being checked by someone else) -->
+            <a href="/check/{{ game.id }}?override=1"
+                onclick="return confirmLink(event, this, '{% if is_ar %}⚠️ كسر القفل{% else %}Override Lock{% endif %}', '{% if is_ar %}هذه اللعبة يتم فحصها حالياً بواسطة {{ game_locks[game_id_str] }}.\n\nهل حدثت مشكلة بجهازه وتريد كسر القفل والدخول بدلاً منه؟{% else %}This game is currently being checked by {{ game_locks[game_id_str] }}.\n\nDo you want to override the lock and enter instead?{% endif %}');"
+                class="game-card-link game-locked">
+                <span>{{ game.name }}</span>
+                <span>⏳ {% if is_ar %}يُفحص بواسطة{% else %}By{% endif %} {{ game_locks[game_id_str] }}</span>
             </a>
             {% else %}
             <!-- Pending Game -->
@@ -110,43 +135,85 @@
             {% endfor %}
         </div>
 
-        <!-- 3. Submit Area Report -->
+
+        <!-- 3. Final Report Submission (For Main Inspector only) -->
         <div style="text-align: center; margin-top: 25px;">
             {% if all_completed %}
-            <form action="/submit_report" method="POST" onsubmit="const btn=this.querySelector('button'); setTimeout(() => { btn.disabled=true; }, 50); btn.innerHTML='⚡ {% if is_ar %}جاري الحفظ...{% else %}Saving Report...{% endif %}';">
-                <button type="submit" class="btn-touch btn-success-touch" style="width: 100%; font-size: 18px; padding: 16px; cursor: pointer;">
-                    {% if is_ar %}إرسال تقرير المنطقة بالكامل 🚀{% else %}Submit Complete Area Report 🚀{% endif %}
+            <form action="/submit_report" method="POST"
+                onsubmit="const btn=this.querySelector('button'); setTimeout(() => { btn.disabled=true; }, 50); btn.innerHTML='⚡ {% if is_ar %}جاري الإرسال...{% else %}Sending Report...{% endif %}';">
+                <button type="submit" class="btn-touch btn-success-touch"
+                    style="width: 100%; font-size: 18px; padding: 16px; cursor: pointer;">
+                    {% if is_ar %}إرسال التقرير النهائي 🚀{% else %}Submit Final Report 🚀{% endif %}
                 </button>
             </form>
             {% else %}
-            <button disabled class="btn-touch btn-secondary-touch" style="width: 100%; opacity: 0.6; cursor: not-allowed;">
-                {% if is_ar %}إرسال تقرير المنطقة بالكامل 🚀{% else %}Submit Complete Area Report 🚀{% endif %}
+            <button disabled class="btn-touch btn-secondary-touch"
+                style="width: 100%; opacity: 0.6; cursor: not-allowed; padding: 16px;">
+                {% if is_ar %}إرسال التقرير النهائي 🚀{% else %}Submit Final Report 🚀{% endif %}
             </button>
-            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: bold;">{% if is_ar %}(يرجى فحص جميع الألعاب لتفعيل زر الإرسال){% else %}(Please check all games to enable submission button){% endif %}</p>
+            <p style="color: #dc3545; font-size: 13px; margin-top: 8px; font-weight: bold;">{% if is_ar %}(يظهر فقط عند
+                اكتمال فحص جميع الألعاب 100%){% else %}(Only active when 100% completed){% endif %}</p>
             {% endif %}
         </div>
 
         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 30px 0 20px 0;">
 
-        <!-- 4. Cancel & Logout -->
+        <!-- 4. Save Progress and Exit (For F.O and Lounge) -->
         <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="/cancel_area" onclick="return confirm('{% if is_ar %}⚠️ هل أنت متأكد من إلغاء فحص المنطقة بالكامل؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel the entire area inspection? Unsubmitted data will be lost!{% endif %}');" class="btn-touch btn-danger-touch" style="font-size: 15px;">
-                {% if is_ar %}إلغاء الفحص بالكامل 🗑️{% else %}Cancel Area Inspection 🗑️{% endif %}
+            <a href="/cancel_area" class="btn-touch"
+                style="background: var(--surface-glass); border: 2px solid var(--brand-blue); color: var(--text-primary); font-size: 16px; font-weight: bold; text-decoration: none; text-align: center; display: block;">
+                {% if is_ar %}حفظ تقدمي وإنهاء عملي 💾{% else %}Save Progress & Exit 💾{% endif %}
             </a>
 
-            <a href="/logout" onclick="return confirm('{% if is_ar %}هل أنت متأكد من تسجيل الخروج؟{% else %}Are you sure you want to logout?{% endif %}');" style="color: #6c757d; text-align: center; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px;">
-                {% if is_ar %}تسجيل الخروج (تغيير الموظف){% else %}Logout (Change Inspector){% endif %}
+            <a href="/logout"
+                style="color: #6c757d; text-align: center; text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px;">
+                {% if is_ar %}تسجيل الخروج تماماً{% else %}Logout Completely{% endif %}
             </a>
         </div>
     </div>
 
 
+    <script id="session-data" type="application/json">
+        {
+            "completed_count": {{ completed_count }},
+            "game_locks": {{ game_locks | tojson | safe }},
+            "active_inspectors": {{ active_inspectors | tojson | safe }},
+            "area_id": "{{ games[0].area_id if games|length > 0 else '' }}"
+        }
+    </script>
     <script>
         function toggleTheme() {
             document.documentElement.classList.toggle('dark-mode');
             const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
+
+        // Live Sync: Check for updates every 3 seconds
+        const sessionData = JSON.parse(document.getElementById('session-data').textContent);
+        let currentCompletedCount = sessionData.completed_count;
+        let currentGameLocks = sessionData.game_locks;
+        let currentActiveInspectors = sessionData.active_inspectors;
+        let realAreaId = sessionData.area_id;
+
+        if (realAreaId) {
+            setInterval(() => {
+                fetch('/api/session_status/' + realAreaId)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            if (data.completed_games.length !== currentCompletedCount ||
+                                JSON.stringify(data.game_locks) !== JSON.stringify(currentGameLocks) ||
+                                JSON.stringify(data.active_inspectors) !== JSON.stringify(currentActiveInspectors)) {
+                                window.location.reload();
+                            }
+                        }
+                    })
+                    .catch(e => console.log('Sync error:', e));
+            }, 3000);
+        }
     </script>
+    
+    {% include 'components/modal.html' %}
 </body>
+
 </html>

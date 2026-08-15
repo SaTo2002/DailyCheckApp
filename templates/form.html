@@ -139,7 +139,7 @@
                 {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: var(--success);">{{ game.name }}</span>
             </h1>
             {% if single_game_mode %}
-                <a href="/cancel_area" onclick="return confirm('{% if is_ar %}⚠️ هل أنت متأكد من إلغاء الفحص؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!{% endif %}');"
+                <a href="/cancel_area" onclick="return confirmLink(event, this, '{% if is_ar %}⚠️ تأكيد{% else %}Confirm{% endif %}', '{% if is_ar %}⚠️ هل أنت متأكد من إلغاء الفحص؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!{% endif %}');"
                     style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
             {% else %}
                 <a href="/games/{{ session.get('area_id') }}?cancel=1"
@@ -481,7 +481,7 @@
             if (isMapMandatory && mapInput) {
                 if (!mapInput.value || mapInput.value === '') {
                     e.preventDefault();
-                    alert('⚠️ يرجى تحديد موقع التلف أو المشكلة على الخريطة (هذا الحقل إجباري).');
+                    showModal('⚠️ {% if is_ar %}تنبيه{% else %}Alert{% endif %}', '{% if is_ar %}يرجى تحديد موقع التلف أو المشكلة على الخريطة (هذا الحقل إجباري).{% else %}Please specify the damage location on the map (this field is required).{% endif %}', [{text: '{% if is_ar %}حسناً{% else %}OK{% endif %}', type: 'primary'}]);
                 }
             }
         });
@@ -504,6 +504,8 @@
             });
         });
     </script>
+    
+    {% include 'components/modal.html' %}
 </body>
 
 </html>

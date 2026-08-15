@@ -4,6 +4,7 @@
 ============================================================================== -->
 <!DOCTYPE html>
 <html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,9 +14,9 @@
     <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
     <script>
-        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
-            
+
         }
     </script>
     <style>
@@ -26,7 +27,7 @@
             margin-bottom: 25px;
             margin-top: 15px;
         }
-        
+
         .area-card {
             position: relative;
             aspect-ratio: 1 / 1;
@@ -39,25 +40,25 @@
             background: var(--surface-glass, #edf2f7);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        
+
         .area-card:hover {
             transform: translateY(-2px);
             border-color: var(--brand-pink, #e4006c);
             box-shadow: 0 10px 15px -3px rgba(228, 0, 108, 0.3);
         }
-        
+
         .area-card.selected {
             border-color: var(--success, #48bb78);
             box-shadow: 0 10px 15px -3px rgba(52, 208, 88, 0.3), 0 4px 6px -2px rgba(52, 208, 88, 0.2);
         }
-        
+
         .area-card-img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
-        
+
         .area-card-label-wrapper {
             position: absolute;
             bottom: 12px;
@@ -67,7 +68,7 @@
             justify-content: center;
             padding: 0 10px;
         }
-        
+
         .area-card-label {
             background: var(--surface-glass, rgba(255, 255, 255, 0.35));
             backdrop-filter: blur(12px) saturate(180%);
@@ -88,7 +89,7 @@
             box-sizing: border-box;
             transition: all 0.25s ease;
         }
-        
+
         .area-card.selected .area-card-label {
             background: rgba(40, 167, 69, 0.7);
             border-color: var(--success);
@@ -110,21 +111,24 @@
             font-weight: bold;
             transition: all 0.2s ease;
         }
+
         .lang-switch-btn:hover {
             background: #0d6efd;
             color: white;
             border-color: #0d6efd;
         }
-        
+
         @media (max-width: 480px) {
             .area-grid {
                 grid-template-columns: repeat(2, 1fr);
                 gap: 12px;
             }
+
             .area-card {
                 border-width: 4px;
                 border-radius: 20px;
             }
+
             .area-card-label {
                 font-size: 12px;
                 padding: 6px 16px;
@@ -132,6 +136,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <!-- Ambient Blobs -->
@@ -139,7 +144,8 @@
     <div class="ambient-blob blob-pink"></div>
 
     <!-- Theme Toggle -->
-    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
+    <div class="theme-toggle-btn" onclick="toggleTheme()"
+        title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
         🌓
     </div>
 
@@ -153,21 +159,28 @@
     </div>
 
     <!-- Login Card -->
-    <div class="monitor-container glass-card" style="margin-top: 10px; padding: 24px; border-top: 4px solid var(--brand-blue);">
-        <h2 class="monitor-title" style="color: var(--brand-blue);">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else %}Daily Games Check System{% endif %}</h2>
-        <p class="sub-title" style="color: var(--text-secondary);">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها، ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{% endif %}</p>
-        
+    <div class="monitor-container glass-card"
+        style="margin-top: 10px; padding: 24px; border-top: 4px solid var(--brand-blue);">
+        <h2 class="monitor-title" style="color: var(--brand-blue);">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else
+            %}Daily Games Check System{% endif %}</h2>
+        <p class="sub-title" style="color: var(--text-secondary);">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها،
+            ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{%
+            endif %}</p>
+
         <!-- Form -->
         <form method="POST" id="loginForm">
             <!-- Area Grid -->
-            <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 {% if is_ar %}اختر المنطقة:{% else %}Select Area:{% endif %}</label>
+            <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 {% if is_ar %}اختر
+                المنطقة:{% else %}Select Area:{% endif %}</label>
             <div class="area-grid">
                 {% for area in areas %}
                 <div class="area-card" data-area-id="{{ area.id }}" onclick="selectArea(this)">
                     {% if area.image %}
                     <img src="{{ area.image }}" class="area-card-img" alt="{{ area.name }}">
                     {% else %}
-                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--input-bg); color: #94a3b8; font-size: 30px;">🗺️</div>
+                    <div
+                        style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--input-bg); color: #94a3b8; font-size: 30px;">
+                        🗺️</div>
                     {% endif %}
                     <div class="area-card-label-wrapper">
                         <div class="area-card-label">{{ area.name }}</div>
@@ -181,49 +194,101 @@
 
             <!-- Inspector Name Input -->
             <div id="nameInputSection">
-                <label class="form-label" style="color: var(--text-primary); font-weight: 700;">👤 {% if is_ar %}اسم الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
-                <input type="text" name="monitor_name" class="glass-input" style="padding: 15px;" required placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}" value="{{ session.get('monitor_name', '') }}">
+                <label class="form-label" style="color: var(--text-primary); font-weight: 700;">👤 {% if is_ar %}اسم
+                    الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
+                <input type="text" name="monitor_name" class="glass-input" style="padding: 15px;" required
+                    placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}"
+                    value="{{ session.get('monitor_name', '') }}">
             </div>
-            
+
             <!-- Submit Button -->
-            <button type="submit" class="btn-primary" style="width: 100%; font-size: 18px; margin-top: 20px; padding: 15px;">
+            <button type="submit" class="btn-primary"
+                style="width: 100%; font-size: 18px; margin-top: 20px; padding: 15px;">
                 🚀 {% if is_ar %}بدء الفحص{% else %}Start Check{% endif %}
             </button>
         </form>
 
         <!-- Admin Login Link -->
         <div style="margin-top: 30px; text-align: center;">
-            <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒 {% if is_ar %}دخول الإدارة والصيانة{% else %}Admin & Maintenance Login{% endif %}</a>
+            <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒
+                {% if is_ar %}دخول الإدارة والصيانة{% else %}Admin & Maintenance Login{% endif %}</a>
         </div>
     </div>
 
+    {% include 'components/modal.html' %}
     <script>
         function toggleTheme() {
             document.documentElement.classList.toggle('dark-mode');
             const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
-        
+
         function selectArea(cardElement) {
             document.querySelectorAll('.area-card').forEach(card => {
                 card.classList.remove('selected');
             });
-            
+
             cardElement.classList.add('selected');
-            
+
             const areaId = cardElement.getAttribute('data-area-id');
             document.getElementById('selected_area_input').value = areaId;
         }
+
 
         const form = document.getElementById('loginForm');
         form.addEventListener('submit', function (e) {
             const selectedArea = document.getElementById('selected_area_input').value;
             if (!selectedArea) {
                 e.preventDefault();
-                alert('⚠️ Please select an area first by clicking on its image.');
+                showModal('⚠️ {% if is_ar %}تنبيه{% else %}Alert{% endif %}', '{% if is_ar %}يرجى اختيار منطقة أولاً بالضغط على صورتها.{% else %}Please select an area first by clicking on its image.{% endif %}', [
+                    { text: '{% if is_ar %}حسناً{% else %}OK{% endif %}', type: 'primary' }
+                ]);
+                return;
             }
+
+            // Stop form from submitting immediately to check for active sessions
+            e.preventDefault();
+
+            fetch('/api/session_status/' + selectedArea)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'ok' && (data.active_inspectors.length > 0 || data.completed_games.length > 0)) {
+                        let inspectorsStr = data.active_inspectors.join(' و ');
+                        
+                        if (data.active_inspectors.length > 0) {
+                            let msg = `{% if is_ar %}يوجد فحص فعال حالياً لهذه المنطقة بواسطة (${inspectorsStr})\n\nهل تريد الانضمام للفحص الحالي؟{% else %}There is an active inspection by (${inspectorsStr})\n\nDo you want to join?{% endif %}`;
+                            showModal('👥 {% if is_ar %}جلسة نشطة{% else %}Active Session{% endif %}', msg, [
+                                { text: '{% if is_ar %}نعم، دخول{% else %}Yes, Join{% endif %}', type: 'success', onClick: () => form.submit() },
+                                { text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary' }
+                            ]);
+                        } else {
+                            let completedCount = data.completed_games.length;
+                            let msg = `{% if is_ar %}يوجد فحص سابق غير مكتمل لهذه المنطقة وتم حفظ بيانات (${completedCount}) لعبة بواسطة زملائك.\n\nماذا تريد أن تفعل؟{% else %}There is an incomplete inspection with (${completedCount}) saved games by colleagues.\n\nWhat do you want to do?{% endif %}`;
+                            
+                            showModal('⚠️ {% if is_ar %}تنبيه استكمال{% else %}Resume Alert{% endif %}', msg, [
+                                { text: '{% if is_ar %}استكمال معهم{% else %}Resume{% endif %}', type: 'success', onClick: () => form.submit() },
+                                { text: '{% if is_ar %}مسح الجلسة والبدء من الصفر{% else %}Reset completely{% endif %}', type: 'danger', onClick: () => {
+                                    let confirmMsg = `{% if is_ar %}أنت على وشك مسح شغل زملائك بالكامل ولن تتمكن من استرجاع البيانات! هل أنت متأكد؟{% else %}You are about to delete your colleagues' work! Are you sure?{% endif %}`;
+                                    showModal('❌ {% if is_ar %}تحذير نهائي{% else %}Final Warning{% endif %}', confirmMsg, [
+                                        { text: '{% if is_ar %}نعم، امسح كل شيء{% else %}Yes, Delete All{% endif %}', type: 'danger', onClick: () => {
+                                            form.action = '/reset_and_start';
+                                            form.submit();
+                                        }},
+                                        { text: '{% if is_ar %}تراجع عن المسح{% else %}Cancel Reset{% endif %}', type: 'primary' }
+                                    ]);
+                                }}
+                            ]);
+                        }
+                    } else {
+                        form.submit();
+                    }
+                })
+                .catch(err => {
+                    form.submit();
+                });
         });
     </script>
 
 </body>
+
 </html>

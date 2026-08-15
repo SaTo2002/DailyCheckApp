@@ -147,7 +147,7 @@
                         </form>
                     </td>
                     <td>
-                        <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirm('{% if is_ar %}تأكيد حذف هذا الحساب؟{% else %}Confirm deleting this account?{% endif %}');" style="margin: 0;">
+                        <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirmForm(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}تأكيد حذف هذا الحساب؟{% else %}Confirm deleting this account?{% endif %}');" style="margin: 0;">
                             <button type="submit" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">{% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}</button>
                         </form>
                     </td>
@@ -166,5 +166,7 @@
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
+    
+    {% include 'components/modal.html' %}
 </body>
 </html>

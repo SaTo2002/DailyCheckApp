@@ -353,10 +353,11 @@
             const originalArea = areaSelect.getAttribute('data-original-area');
             const currentArea = areaSelect.value;
             if (originalArea && currentArea && originalArea !== currentArea) {
-                const confirmMove = confirm("⚠️ تحذير: لقد قمت بتغيير المنطقة التابع لها هذه اللعبة. هل أنت متأكد من رغبتك في نقل اللعبة إلى منطقة جديدة؟");
-                if (!confirmMove) {
-                    e.preventDefault(); // إلغاء إرسال الفورم
-                }
+                e.preventDefault();
+                showModal('⚠️ {% if is_ar %}تنبيه نقل لعبة{% else %}Move Game Alert{% endif %}', '{% if is_ar %}لقد قمت بتغيير المنطقة التابع لها هذه اللعبة.\nهل أنت متأكد من رغبتك في نقل اللعبة إلى منطقة جديدة؟{% else %}You changed the area of this game.\nAre you sure you want to move it?{% endif %}', [
+                    {text: '{% if is_ar %}نعم، متأكد{% else %}Yes, Move{% endif %}', type: 'primary', onClick: () => { editForm.submit(); }},
+                    {text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary', onClick: () => { areaSelect.value = originalArea; }}
+                ]);
             }
         });
     }
@@ -370,5 +371,7 @@
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
+    
+    {% include 'components/modal.html' %}
 </body>
 </html>

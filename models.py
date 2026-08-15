@@ -86,3 +86,19 @@ class EmailReceiver(db.Model):
     name = db.Column(db.String(100), nullable=False)                    # اسم الشخص أو منصبه (مثال: مدير الفرع)
     email = db.Column(db.String(150), unique=True, nullable=False)      # الإيميل
     is_active = db.Column(db.Boolean, default=True)                     # مفعل أو معطل
+
+# ------------------------------------------------------------------------------
+# 6. الجلسة اليومية التعاونية (DailySession)
+# ------------------------------------------------------------------------------
+class DailySession(db.Model):
+    __tablename__ = 'daily_sessions'
+    
+    id = db.Column(db.Integer, primary_key=True)                        # معرف الجلسة
+    area_id = db.Column(db.String(50), nullable=False)                  # معرف المنطقة (كـ String لتوافق الكود الحالي)
+    date = db.Column(db.Date, default=db.func.current_date())           # تاريخ إنشاء الجلسة
+    status = db.Column(db.String(20), default='in_progress')            # حالة الجلسة (in_progress, completed, abandoned)
+    active_inspectors = db.Column(db.Text, default='[]')                # قائمة المفتشين المتواجدين (JSON)
+    game_data = db.Column(db.Text, default='{}')                        # داتا الألعاب المكتملة وحالتها (JSON)
+    game_locks = db.Column(db.Text, default='{}')                       # أقفال الألعاب لمنع التضارب (JSON)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())

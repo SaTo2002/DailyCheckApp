@@ -19,7 +19,15 @@ def generate_report_excel_and_pdf(session_id):
         return None, None
 
     area_name = reports[0].area_id
-    monitor_name = reports[0].monitor_name
+    
+    # حساب الشخص الذي قام بأكبر عدد من الفحوصات (قاعدة الأغلبية)
+    inspector_counts = {}
+    for r in reports:
+        inspector_counts[r.monitor_name] = inspector_counts.get(r.monitor_name, 0) + 1
+    
+    main_monitor_name = max(inspector_counts, key=inspector_counts.get) if inspector_counts else reports[0].monitor_name
+    monitor_name = main_monitor_name
+    
     ts = reports[0].timestamp
     date_str = ts.strftime('%Y-%m-%d')
     
@@ -45,8 +53,14 @@ def generate_report_excel_and_pdf(session_id):
                 
         game_checks[game_name] = checks_dict
                 
-        if r.notes and r.notes.strip():
-            game_notes[game_name] = r.notes.strip()
+        # إضافة اسم المفتش الفعلي للملاحظات إذا كان مختلفاً عن المفتش الرئيسي
+        final_notes = r.notes.strip() if r.notes else ""
+        if r.monitor_name != main_monitor_name:
+            inspector_note = f"تم الفحص بواسطة: {r.monitor_name}"
+            final_notes = f"{inspector_note} - {final_notes}" if final_notes else inspector_note
+            
+        if final_notes:
+            game_notes[game_name] = final_notes
             
         base_map_path = (game_model.map_image.lstrip('/') if game_model and game_model.map_image else "")
 
@@ -208,3 +222,12 @@ def json_loads(data):
         return json.loads(data)
     except Exception:
         return {}
+
+if __name__ == '__main__':
+    import sys
+    from app import app
+    if len(sys.argv) > 1:
+        session_id_arg = sys.argv[1]
+        with app.app_context():
+            generate_report_excel_and_pdf(session_id_arg)
+

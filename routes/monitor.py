@@ -10,8 +10,8 @@ import uuid
 import time
 from flask import Blueprint, render_template, request, session, redirect, url_for, current_app
 from extensions import db, UPLOAD_FOLDER
-from models import Area, GameModel, GameReport
-
+from models import Area, GameModel, GameReport, DailySession
+from datetime import date
 # إنشاء Blueprint للمراقب
 monitor_bp = Blueprint('monitor', __name__)
 
@@ -60,12 +60,25 @@ def home():
         session['monitor_name'] = request.form.get('monitor_name')
         selected_area = request.form.get('area')
         session['area_id'] = selected_area 
-        session['completed_games'] = []
-        session['game_data'] = {}
         return redirect(url_for('monitor.show_games', area_id=selected_area))
     
     areas = Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all()
     return render_template('index.html', areas=areas)
+
+@monitor_bp.route('/reset_and_start', methods=['POST'])
+def reset_and_start():
+    monitor_name = request.form.get('monitor_name')
+    selected_area = request.form.get('area')
+    
+    session['monitor_name'] = monitor_name
+    session['area_id'] = selected_area
+    
+    ds = DailySession.query.filter_by(area_id=str(selected_area), date=date.today(), status='in_progress').first()
+    if ds:
+        ds.status = 'abandoned'
+        db.session.commit()
+        
+    return redirect(url_for('monitor.show_games', area_id=selected_area))
 
 # ------------------------------------------------------------------------------
 # 1.5. تغيير لغة النظام (English / العربية)
@@ -83,20 +96,72 @@ def set_language(lang):
 @monitor_bp.route('/games/<area_id>')
 def show_games(area_id):
     if 'monitor_name' not in session: return redirect(url_for('monitor.home'))
+    monitor_name = session['monitor_name']
     area = Area.query.get(area_id)
     if not area: return "هذه المنطقة غير موجودة!"
     
-    # جلب الألعاب مرتبة حسب الترتيب المخصص ثم المعرف
+    # 1. إغلاق الجلسات المعلقة من الأيام السابقة لنفس المنطقة
+    old_sessions = DailySession.query.filter(
+        DailySession.area_id == str(area.id),
+        DailySession.status == 'in_progress',
+        DailySession.date < date.today()
+    ).all()
+    for osess in old_sessions:
+        osess.status = 'abandoned'
+    if old_sessions:
+        db.session.commit()
+        
+    # 2. البحث عن جلسة اليوم أو إنشاء واحدة جديدة
+    ds = DailySession.query.filter_by(
+        area_id=str(area.id), 
+        date=date.today(), 
+        status='in_progress'
+    ).first()
+    
+    if not ds:
+        ds = DailySession(area_id=str(area.id), date=date.today(), status='in_progress')
+        db.session.add(ds)
+        db.session.commit()
+        
+    # 3. تحديث قائمة المفتشين النشطين
+    try:
+        active_inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []
+    except Exception:
+        active_inspectors = []
+        
+    if monitor_name not in active_inspectors:
+        active_inspectors.append(monitor_name)
+        ds.active_inspectors = json.dumps(active_inspectors, ensure_ascii=False)
+        db.session.commit()
+
+    # 4. جلب الألعاب المكتملة والأقفال
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    try:
+        game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+        keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name]
+        if keys_to_delete:
+            for k in keys_to_delete:
+                del game_locks[k]
+            ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+            db.session.commit()
+    except Exception:
+        game_locks = {}
+
     games = GameModel.query.filter_by(area_id=area.id).order_by(GameModel.sort_order.asc(), GameModel.id.asc()).all()
-    completed = session.get('completed_games', [])
+    completed = list(game_data.keys())
     all_completed = len(games) > 0 and all(str(g.id) in completed for g in games)
     cancel_flag = request.args.get('cancel')
     
-    # تحسين تجربة المستخدم: لو المنطقة فيها لعبة واحدة بس ولسه ماتفحصتش، ندخله عليها دايركت
     if len(games) == 1 and not all_completed and not cancel_flag:
         return redirect(url_for('monitor.check_game', game_id=games[0].id))
         
-    return render_template('games.html', area_name=area.name, games=games, monitor_name=session['monitor_name'], completed_games=completed, all_completed=all_completed)
+    return render_template('games.html', area_name=area.name, games=games, monitor_name=monitor_name, 
+                           completed_games=completed, all_completed=all_completed,
+                           active_inspectors=active_inspectors, game_locks=game_locks, ds_id=ds.id)
 
 # ------------------------------------------------------------------------------
 # 3. صفحة فحص لعبة معينة (نموذج الأسئلة والخريطة والصور) (GET & POST)
@@ -143,31 +208,52 @@ def _process_map_drawing(map_drawing_data, game, old_map_path):
     return old_map_path if old_map_path else (game.map_image if game and game.map_image else '')
 @monitor_bp.route('/check/<game_id>', methods=['GET', 'POST'])
 def check_game(game_id):
+    if 'monitor_name' not in session: return redirect(url_for('monitor.home'))
+    monitor_name = session['monitor_name']
+    
     game = GameModel.query.get(game_id)
     if not game: return "هذه اللعبة غير موجودة في النظام!"
-    game_checks = json.loads(game.checks) if game.checks else []
-    # تحديد اللعبة التالية في الترتيب التلقائي
+    
     area_id = session.get('area_id')
+    if not area_id: return redirect(url_for('monitor.home'))
+    
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return redirect(url_for('monitor.show_games', area_id=area_id))
+    
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    game_checks = json.loads(game.checks) if game.checks else []
     next_game_id = _get_next_game_id(area_id, game_id)
-    saved_data = session.get('game_data', {}).get(game_id, {})
+    saved_data = game_data.get(str(game_id), {})
     
     area_games_count = GameModel.query.filter_by(area_id=area_id).count() if area_id else 0
     single_game_mode = (area_games_count == 1)
         
     if request.method == 'POST':
-        if 'completed_games' not in session: session['completed_games'] = []
-        if game_id not in session['completed_games']: session['completed_games'].append(game_id)
-        if 'game_data' not in session: session['game_data'] = {}
-            
         current_answers = {f'check_{i}': request.form.get(f'check_{i}') for i in range(1, len(game_checks) + 1)}
         current_answers['notes'] = request.form.get('notes', '')
-        current_answers['photos'] = session.get('game_data', {}).get(game_id, {}).get('photos', [])
+        current_answers['photos'] = saved_data.get('photos', [])
+        current_answers['inspector_name'] = monitor_name
         
-        old_map_path = session.get('game_data', {}).get(game_id, {}).get('map_drawing', '')
+        old_map_path = saved_data.get('map_drawing', '')
         current_answers['map_drawing'] = _process_map_drawing(request.form.get('map_drawing', ''), game, old_map_path)
 
-        session['game_data'][game_id] = current_answers
-        session.modified = True
+        game_data[str(game_id)] = current_answers
+        ds.game_data = json.dumps(game_data, ensure_ascii=False)
+        
+        try:
+            game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+        except Exception:
+            game_locks = {}
+            
+        if str(game_id) in game_locks:
+            del game_locks[str(game_id)]
+            ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+            
+        db.session.commit()
         
         user_action = request.form.get('action')
         if user_action == 'submit_report':
@@ -175,7 +261,27 @@ def check_game(game_id):
         elif user_action == 'next' and next_game_id: 
             return redirect(url_for('monitor.check_game', game_id=next_game_id))
         else: 
-            return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
+            return redirect(url_for('monitor.show_games', area_id=area_id))
+
+    # GET request - check and set lock
+    try:
+        game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+    except Exception:
+        game_locks = {}
+        
+    # Prevent entry if locked by someone else (Unless override is requested)
+    override = request.args.get('override')
+    if str(game_id) in game_locks and game_locks[str(game_id)] != monitor_name and override != '1':
+        return redirect(url_for('monitor.show_games', area_id=area_id))
+        
+    # Clear any existing locks for THIS user on OTHER games
+    keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name and k != str(game_id)]
+    for k in keys_to_delete:
+        del game_locks[k]
+        
+    game_locks[str(game_id)] = monitor_name
+    ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+    db.session.commit()
 
     return render_template('form.html', game=game, checks=game_checks, next_game_id=next_game_id, saved_data=saved_data, game_id=game_id, single_game_mode=single_game_mode)
 
@@ -185,11 +291,20 @@ def check_game(game_id):
 @monitor_bp.route('/upload_photo_ajax', methods=['POST'])
 def upload_photo_ajax():
     game_id = request.form.get('game_id')
+    area_id = session.get('area_id')
     uploaded_files = request.files.getlist('issue_photos')
     new_photos = []
-    if 'game_data' not in session: session['game_data'] = {}
-    if game_id not in session['game_data']: session['game_data'][game_id] = {}
-    if 'photos' not in session['game_data'][game_id]: session['game_data'][game_id]['photos'] = []
+    
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return {"status": "error", "message": "No active session"}, 400
+    
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    if str(game_id) not in game_data: game_data[str(game_id)] = {}
+    if 'photos' not in game_data[str(game_id)]: game_data[str(game_id)]['photos'] = []
 
     for file in uploaded_files:
         if file and file.filename != '':
@@ -208,8 +323,10 @@ def upload_photo_ajax():
                 
             photo_url = f"/{photo_filepath}".replace("\\", "/")
             new_photos.append(photo_url)
-            session['game_data'][game_id]['photos'].append(photo_url)
-    session.modified = True
+            game_data[str(game_id)]['photos'].append(photo_url)
+            
+    ds.game_data = json.dumps(game_data, ensure_ascii=False)
+    db.session.commit()
     return {"status": "success", "photos": new_photos}
 
 # ------------------------------------------------------------------------------
@@ -220,12 +337,23 @@ def delete_photo():
     data = request.json
     game_id = data.get('game_id')
     photo_url = data.get('photo_url')
-    if 'game_data' in session and game_id in session['game_data']:
-        photos = session['game_data'][game_id].get('photos', [])
+    area_id = session.get('area_id')
+    
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return {"status": "error", "message": "No active session"}, 400
+    
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    if str(game_id) in game_data:
+        photos = game_data[str(game_id)].get('photos', [])
         if photo_url in photos:
             photos.remove(photo_url)
-            session['game_data'][game_id]['photos'] = photos
-            session.modified = True
+            game_data[str(game_id)]['photos'] = photos
+            ds.game_data = json.dumps(game_data, ensure_ascii=False)
+            db.session.commit()
             if os.path.exists(photo_url.lstrip('/')): os.remove(photo_url.lstrip('/'))
             return {"status": "success"}
     return {"status": "error"}, 400
@@ -239,8 +367,16 @@ def submit_report():
     monitor_name, area_id = session['monitor_name'], session['area_id']
     area = Area.query.get(area_id)
     area_name = area.name if area else "منطقة غير معروفة"
-    completed_games = session.get('completed_games', [])
-    game_data = session.get('game_data', {})
+    
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return redirect(url_for('monitor.show_games', area_id=area_id))
+    
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    completed_games = list(game_data.keys())
     session_id = uuid.uuid4().hex
 
     # 1. جلب كافة ألعاب المنطقة لضمان تسجيل التقرير لجميع ألعاب المنطقة
@@ -249,18 +385,20 @@ def submit_report():
     # حفظ سجل تقرير فرعي لكل لعبة في المنطقة
     for gm in area_games:
         game_id_str = str(gm.id)
-        data = game_data.get(game_id_str, {}) or game_data.get(gm.id, {}) or game_data.get(gm.name, {})
+        data = game_data.get(game_id_str, {})
         checks = {k: v for k, v in data.items() if k.startswith('check_')}
+        
+        actual_inspector = data.get('inspector_name', monitor_name)
         
         # الافتراضي دائماً: صورة الخريطة الأصلية من قاعدة البيانات (لو اللعبة عندها ماب)
         base_map = (gm.map_image or '').strip()
         final_map_path = base_map if (gm.has_map and base_map) else ''
         
-        # لو المونيتور رسم على الخريطة فعلاً (الرسمة محفوظة في /drawings/ أو /uploads/map_XX_)
+        # لو المونيتور رسم على الخريطة فعلاً
         user_drawing = data.get('map_drawing', '') or ''
         is_real_drawing = (
             user_drawing and
-            user_drawing != base_map and                         # مش نفس صورة الأصل
+            user_drawing != base_map and
             '/uploads/' in user_drawing and
             'map_' in user_drawing and
             os.path.exists(user_drawing.lstrip('/'))
@@ -268,22 +406,17 @@ def submit_report():
         if is_real_drawing:
             final_map_path = user_drawing
             
-        print(f"[DEBUG SUBMIT] Game: {gm.name} | has_map: {gm.has_map} | base_map: {repr(base_map)} | user_drawing: {repr(user_drawing)} | final: {repr(final_map_path)}", flush=True)
-
         db.session.add(GameReport(
-            session_id=session_id, monitor_name=monitor_name, area_id=area_name,
+            session_id=session_id, monitor_name=actual_inspector, area_id=area_name,
             game_id=game_id_str, checks_data=json.dumps(checks, ensure_ascii=False),
             notes=data.get('notes', ''), map_image_path=final_map_path,
             photos_paths=json.dumps(data.get('photos', []), ensure_ascii=False)
         ))
+        
+    ds.status = 'completed'
     db.session.commit()
-
-
-
-
-
     
-    # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية (Subprocess) لضمان استجابة لحظية 100%
+    # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية
     import subprocess
     import sys
     cmd = [
@@ -292,14 +425,7 @@ def submit_report():
     ]
     subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0)
 
-
-
-    
     games_count = len(completed_games)
-
-    # تنظيف الجلسة المؤقتة للمونيتور
-    session.pop('completed_games', None)
-    session.pop('game_data', None)
     session.pop('area_id', None)
     
     return render_template('report_success.html', area_name=area_name, monitor_name=monitor_name, games_count=games_count)
@@ -309,34 +435,92 @@ def submit_report():
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/cancel_game/<game_id>')
 def cancel_game(game_id):
-    if game_id in session.get('completed_games', []): return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
-    game_data = session.get('game_data', {}).get(game_id, {})
-    for photo in game_data.get('photos', []):
-        if os.path.exists(photo.lstrip('/')): os.remove(photo.lstrip('/'))
-    map_drawing = game_data.get('map_drawing', '')
-    if map_drawing and os.path.exists(map_drawing.lstrip('/')): os.remove(map_drawing.lstrip('/'))
-    if 'game_data' in session and game_id in session['game_data']:
-        del session['game_data'][game_id]
-        session.modified = True
-    return redirect(url_for('monitor.show_games', area_id=session.get('area_id')))
+    area_id = session.get('area_id')
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return redirect(url_for('monitor.show_games', area_id=area_id))
+    
+    try:
+        game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+        if str(game_id) in game_locks:
+            del game_locks[str(game_id)]
+            ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+            db.session.commit()
+    except Exception:
+        pass
+        
+    return redirect(url_for('monitor.show_games', area_id=area_id))
 
 # ------------------------------------------------------------------------------
-# 8. إلغاء فحص المنطقة بالكامل وتنظيف كافة الصور المؤقتة
+# 8. إلغاء فحص المنطقة بالكامل (خروج المفتش أو تصفير الجلسة)
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/cancel_area')
 def cancel_area():
-    for _, data in session.get('game_data', {}).items():
-        for photo in data.get('photos', []):
-            if os.path.exists(photo.lstrip('/')): os.remove(photo.lstrip('/'))
-        map_drawing = data.get('map_drawing', '')
-        if map_drawing and os.path.exists(map_drawing.lstrip('/')): os.remove(map_drawing.lstrip('/'))
-    session.pop('completed_games', None)
-    session.pop('game_data', None)
+    area_id = session.get('area_id')
+    monitor_name = session.get('monitor_name')
+    reset_all = request.args.get('reset')
+    
+    if area_id:
+        ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+        if ds:
+            if reset_all == '1':
+                ds.status = 'abandoned'
+            elif monitor_name:
+                try:
+                    active_inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []
+                    if monitor_name in active_inspectors:
+                        active_inspectors.remove(monitor_name)
+                        ds.active_inspectors = json.dumps(active_inspectors, ensure_ascii=False)
+                except Exception:
+                    pass
+                    
+                try:
+                    game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+                    keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name]
+                    for k in keys_to_delete:
+                        del game_locks[k]
+                    ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+                except Exception:
+                    pass
+                    
+            db.session.commit()
+            
     session.pop('area_id', None)
     return redirect(url_for('monitor.home'))
 
 # ------------------------------------------------------------------------------
-# 9. تسجيل خروج المراقب وتصفير الجلسة
+# 9. API لجلب حالة الجلسة الحالية (Live Sync)
+# ------------------------------------------------------------------------------
+@monitor_bp.route('/api/session_status/<area_id>')
+def api_session_status(area_id):
+    ds = DailySession.query.filter_by(area_id=str(area_id), date=date.today(), status='in_progress').first()
+    if not ds: return {"status": "no_session"}
+    
+    try:
+        game_data = json.loads(ds.game_data) if ds.game_data else {}
+    except Exception:
+        game_data = {}
+        
+    try:
+        game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
+    except Exception:
+        game_locks = {}
+        
+    try:
+        active_inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []
+    except Exception:
+        active_inspectors = []
+        
+    completed_games = list(game_data.keys())
+    
+    return {
+        "status": "ok",
+        "completed_games": completed_games,
+        "game_locks": game_locks,
+        "active_inspectors": active_inspectors
+    }
+
+# ------------------------------------------------------------------------------
+# 10. تسجيل خروج المراقب وتصفير الجلسة
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/logout')
 def logout():

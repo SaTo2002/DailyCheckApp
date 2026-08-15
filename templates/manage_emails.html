@@ -115,7 +115,7 @@
                                     </a>
 
                                     <!-- Delete -->
-                                    <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('{% if is_ar %}هل أنت متأكد من مسح هذا الإيميل نهائياً؟{% else %}Are you sure you want to permanently delete this email?{% endif %}');">
+                                    <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirmForm(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}هل أنت متأكد من مسح هذا الإيميل نهائياً؟{% else %}Are you sure you want to permanently delete this email?{% endif %}');">
                                         <button type="submit" class="btn-secondary" style="background: var(--danger); padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 10px rgba(220,53,69,0.3);">
                                             {% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}
                                         </button>
@@ -144,5 +144,6 @@
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
+    {% include 'components/modal.html' %}
 </body>
 </html>

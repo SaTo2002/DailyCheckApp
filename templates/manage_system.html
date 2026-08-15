@@ -117,7 +117,7 @@
                             {% endif %}
                             {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
                             <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ {% if is_ar %}تعديل{% else %}Edit{% endif %}</a>
-                            <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirm('{% if is_ar %}⚠️ تحذير: حذف المنطقة سيؤدي لحذف جميع الألعاب التابعة لها! هل أنت متأكد؟{% else %}⚠️ Warning: Deleting this area will delete all its games! Are you sure?{% endif %}');">🗑️ {% if is_ar %}حذف{% else %}Delete{% endif %}</a>
+                            <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirmLink(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}⚠️ تحذير: حذف المنطقة سيؤدي لحذف جميع الألعاب التابعة لها! هل أنت متأكد؟{% else %}⚠️ Warning: Deleting this area will delete all its games! Are you sure?{% endif %}');">🗑️ {% if is_ar %}حذف{% else %}Delete{% endif %}</a>
                             {% endif %}
                         </div>
                     </li>
@@ -209,5 +209,7 @@
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
     </script>
+    
+    {% include 'components/modal.html' %}
 </body>
 </html>

@@ -1,0 +1,87 @@
+<!-- Custom Modal Overlay -->
+<div id="customModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); align-items: center; justify-content: center; z-index: 100000;">
+    <div class="glass-card" style="width: 90%; max-width: 450px; padding: 25px; text-align: center; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); border: 1px solid var(--surface-border, rgba(255,255,255,0.2)); background: var(--surface-glass, #ffffff);">
+        <h3 id="modalTitle" style="color: var(--brand-blue, #0d6efd); margin-top: 0; font-size: 22px;">⚠️ {% if is_ar %}تنبيه{% else %}Alert{% endif %}</h3>
+        <p id="modalMessage" style="color: var(--text-primary, #212529); font-size: 16px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 25px; font-weight: 600;"></p>
+        <div id="modalButtons" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <!-- Buttons injected by JS -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global Custom Modal Logic
+    function showModal(title, text, buttons) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMessage').innerText = text;
+        const btnContainer = document.getElementById('modalButtons');
+        btnContainer.innerHTML = '';
+        
+        buttons.forEach(btn => {
+            let b = document.createElement('button');
+            b.className = 'btn-touch ' + (btn.class || '');
+            // Basic styling for modal buttons
+            b.style.padding = '12px 20px';
+            b.style.borderRadius = '12px';
+            b.style.border = 'none';
+            b.style.cursor = 'pointer';
+            b.style.fontWeight = 'bold';
+            b.style.fontSize = '15px';
+            b.style.flex = '1';
+            b.style.minWidth = '120px';
+            b.style.transition = 'opacity 0.2s ease, transform 0.1s ease';
+            
+            if (btn.type === 'primary') {
+                b.style.background = 'var(--brand-blue, #0d6efd)';
+                b.style.color = 'white';
+            } else if (btn.type === 'danger') {
+                b.style.background = '#dc3545';
+                b.style.color = 'white';
+            } else if (btn.type === 'success') {
+                b.style.background = 'var(--success, #28a745)';
+                b.style.color = 'white';
+            } else {
+                b.style.background = 'var(--surface-border, #e9ecef)';
+                b.style.border = '1px solid var(--input-border, #ced4da)';
+                b.style.color = 'var(--text-primary, #212529)';
+            }
+            
+            b.innerText = btn.text;
+            
+            // Hover effect
+            b.onmouseover = () => { b.style.opacity = '0.85'; };
+            b.onmouseout = () => { b.style.opacity = '1'; };
+            b.onmousedown = () => { b.style.transform = 'scale(0.96)'; };
+            b.onmouseup = () => { b.style.transform = 'scale(1)'; };
+            
+            b.onclick = (e) => {
+                e.preventDefault();
+                document.getElementById('customModal').style.display = 'none';
+                if (btn.onClick) btn.onClick();
+            };
+            btnContainer.appendChild(b);
+        });
+        
+        document.getElementById('customModal').style.display = 'flex';
+    }
+    
+    // Helper wrapper for simple confirm links (used for standard deletions)
+    function confirmLink(e, element, title, message) {
+        e.preventDefault();
+        showModal(title, message, [
+            { text: '{% if is_ar %}نعم، تأكيد{% else %}Yes, Confirm{% endif %}', type: 'danger', onClick: () => { window.location.href = element.href; } },
+            { text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary' }
+        ]);
+        return false;
+    }
+    
+    // Helper wrapper for simple form submit confirms
+    function confirmForm(e, formElement, title, message) {
+        e.preventDefault();
+        showModal(title, message, [
+            { text: '{% if is_ar %}نعم، تأكيد{% else %}Yes, Confirm{% endif %}', type: 'danger', onClick: () => { formElement.submit(); } },
+            { text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary' }
+        ]);
+        return false;
+    }
+</script>
