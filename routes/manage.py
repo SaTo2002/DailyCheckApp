@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 from extensions import db, UPLOAD_FOLDER
-from models import User, Area, GameModel
+from models import User, Area, GameModel, SystemLog, log_system_event
 
 # إنشاء Blueprint لإدارة وتشكيل النظام
 manage_bp = Blueprint('manage', __name__)
@@ -56,6 +56,7 @@ def add_area():
         max_order = db.session.query(db.func.max(Area.sort_order)).scalar() or 0
         db.session.add(Area(name=name, sort_order=max_order + 1, image=image_path, pdf_orientation=pdf_orientation))
         db.session.commit()
+        log_system_event(session.get('admin_role', 'Admin'), 'Add Area', details=f"اسم الArea: {name}", level='INFO')
     return redirect(url_for('manage.manage_system'))
 
 # ------------------------------------------------------------------------------
@@ -109,7 +110,9 @@ def edit_area(area_id):
 
                 
         db.session.commit()
+        log_system_event(session.get('admin_role', 'Admin'), 'Edit Area', details=f"الArea: {area.name}", level='INFO')
         return redirect(url_for('manage.manage_system'))
+
     return render_template('edit_area.html', area=area)
 
 # ------------------------------------------------------------------------------
@@ -120,6 +123,7 @@ def delete_area(area_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     area = Area.query.get_or_404(area_id)
     if area:
+        log_system_event(session.get('admin_role', 'Admin'), 'Delete Area', details=f"حذف Area: {area.name}", level='WARNING')
         db.session.delete(area)
         db.session.commit()
     return redirect(url_for('manage.manage_system'))
@@ -153,7 +157,7 @@ def update_games_order(area_id):
     return redirect(url_for('manage.area_games', area_id=area_id))
 
 # ------------------------------------------------------------------------------
-# 7. إضافة لعبة جديدة للمنطقة وتحديد إعداداتها (POST)
+# 7. إضافة لعبة جديدة for Area وتحديد إعداداتها (POST)
 # ------------------------------------------------------------------------------
 @manage_bp.route('/add_game_to_area/<int:area_id>', methods=['POST'])
 def add_game_to_area(area_id):
@@ -192,6 +196,7 @@ def add_game_to_area(area_id):
             checks=json.dumps(structured_checks, ensure_ascii=False)
         ))
         db.session.commit()
+        log_system_event(session.get('admin_role', 'Admin'), 'Add Game', details=f"اسم الGame: {name} for Area {area_id}", level='INFO')
         
     return redirect(url_for('manage.area_games', area_id=area_id))
 
@@ -238,6 +243,7 @@ def edit_game(game_id):
 
 
         db.session.commit()
+        log_system_event(session.get('admin_role', 'Admin'), 'Edit Game', details=f"اسم الGame: {game.name}", level='INFO')
         return redirect(url_for('manage.area_games', area_id=game.area_id))
         
     return render_template('edit_game.html', game=game, areas=Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all(), checks=json.loads(game.checks) if game.checks else [])
@@ -250,6 +256,7 @@ def delete_game_from_area(area_id, game_id):
     if not check_system_permission(): return redirect(url_for('admin.admin_login'))
     game = GameModel.query.get(game_id)
     if game:    
+        log_system_event(session.get('admin_role', 'Admin'), 'Delete Game', details=f"اسم الGame: {game.name}", level='WARNING')
         db.session.delete(game)
         db.session.commit()
     return redirect(url_for('manage.area_games', area_id=area_id))
@@ -282,7 +289,8 @@ def manage_users():
             )
             db.session.add(user)
             db.session.commit()
-        return redirect(url_for('manage.manage_users'))
+            log_system_event(session.get('admin_role', 'Admin'), 'Add User', details=f"Username: {username}, Role: {role}", level='INFO')
+            return redirect(url_for('manage.manage_users'))
     return render_template('manage_users.html', users=User.query.all())
 
 # ------------------------------------------------------------------------------
@@ -298,6 +306,7 @@ def update_user_permissions(user_id):
     user.can_manage_games = can_manage_system
     user.can_view_reports = True
     db.session.commit()
+    log_system_event(session.get('admin_role', 'Admin'), 'Edit User Permissions', details=f"User: {user.username}", level='INFO')
     return redirect(url_for('manage.manage_users'))
 
 # ------------------------------------------------------------------------------
@@ -308,6 +317,7 @@ def delete_user(user_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
     user = User.query.get(user_id)
     if user:
+        log_system_event(session.get('admin_role', 'Admin'), 'Delete User', details=f"حذف User: {user.username}", level='WARNING')
         db.session.delete(user)
         db.session.commit()
     return redirect(url_for('manage.manage_users'))

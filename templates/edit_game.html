@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}تعديل اللعبة{% else %}Edit Game{% endif %} - {{ game.name }}</title>
+    <title>Edit Game - {{ game.name }}</title>
     <style>
         
 
@@ -210,14 +210,11 @@
 
 <div class="container">
     <div class="page-header">
-        <h1>{% if is_ar %}تعديل إعدادات اللعبة:{% else %}Edit Game Settings:{% endif %} <span style="color: var(--primary-color);">{{ game.name }}</span></h1>
+        <h1>Edit Game Settings: <span style="color: var(--primary-color);">{{ game.name }}</span></h1>
         <div style="display: flex; gap: 8px; align-items: center;">
-            {% if is_ar %}
-            <a href="/set_language/en" class="btn-back" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 English</a>
-            {% else %}
-            <a href="/set_language/ar" class="btn-back" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 العربية</a>
-            {% endif %}
-            <a href="/area_games/{{ game.area_id }}" class="btn-back">🔙 {% if is_ar %}إلغاء والعودة{% else %}Cancel & Return{% endif %}</a>
+            
+            
+            <a href="/area_games/{{ game.area_id }}" class="btn-back">🔙 Cancel & Return</a>
         </div>
     </div>
 
@@ -225,14 +222,14 @@
         
         <!-- Basic Info -->
         <div class="section-card">
-            <h3 class="section-title">📌 {% if is_ar %}البيانات الأساسية{% else %}Basic Information{% endif %}</h3>
+            <h3 class="section-title">📌 Basic Information</h3>
             <div class="inline-flex">
                 <div class="form-group" style="flex-grow: 1;">
-                    <label>{% if is_ar %}اسم اللعبة{% else %}Game Name{% endif %}</label>
+                    <label>Game Name</label>
                     <input type="text" name="name" class="form-control" value="{{ game.name }}" required>
                 </div>
                 <div class="form-group">
-                    <label>{% if is_ar %}المنطقة{% else %}Area{% endif %}</label>
+                    <label>Area</label>
                     <select name="area_id" class="form-control" id="areaSelect" data-original-area="{{ game.area_id }}">
                         {% for area in areas %}
                         <option value="{{ area.id }}" {% if area.id == game.area_id %}selected{% endif %}>{{ area.name }}</option>
@@ -244,44 +241,44 @@
 
         <!-- Notes / Description Settings -->
         <div class="section-card">
-            <h3 class="section-title">📝 {% if is_ar %}إعدادات الملاحظات والوصف{% else %}Notes & Description Settings{% endif %}</h3>
+            <h3 class="section-title">📝 Notes & Description Settings</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="allow_notes" value="1" {% if game.allow_notes is not defined or game.allow_notes %}checked{% endif %}>
-                <span>{% if is_ar %}إظهار قسم الملاحظات والوصف{% else %}Show Description / Notes Section{% endif %}</span>
+                <span>Show Description / Notes Section</span>
             </label>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="notes_mandatory" value="1" {% if game.notes_mandatory %}checked{% endif %}>
-                <span>{% if is_ar %}الملاحظات إجبارية؟{% else %}Notes Mandatory?{% endif %}</span>
+                <span>Notes Mandatory?</span>
             </label>
         </div>
 
         <!-- Photos Settings -->
         <div class="section-card">
-            <h3 class="section-title">📸 {% if is_ar %}إعدادات الصور{% else %}Photos Settings{% endif %}</h3>
+            <h3 class="section-title">📸 Photos Settings</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="allow_photos" {% if game.allow_photos %}checked{% endif %}>
-                <span>{% if is_ar %}تفعيل زر رفع الصور؟{% else %}Enable Upload Photos Button?{% endif %}</span>
+                <span>Enable Upload Photos Button?</span>
             </label>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="requires_photo" {% if game.requires_photo %}checked{% endif %}>
-                <span>{% if is_ar %}الصور إجبارية؟{% else %}Photo Mandatory?{% endif %}</span>
+                <span>Photo Mandatory?</span>
             </label>
         </div>
 
         <!-- Map Settings -->
         <div class="section-card">
-            <h3 class="section-title">🗺️ {% if is_ar %}إعدادات الخريطة{% else %}Map Settings{% endif %}</h3>
+            <h3 class="section-title">🗺️ Map Settings</h3>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="has_map" {% if game.has_map %}checked{% endif %}>
-                <span>{% if is_ar %}تفعيل الخريطة؟{% else %}Enable Map?{% endif %}</span>
+                <span>Enable Map?</span>
             </label>
             <label class="checkbox-wrapper">
                 <input type="checkbox" name="map_mandatory" {% if game.map_mandatory %}checked{% endif %}>
-                <span>{% if is_ar %}الرسم على الخريطة إجباري؟{% else %}Drawing on Map Mandatory?{% endif %}</span>
+                <span>Drawing on Map Mandatory?</span>
             </label>
 
             <div style="margin-top: 15px;">
-                <label style="font-weight: bold; color: var(--text-primary);">{% if is_ar %}تغيير صورة خريطة اللعبة:{% else %}Change Game Map Image:{% endif %}</label>
+                <label style="font-weight: bold; color: var(--text-primary);">Change Game Map Image:</label>
                 {% if game.map_image %}
                 <div style="margin-top: 8px; margin-bottom: 12px;">
                     <img src="{% if game.map_image.startswith('http') or game.map_image.startswith('/') %}{{ game.map_image }}{% else %}/static/{{ game.map_image }}{% endif %}" style="max-width: 180px; max-height: 180px; border-radius: 8px; border: 2px solid var(--surface-border); object-fit: cover;" onerror="this.style.display='none';">
@@ -294,34 +291,34 @@
 
         <!-- Check Items -->
         <div class="section-card">
-            <h3 class="section-title">📋 {% if is_ar %}عناصر الفحص (الأسئلة){% else %}Check Items (Questions){% endif %}</h3>
+            <h3 class="section-title">📋 Check Items (Questions)</h3>
             <div class="checks-container" id="checksContainer" data-check-count="{{ checks|length if checks else 1 }}">
                 
                 {% for check in checks %}
                 <div class="check-item">
-                    <input type="text" name="check_names[]" class="form-control" value="{{ check.name }}" placeholder="{% if is_ar %}اسم العنصر (مثال: نظافة، إضاءة){% else %}Item name (e.g. Cleanliness, Lighting){% endif %}">
+                    <input type="text" name="check_names[]" class="form-control" value="{{ check.name }}" placeholder="Item name (e.g. Cleanliness, Lighting)">
                     <label class="checkbox-wrapper" style="margin: 0;">
                         <input type="checkbox" name="check_mandatory_{{ loop.index0 }}" {% if check.is_mandatory %}checked{% endif %}>
-                        <span>{% if is_ar %}إجباري؟{% else %}Mandatory?{% endif %}</span>
+                        <span>Mandatory?</span>
                     </label>
                 </div>
                 {% endfor %}
 
                 {% if not checks %}
                 <div class="check-item">
-                    <input type="text" name="check_names[]" class="form-control" placeholder="{% if is_ar %}اسم العنصر (مثال: نظافة، إضاءة){% else %}Item name (e.g. Cleanliness, Lighting){% endif %}">
+                    <input type="text" name="check_names[]" class="form-control" placeholder="Item name (e.g. Cleanliness, Lighting)">
                     <label class="checkbox-wrapper" style="margin: 0;">
                         <input type="checkbox" name="check_mandatory_0">
-                        <span>{% if is_ar %}إجباري؟{% else %}Mandatory?{% endif %}</span>
+                        <span>Mandatory?</span>
                     </label>
                 </div>
                 {% endif %}
             </div>
             
-            <button type="button" class="btn-add" onclick="addCheckItem()">+ {% if is_ar %}إضافة عنصر جديد{% else %}Add Another Item{% endif %}</button>
+            <button type="button" class="btn-add" onclick="addCheckItem()">+ Add Another Item</button>
         </div>
 
-        <button type="submit" class="btn-save">💾 {% if is_ar %}حفظ التعديلات{% else %}Save Changes{% endif %}</button>
+        <button type="submit" class="btn-save">💾 Save Changes</button>
     </form>
 </div>
 
@@ -354,9 +351,9 @@
             const currentArea = areaSelect.value;
             if (originalArea && currentArea && originalArea !== currentArea) {
                 e.preventDefault();
-                showModal('⚠️ {% if is_ar %}تنبيه نقل لعبة{% else %}Move Game Alert{% endif %}', '{% if is_ar %}لقد قمت بتغيير المنطقة التابع لها هذه اللعبة.\nهل أنت متأكد من رغبتك في نقل اللعبة إلى منطقة جديدة؟{% else %}You changed the area of this game.\nAre you sure you want to move it?{% endif %}', [
-                    {text: '{% if is_ar %}نعم، متأكد{% else %}Yes, Move{% endif %}', type: 'primary', onClick: () => { editForm.submit(); }},
-                    {text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary', onClick: () => { areaSelect.value = originalArea; }}
+                showModal('⚠️ Move Game Alert', 'You changed the area of this game.\nAre you sure you want to move it?', [
+                    {text: 'Yes, Move', type: 'primary', onClick: () => { editForm.submit(); }},
+                    {text: 'Cancel', type: 'secondary', onClick: () => { areaSelect.value = originalArea; }}
                 ]);
             }
         });

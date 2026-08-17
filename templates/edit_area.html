@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}تعديل المنطقة{% else %}Edit Area{% endif %}: {{ area.name }}</title>
+    <title>Edit Area: {{ area.name }}</title>
     <style>
         
 
@@ -140,39 +140,36 @@
 
     <div class="container">
         <div class="page-header">
-            <h2>📍 {% if is_ar %}تعديل اسم المنطقة:{% else %}Edit Area:{% endif %} <span style="color: var(--primary);">{{ area.name }}</span></h2>
+            <h2>📍 Edit Area: <span style="color: var(--primary);">{{ area.name }}</span></h2>
             <div style="display: flex; gap: 8px; align-items: center;">
-                {% if is_ar %}
-                <a href="/set_language/en" class="btn-back" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 English</a>
-                {% else %}
-                <a href="/set_language/ar" class="btn-back" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 العربية</a>
-                {% endif %}
-                <a href="/manage_system" class="btn-back">🔙 {% if is_ar %}إلغاء والعودة{% else %}Cancel & Return{% endif %}</a>
+                
+                
+                <a href="/manage_system" class="btn-back">🔙 Cancel & Return</a>
             </div>
         </div>
         
         <form method="POST" enctype="multipart/form-data">
             <div class="form-group">
-                <label for="area_name">🏷️ {% if is_ar %}اسم المنطقة الجديد:{% else %}New Area Name:{% endif %}</label>
-                <input type="text" id="area_name" name="area_name" value="{{ area.name }}" class="touch-input" required autofocus placeholder="{% if is_ar %}اكتب الاسم الجديد للمنطقة...{% else %}Enter area name...{% endif %}">
+                <label for="area_name">🏷️ New Area Name:</label>
+                <input type="text" id="area_name" name="area_name" value="{{ area.name }}" class="touch-input" required autofocus placeholder="Enter area name...">
             </div>
 
             <div class="form-group">
-                <label>📄 {% if is_ar %}اتجاه طباعة تقرير الـ PDF والـ Excel:{% else %}PDF & Excel Report Print Orientation:{% endif %}</label>
+                <label>📄 PDF & Excel Report Print Orientation:</label>
                 <div style="display: flex; gap: 15px; margin-top: 8px;">
                     <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; background: var(--surface-glass); padding: 10px 14px; border: 2px solid var(--surface-border); border-radius: 8px; flex: 1;">
                         <input type="radio" name="pdf_orientation" value="portrait" {% if area.pdf_orientation != 'landscape' %}checked{% endif %}>
-                        📱 <strong>{% if is_ar %}طولي (Portrait){% else %}Portrait{% endif %}</strong>
+                        📱 <strong>Portrait</strong>
                     </label>
                     <label style="display: flex; align-items: center; gap: 8px; font-weight: normal; cursor: pointer; background: var(--surface-glass); padding: 10px 14px; border: 2px solid var(--surface-border); border-radius: 8px; flex: 1;">
                         <input type="radio" name="pdf_orientation" value="landscape" {% if area.pdf_orientation == 'landscape' %}checked{% endif %}>
-                        🖥️ <strong>{% if is_ar %}عرضي (Landscape){% else %}Landscape{% endif %}</strong>
+                        🖥️ <strong>Landscape</strong>
                     </label>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="area_image">🖼️ {% if is_ar %}تغيير صورة غلاف المنطقة:{% else %}Change Area Cover Image:{% endif %}</label>
+                <label for="area_image">🖼️ Change Area Cover Image:</label>
                 {% if area.image %}
                 <div style="margin-bottom: 10px;">
                     <img src="{{ area.image }}" alt="Cover" style="max-width: 100%; max-height: 120px; border-radius: 8px; border: 1px solid var(--border-color); object-fit: cover;">
@@ -181,7 +178,7 @@
                 <input type="file" id="area_image" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; background: var(--surface-glass); width: 100%; box-sizing: border-box;">
             </div>
 
-            <button type="submit" class="btn-submit" style="margin-top: 10px;">💾 {% if is_ar %}حفظ التغييرات{% else %}Save Changes{% endif %}</button>
+            <button type="submit" class="btn-submit" style="margin-top: 10px;">💾 Save Changes</button>
         </form>
     </div>
 

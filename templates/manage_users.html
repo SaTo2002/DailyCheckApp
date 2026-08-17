@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}إدارة المستخدمين والصلاحيات{% else %}User Accounts & Permissions Management{% endif %}</title>
+    <title>User Accounts & Permissions Management</title>
     <style>
         body { font-family: Arial, sans-serif; background-color: var(--surface-glass); margin: 0; padding: 20px; }
         .container { max-width: 950px; margin: 0 auto; background: var(--surface-glass); padding: 30px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
@@ -55,100 +55,97 @@
     <div class="container">
         <!-- Header -->
         <div class="page-top-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h2 style="margin: 0;">👥 {% if is_ar %}إدارة الحسابات والصلاحيات{% else %}User Accounts & Permissions{% endif %}</h2>
+            <h2 style="margin: 0;">👥 User Accounts & Permissions</h2>
             <div style="display: flex; gap: 8px; align-items: center;">
-                {% if is_ar %}
-                <a href="/set_language/en" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border); padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold;">🌐 English</a>
-                {% else %}
-                <a href="/set_language/ar" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border); padding: 10px 15px; text-decoration: none; border-radius: 5px; font-weight: bold;">🌐 العربية</a>
-                {% endif %}
-                <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">{% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
+                
+                
+                <a href="/dashboard" style="background: #6c757d; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">Back to Dashboard</a>
             </div>
         </div>
 
         <!-- Info Box -->
         <div class="note-box">
-            📌 <strong>{% if is_ar %}ملاحظة:{% else %}Note:{% endif %}</strong> {% if is_ar %}جميع الحسابات المسجلة يمكنها الاطلاع على تقارير الفحص في الداشبورد تلقائياً. يمكنك تحديد الحسابات المسموح لها بإدارة وتعديل النظام (المناطق والألعاب).{% else %}All registered accounts can automatically view inspection reports on the dashboard. You can specify which accounts are permitted to manage and edit the system (Areas & Games).{% endif %}
+            📌 <strong>Note:</strong> All registered accounts can automatically view inspection reports on the dashboard. You can specify which accounts are permitted to manage and edit the system (Areas & Games).
         </div>
 
         <!-- 1. Add New User Form -->
         <div style="background: var(--surface-glass); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--surface-border);">
-            <h3 style="margin-top: 0; color: #007bff;">➕ {% if is_ar %}إضافة مستخدم جديد{% else %}Add New User{% endif %}</h3>
+            <h3 style="margin-top: 0; color: #007bff;">➕ Add New User</h3>
             <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
                 <div class="create-user-form" style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
-                        <label>{% if is_ar %}اسم المستخدم (يستخدم للدخول):{% else %}Username (used for login):{% endif %}</label>
-                        <input type="text" name="username" required placeholder="{% if is_ar %}مثال: ahmed_maint{% else %}e.g. ahmed_maint{% endif %}">
+                        <label>Username (used for login):</label>
+                        <input type="text" name="username" required placeholder="e.g. ahmed_maint">
                     </div>
                     <div style="flex: 1; min-width: 200px;">
-                        <label>{% if is_ar %}كلمة المرور:{% else %}Password:{% endif %}</label>
+                        <label>Password:</label>
                         <input type="password" name="password" required placeholder="••••••••">
                     </div>
                     <div style="flex: 1; min-width: 200px;">
-                        <label>{% if is_ar %}الدور الوظيفي:{% else %}Role:{% endif %}</label>
+                        <label>Role:</label>
                         <select name="role" required>
-                            <option value="Team Leader">{% if is_ar %}قائد فريق (Team Leader){% else %}Team Leader{% endif %}</option>
-                            <option value="Maintenance">{% if is_ar %}فريق الصيانة (Maintenance){% else %}Maintenance{% endif %}</option>
-                            <option value="Supervisor">{% if is_ar %}مشرف (Supervisor){% else %}Supervisor{% endif %}</option>
+                            <option value="Team Leader">Team Leader</option>
+                            <option value="Maintenance">Maintenance</option>
+                            <option value="Supervisor">Supervisor</option>
                         </select>
                     </div>
                 </div>
 
                 <!-- Manage System Permission Checkbox -->
                 <div>
-                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">{% if is_ar %}إعدادات التعديل والتغيير:{% else %}Permission Settings:{% endif %}</label>
+                    <label style="font-weight: bold; display: block; margin-bottom: 8px;">Permission Settings:</label>
                     <div class="checkbox-group">
                         <label class="checkbox-label">
-                            <input type="checkbox" name="can_manage_system" value="1"> ⚙️ {% if is_ar %}السماح بإدارة وتعديل النظام (إضافة/تعديل/حذف المناطق والألعاب){% else %}Allow System Management (Add/Edit/Delete Areas & Games){% endif %}
+                            <input type="checkbox" name="can_manage_system" value="1"> ⚙️ Allow System Management (Add/Edit/Delete Areas & Games)
                         </label>
                     </div>
                 </div>
 
                 <div>
-                    <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">{% if is_ar %}إنشاء الحساب{% else %}Create Account{% endif %}</button>
+                    <button type="submit" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold;">Create Account</button>
                 </div>
             </form>
         </div>
 
         <!-- 2. Registered Accounts Table -->
-        <h3 style="margin-top: 40px; color: var(--text-primary);">📋 {% if is_ar %}الحسابات المسجلة وإمكانيات التعديل{% else %}Registered Accounts & Management Permissions{% endif %}</h3>
+        <h3 style="margin-top: 40px; color: var(--text-primary);">📋 Registered Accounts & Management Permissions</h3>
         <div class="table-responsive">
         <table>
             <thead>
                 <tr>
-                    <th>{% if is_ar %}اسم المستخدم{% else %}Username{% endif %}</th>
-                    <th>{% if is_ar %}الدور{% else %}Role{% endif %}</th>
-                    <th>{% if is_ar %}إمكانية رؤية التقارير{% else %}View Reports{% endif %}</th>
-                    <th>{% if is_ar %}صلاحية تعديل النظام (المناطق والألعاب){% else %}System Management Permission{% endif %}</th>
-                    <th>{% if is_ar %}إجراءات{% else %}Actions{% endif %}</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>View Reports</th>
+                    <th>System Management Permission</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <!-- Master Admin Account -->
                 <tr>
                     <td><strong>admin</strong></td>
-                    <td><span class="badge badge-admin">{% if is_ar %}المدير العام{% else %}Master Admin{% endif %}</span></td>
-                    <td><span style="color: #28a745; font-weight: bold;">✅ {% if is_ar %}متاح{% else %}Available{% endif %}</span></td>
-                    <td><span style="color: #28a745; font-weight: bold;">✅ {% if is_ar %}صلاحيات كاملة{% else %}Full Access{% endif %}</span></td>
-                    <td><span style="color: #999;">{% if is_ar %}أساسي (لا يمكن حذفه){% else %}Primary (Cannot be deleted){% endif %}</span></td>
+                    <td><span class="badge badge-admin">Master Admin</span></td>
+                    <td><span style="color: #28a745; font-weight: bold;">✅ Available</span></td>
+                    <td><span style="color: #28a745; font-weight: bold;">✅ Full Access</span></td>
+                    <td><span style="color: #999;">Primary (Cannot be deleted)</span></td>
                 </tr>
                 <!-- Sub Accounts -->
                 {% for user in users %}
                 <tr>
                     <td><strong>{{ user.username }}</strong></td>
                     <td><span class="badge badge-role">{{ user.role }}</span></td>
-                    <td><span style="color: #28a745; font-weight: bold;">✅ {% if is_ar %}متاح{% else %}Available{% endif %}</span></td>
+                    <td><span style="color: #28a745; font-weight: bold;">✅ Available</span></td>
                     <td>
                         <form action="/update_user_permissions/{{ user.id }}" method="POST" style="display: flex; gap: 10px; align-items: center; margin: 0;">
                             <label class="checkbox-label" style="font-size: 14px;">
-                                <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> {% if is_ar %}السماح بتعديل النظام{% else %}Allow System Edit{% endif %}
+                                <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> Allow System Edit
                             </label>
-                            <button type="submit" style="background: #007bff; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 13px;">{% if is_ar %}حفظ 💾{% else %}Save 💾{% endif %}</button>
+                            <button type="submit" style="background: #007bff; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 13px;">Save 💾</button>
                         </form>
                     </td>
                     <td>
-                        <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirmForm(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}تأكيد حذف هذا الحساب؟{% else %}Confirm deleting this account?{% endif %}');" style="margin: 0;">
-                            <button type="submit" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">{% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}</button>
+                        <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirmForm(event, this, 'Confirm Deletion', 'Confirm deleting this account?');" style="margin: 0;">
+                            <button type="submit" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete 🗑️</button>
                         </form>
                     </td>
                 </tr>

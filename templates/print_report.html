@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}تقرير فحص{% else %}Inspection Report{% endif %} - {{ report.area_id }}</title>
+    <title>Inspection Report - {{ report.area_id }}</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-primary); background: var(--surface-glass); margin: 0; padding: 20px; text-align: start; }
         .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
@@ -54,26 +54,26 @@
 
     <div style="margin-bottom: 20px; text-align: center; display: flex; justify-content: center; gap: 12px;" class="no-print">
         <a href="/download_pdf/{{ report.session_id }}?view=1" target="_blank" style="background: #0d6efd; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(13,110,253,0.3);">
-            👁️ {% if is_ar %}عرض PDF التقرير الرسمي من Google Sheets{% else %}View Official Google Sheets PDF Report{% endif %}
+            👁️ View Official Google Sheets PDF Report
         </a>
         <a href="/download_pdf/{{ report.session_id }}" style="background: #0b5ed7; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(13,110,253,0.3);">
-            📥 {% if is_ar %}تحميل PDF{% else %}Download PDF{% endif %}
+            📥 Download PDF
         </a>
     </div>
 
     <div class="header">
-        <h1>{% if is_ar %}تقرير الفحص اليومي للألعاب{% else %}Daily Games Inspection Report{% endif %}</h1>
+        <h1>Daily Games Inspection Report</h1>
     </div>
 
     <div class="info-box">
-        <p><strong>{% if is_ar %}اسم المنطقة:{% else %}Area Name:{% endif %}</strong> {{ report.area_id }}</p>
-        <p><strong>{% if is_ar %}اسم الموظف الفاحص:{% else %}Inspector Name:{% endif %}</strong> {{ report.monitor_name }}</p>
-        <p><strong>{% if is_ar %}تاريخ ووقت الفحص:{% else %}Inspection Date & Time:{% endif %}</strong> {{ report.timestamp }}</p>
+        <p><strong>Area Name:</strong> {{ report.area_id }}</p>
+        <p><strong>Inspector Name:</strong> {{ report.monitor_name }}</p>
+        <p><strong>Inspection Date & Time:</strong> {{ report.timestamp }}</p>
     </div>
 
     {% for game in report.games %}
         <div class="game-section">
-            <h3 class="game-title">{% if is_ar %}اللعبة:{% else %}Game:{% endif %} {{ game.game_id }}</h3>
+            <h3 class="game-title">Game: {{ game.game_id }}</h3>
             
             <div style="margin-bottom: 15px;">
                 {% for check_name, status in game.checks.items() %}
@@ -86,14 +86,14 @@
 
             {% if game.notes %}
                 <div class="notes-box" style="display: flex; align-items: flex-start; gap: 8px;">
-                    <strong style="white-space: nowrap;">{% if is_ar %}ملاحظات الفاحص:{% else %}Notes:{% endif %}</strong>
+                    <strong style="white-space: nowrap;">Notes:</strong>
                     <div dir="auto" style="flex: 1; unicode-bidi: isolate; text-align: start;">{{ game.notes }}</div>
                 </div>
             {% endif %}
 
             {% if game.map_drawing or game.base_map %}
                 <div style="margin-top: 15px;">
-                    <strong>{% if is_ar %}رسم المشكلة على الخريطة:{% else %}Issue Map Diagram:{% endif %}</strong>
+                    <strong>Issue Map Diagram:</strong>
                     <div class="map-container">
                         {% if game.base_map %}
                             <img src="{% if game.base_map.startswith('http') or game.base_map.startswith('/') %}{{ game.base_map }}{% else %}/static/{{ game.base_map }}{% endif %}" class="map-base" onerror="this.style.display='none';">
@@ -108,7 +108,7 @@
 
             {% if game.photos %}
                 <div style="margin-top: 15px;">
-                    <strong>{% if is_ar %}صور التلفيات والأعطال:{% else %}Attached Photos:{% endif %}</strong><br>
+                    <strong>Attached Photos:</strong><br>
                     <div class="photo-grid">
                         {% for photo in game.photos %}
                             <img src="{{ photo }}">
@@ -120,7 +120,7 @@
     {% endfor %}
 
     <div style="text-align: center; margin-top: 30px;">
-        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">{% if is_ar %}إغلاق الصفحة{% else %}Close Page{% endif %}</button>
+        <button onclick="window.close()" style="padding: 10px 20px; font-size: 16px; cursor: pointer;">Close Page</button>
     </div>
 
 

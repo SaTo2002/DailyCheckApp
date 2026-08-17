@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, session, redirect, url_fo
 from werkzeug.security import check_password_hash
 from sqlalchemy import func
 from extensions import db, MASTER_ADMIN_HASH
-from models import User, GameModel, GameReport, EmailReceiver
+from models import User, GameModel, GameReport, EmailReceiver, SystemLog, log_system_event
 
 # إنشاء Blueprint للإدارة والداشبورد
 admin_bp = Blueprint('admin', __name__)
@@ -32,6 +32,7 @@ def admin_login():
             session['is_master_admin'] = True
             session['can_manage_system'] = True
             session['can_view_reports'] = True
+            log_system_event('Master Admin', 'Admin Login', level='INFO')
             return redirect(url_for('admin.dashboard'))
             
         # 2. التحقق من الحسابات المسجلة في جدول المستخدمين (users)
@@ -44,6 +45,7 @@ def admin_login():
             session['can_view_reports'] = True  # كافة الحسابات يمكنها رؤية الداشبورد
             session['can_manage_system'] = is_master or bool(getattr(user, 'can_manage_system', False)) or bool(getattr(user, 'can_manage_areas', False)) or bool(getattr(user, 'can_manage_games', False))
             
+            log_system_event(username, 'Admin Login', level='INFO')
             return redirect(url_for('admin.dashboard'))
             
         return render_template('admin_login.html', error="اسم المستخدم أو كلمة المرور غير صحيحة!")
@@ -184,7 +186,7 @@ def dashboard():
     )
 
 # ------------------------------------------------------------------------------
-# 4. طباعة التقرير المجمع للمنطقة (GET)
+# 4. طباعة التقرير المجمع for Area (GET)
 # ------------------------------------------------------------------------------
 @admin_bp.route('/print_report/<session_id>')
 def print_report(session_id):
@@ -287,6 +289,9 @@ def download_pdf(session_id):
 @admin_bp.route('/delete_report/<session_id>', methods=['POST'])
 def delete_report(session_id):
     if not session.get('is_admin'): return redirect(url_for('admin.admin_login'))
+    
+    log_system_event(session.get('admin_role', 'Admin'), 'Delete Report', details=f"Deleted report for session: {session_id}", level='WARNING')
+    
     for r in GameReport.query.filter_by(session_id=session_id).all():
         if r.map_image_path and os.path.exists(r.map_image_path.lstrip('/')):
             filename = os.path.basename(r.map_image_path)
@@ -351,6 +356,15 @@ def delete_email(rcv_id):
         return redirect(url_for('admin.dashboard'))
     rcv = EmailReceiver.query.get(rcv_id)
     if rcv:
+        log_system_event(session.get('admin_role', 'Admin'), 'Delete Email', details=f"Deleted Email: {rcv.email}", level='WARNING')
         db.session.delete(rcv)
         db.session.commit()
     return redirect(url_for('admin.manage_emails'))
+
+@admin_bp.route('/system_logs')
+def system_logs():
+    if not session.get('is_admin') or not session.get('is_master_admin'):
+        return redirect(url_for('admin.dashboard'))
+    
+    logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).all()
+    return render_template('system_logs.html', logs=logs)

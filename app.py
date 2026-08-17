@@ -24,21 +24,6 @@ if not secret_key:
     raise RuntimeError("❌ SECRET_KEY is missing from .env file! The app cannot start without it.")
 app.secret_key = secret_key
 
-import logging
-from logging.handlers import RotatingFileHandler
-
-if not os.path.exists('logs'):
-    os.makedirs('logs')
-
-file_handler = RotatingFileHandler('logs/dailycheck.log', maxBytes=1024000, backupCount=10)
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
-))
-file_handler.setLevel(logging.INFO)
-app.logger.addHandler(file_handler)
-app.logger.setLevel(logging.INFO)
-app.logger.info('DailyCheckApp startup')
-
 import urllib.parse
 
 # إعدادات الاتصال بقاعدة بيانات MySQL
@@ -65,17 +50,6 @@ app.register_blueprint(monitor_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(manage_bp)
 
-@app.context_processor
-def inject_language():
-    from flask import session
-    current_lang = session.get('lang', 'en')
-    is_ar = (current_lang == 'ar')
-    return {
-        'current_lang': current_lang,
-        'is_ar': is_ar,
-        'dir_attr': 'rtl' if is_ar else 'ltr',
-        'html_lang': 'ar' if is_ar else 'en'
-    }
 
 # 5. تهيئة جداول قاعدة البيانات والترحيل التلقائي للأعمدة الجديدة (Migrations)
 with app.app_context():

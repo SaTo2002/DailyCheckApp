@@ -207,6 +207,21 @@ def generate_report_excel_and_pdf(session_id):
             else:
                 print("No active email receivers found. Skipping email.")
 
+            # --- Google Drive Integration ---
+            from utils_drive import upload_pdf_to_drive
+            from models import log_system_event
+            year_str = date_str.split('-')[0]
+            month_str = date_str.split('-')[1]
+            print("Uploading to Google Drive...")
+            upload_success = upload_pdf_to_drive(pdf_path, year_str, month_str, area_name)
+            
+            if upload_success:
+                log_system_event("System", "Drive Upload Success", details=f"Uploaded {os.path.basename(pdf_path)}", level="INFO")
+                db.session.commit()
+            else:
+                log_system_event("System", "Drive Upload Ignored/Failed", details=f"Check logs or credentials.", level="WARNING")
+                db.session.commit()
+
         except Exception as db_err:
             print(f"[Error in post-PDF process]: {db_err}")
 

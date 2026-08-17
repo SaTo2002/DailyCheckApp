@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}إدارة المناطق - جرافيتي كود{% else %}Manage Areas - Daily Check{% endif %}</title>
+    <title>Manage Areas - Daily Check</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--surface-glass); margin: 0; padding: 20px; color: var(--text-primary); }
         .container { max-width: 800px; margin: 0 auto; }
@@ -56,43 +56,40 @@
 
     <div class="container">
         <div class="header">
-            <h2>📍 {% if is_ar %}إدارة مناطق الفحص{% else %}Manage Inspection Areas{% endif %}</h2>
+            <h2>📍 Manage Inspection Areas</h2>
             <div style="display: flex; gap: 8px; align-items: center;">
-                {% if is_ar %}
-                <a href="/set_language/en" class="btn btn-secondary" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 English</a>
-                {% else %}
-                <a href="/set_language/ar" class="btn btn-secondary" style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);">🌐 العربية</a>
-                {% endif %}
-                <a href="/dashboard" class="btn btn-secondary">🔙 {% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
+                
+                
+                <a href="/dashboard" class="btn btn-secondary">🔙 Back to Dashboard</a>
             </div>
         </div>
 
         {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
         <div class="glass-card">
-            <h3>➕ {% if is_ar %}إضافة منطقة جديدة{% else %}Add New Area{% endif %}</h3>
+            <h3>➕ Add New Area</h3>
             <form action="/add_area" method="POST" class="add-area-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;" enctype="multipart/form-data">
-                <input type="text" name="area_name" placeholder="{% if is_ar %}اكتب اسم المنطقة (مثال: منطقة الترامبولين الرئيسية)...{% else %}Type area name (e.g. Main Trampoline Area)...{% endif %}" required style="width: 100%;">
+                <input type="text" name="area_name" placeholder="Type area name (e.g. Main Trampoline Area)..." required style="width: 100%;">
                 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">📄 {% if is_ar %}اتجاه طباعة تقرير المنطقة (PDF & Excel):{% else %}PDF & Excel Print Orientation:{% endif %}</label>
+                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">📄 PDF & Excel Print Orientation:</label>
                     <select name="pdf_orientation" style="padding: 10px; border: 1px solid var(--surface-border); border-radius: 6px; cursor: pointer; background: var(--surface-glass); font-weight: bold;">
-                        <option value="portrait">📱 {% if is_ar %}طولي (Portrait){% else %}Portrait{% endif %}</option>
-                        <option value="landscape">🖥️ {% if is_ar %}عرضي (Landscape){% else %}Landscape{% endif %}</option>
+                        <option value="portrait">📱 Portrait</option>
+                        <option value="landscape">🖥️ Landscape</option>
                     </select>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">🖼️ {% if is_ar %}صورة غلاف المنطقة:{% else %}Area Cover Image:{% endif %}</label>
+                    <label style="font-weight: bold; font-size: 14px; color: var(--text-primary);">🖼️ Area Cover Image:</label>
                     <input type="file" name="area_image" accept="image/*" style="padding: 8px; border: 1px solid var(--surface-border); border-radius: 6px; cursor: pointer; background: var(--surface-glass);">
                 </div>
-                <button type="submit" class="btn btn-success" style="align-self: flex-start;">{% if is_ar %}حفظ المنطقة{% else %}Save Area{% endif %}</button>
+                <button type="submit" class="btn btn-success" style="align-self: flex-start;">Save Area</button>
             </form>
         </div>
         {% endif %}
 
         <div class="glass-card" style="border-top-color: #007bff;">
-            <h3>📋 {% if is_ar %}المناطق المسجلة وترتيبها{% else %}Registered Areas & Order{% endif %}</h3>
-            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">{% if is_ar %}يمكنك <strong>السحب والإفلات ☰</strong> لإعادة ترتيب المناطق أو استخدام أسهم الترتيب (⬆️ / ⬇️) ثم الحفظ.{% else %}You can <strong>Drag & Drop areas ☰</strong> to reorder or use the arrow buttons (⬆️ / ⬇️) then save.{% endif %}</p>
+            <h3>📋 Registered Areas & Order</h3>
+            <p style="font-size: 14px; color: #666; margin-bottom: 15px;">You can <strong>Drag & Drop areas ☰</strong> to reorder or use the arrow buttons (⬆️ / ⬇️) then save.</p>
             
             <form action="/update_areas_order" method="POST">
                 <ul class="list-group" id="areasOrderList" style="margin-top: 15px;">
@@ -106,29 +103,29 @@
                             <span style="background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: bold;">
                                 {% if area.pdf_orientation == 'landscape' %}🖥️ Landscape{% else %}📱 Portrait{% endif %}
                             </span>
-                            <span style="color: #666; font-size: 14px; margin-right: 10px;">({% if is_ar %}{{ area.games|length }} ألعاب مسجلة{% else %}{{ area.games|length }} games registered{% endif %})</span>
+                            <span style="color: #666; font-size: 14px; margin-right: 10px;">({{ area.games|length }} games registered)</span>
                         </div>
                         <div class="actions">
                             <button type="button" onclick="moveUp(this)" style="background: var(--surface-glass); border: 1px solid var(--surface-border); border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Up">⬆️</button>
                             <button type="button" onclick="moveDown(this)" style="background: var(--surface-glass); border: 1px solid var(--surface-border); border-radius: 4px; padding: 6px 10px; cursor: pointer; font-size: 14px;" title="Move Down">⬇️</button>
                             
                             {% if session.get('can_manage_games') or session.get('can_manage_areas') or session.get('is_master_admin') %}
-                            <a href="/area_games/{{ area.id }}" class="btn btn-primary" style="margin-right: 8px;">🎮 {% if is_ar %}إدارة الألعاب{% else %}Manage Games{% endif %}</a>
+                            <a href="/area_games/{{ area.id }}" class="btn btn-primary" style="margin-right: 8px;">🎮 Manage Games</a>
                             {% endif %}
                             {% if session.get('can_manage_areas') or session.get('is_master_admin') %}
-                            <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ {% if is_ar %}تعديل{% else %}Edit{% endif %}</a>
-                            <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirmLink(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}⚠️ تحذير: حذف المنطقة سيؤدي لحذف جميع الألعاب التابعة لها! هل أنت متأكد؟{% else %}⚠️ Warning: Deleting this area will delete all its games! Are you sure?{% endif %}');">🗑️ {% if is_ar %}حذف{% else %}Delete{% endif %}</a>
+                            <a href="/edit_area/{{ area.id }}" style="color: #007bff; text-decoration: none; font-weight: bold; margin-left: 5px;">✏️ Edit</a>
+                            <a href="/delete_area/{{ area.id }}" style="color: #dc3545; text-decoration: none; font-weight: bold;" onclick="return confirmLink(event, this, 'Confirm Deletion', '⚠️ Warning: Deleting this area will delete all its games! Are you sure?');">🗑️ Delete</a>
                             {% endif %}
                         </div>
                     </li>
                     {% else %}
-                    <li style="color: #888; justify-content: center; background: transparent; border: none;">{% if is_ar %}لا توجد مناطق مسجلة بعد. ابدأ بإضافة منطقة جديدة.{% else %}No areas registered yet. Start by adding a new area.{% endif %}</li>
+                    <li style="color: #888; justify-content: center; background: transparent; border: none;">No areas registered yet. Start by adding a new area.</li>
                     {% endfor %}
                 </ul>
 
                 {% if areas and (session.get('can_manage_areas') or session.get('is_master_admin')) %}
                 <div style="margin-top: 20px; text-align: start;">
-                    <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 10px 25px;">💾 {% if is_ar %}حفظ ترتيب المناطق{% else %}Save Areas Order{% endif %}</button>
+                    <button type="submit" class="btn btn-primary" style="font-size: 16px; padding: 10px 25px;">💾 Save Areas Order</button>
                 </div>
                 {% endif %}
             </form>

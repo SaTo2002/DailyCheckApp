@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}دخول الإدارة - جرافيتي كود{% else %}Admin Login - Gravity Code{% endif %}</title>
+    <title>Admin Login - Gravity Code</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <script>
@@ -22,12 +22,12 @@
 
     <div class="glass-card" style="width: 90%; max-width: 400px; text-align: center;">
         <!-- Theme Toggle -->
-        <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}">
+        <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
             🌓
         </div>
 
         <h2 style="color: var(--brand-blue); margin-bottom: 24px;">
-            🔒 {% if is_ar %}بوابة الإدارة{% else %}Admin Portal{% endif %}
+            🔒 Admin Portal
         </h2>
         
         <form method="POST">
@@ -38,21 +38,21 @@
             {% endif %}
 
             <div style="text-align: start; margin-bottom: 20px;">
-                <label style="display: block; font-size: 16px; margin-bottom: 8px; font-weight: 600;">{% if is_ar %}اسم المستخدم:{% else %}Username:{% endif %}</label>
-                <input type="text" name="username" required class="glass-input" placeholder="{% if is_ar %}اكتب اسم المستخدم...{% else %}Type username...{% endif %}">
+                <label style="display: block; font-size: 16px; margin-bottom: 8px; font-weight: 600;">Username:</label>
+                <input type="text" name="username" required class="glass-input" placeholder="Type username...">
             </div>
             
             <div style="text-align: start; margin-bottom: 30px;">
-                <label style="display: block; font-size: 16px; margin-bottom: 8px; font-weight: 600;">{% if is_ar %}كلمة المرور:{% else %}Password:{% endif %}</label>
+                <label style="display: block; font-size: 16px; margin-bottom: 8px; font-weight: 600;">Password:</label>
                 <input type="password" name="password" required class="glass-input" placeholder="••••••••">
             </div>
             
             <button type="submit" class="btn-primary" style="width: 100%; padding: 14px; margin-bottom: 20px;">
-                {% if is_ar %}تسجيل الدخول{% else %}Login{% endif %} ➡️
+                Login ➡️
             </button>
             
             <a href="/" style="color: var(--text-secondary); text-decoration: none; font-size: 14px; font-weight: 600; display: inline-block; transition: color var(--transition-fast);">
-                🔙 {% if is_ar %}العودة لصفحة الفحص{% else %}Back to Inspections{% endif %}
+                🔙 Back to Inspections
             </a>
         </form>
     </div>

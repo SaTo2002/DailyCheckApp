@@ -3,12 +3,12 @@
   تتيح للموظف اختيار المنطقة بصرياً بكروت مضيئة ثم إدخال اسمه لبدء الفحص
 ============================================================================== -->
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}تسجيل الدخول - فحص الألعاب{% else %}Login - Games Check{% endif %}</title>
+    <title>Login - Games Check</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <!-- استدعاء ملف الستايل المتجاوب للموبايل والتابلت -->
@@ -145,33 +145,26 @@
 
     <!-- Theme Toggle -->
     <div class="theme-toggle-btn" onclick="toggleTheme()"
-        title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
+        title="Toggle Theme" style="z-index: 9999;">
         🌓
     </div>
 
     <!-- Top Language Switcher Bar -->
     <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
-        {% if is_ar %}
-        <a href="/set_language/en" class="lang-switch-btn" title="Switch to English">🌐 English</a>
-        {% else %}
-        <a href="/set_language/ar" class="lang-switch-btn" title="التحويل للغة العربية">🌐 العربية</a>
-        {% endif %}
+        
+        
     </div>
 
     <!-- Login Card -->
     <div class="monitor-container glass-card"
         style="margin-top: 10px; padding: 24px; border-top: 4px solid var(--brand-blue);">
-        <h2 class="monitor-title" style="color: var(--brand-blue);">🎮 {% if is_ar %}نظام الفحص اليومي للألعاب{% else
-            %}Daily Games Check System{% endif %}</h2>
-        <p class="sub-title" style="color: var(--text-secondary);">{% if is_ar %}اختر المنطقة أولاً بالضغط على صورتها،
-            ثم اكتب اسمك للبدء{% else %}Select an area first by clicking its image, then enter your name to start{%
-            endif %}</p>
+        <h2 class="monitor-title" style="color: var(--brand-blue);">🎮 Daily Games Check System</h2>
+        <p class="sub-title" style="color: var(--text-secondary);">Select an area first by clicking its image, then enter your name to start</p>
 
         <!-- Form -->
         <form method="POST" id="loginForm">
             <!-- Area Grid -->
-            <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 {% if is_ar %}اختر
-                المنطقة:{% else %}Select Area:{% endif %}</label>
+            <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 Select Area:</label>
             <div class="area-grid">
                 {% for area in areas %}
                 <div class="area-card" data-area-id="{{ area.id }}" onclick="selectArea(this)">
@@ -194,24 +187,23 @@
 
             <!-- Inspector Name Input -->
             <div id="nameInputSection">
-                <label class="form-label" style="color: var(--text-primary); font-weight: 700;">👤 {% if is_ar %}اسم
-                    الموظف (الفاحص):{% else %}Inspector / Monitor Name:{% endif %}</label>
+                <label class="form-label" style="color: var(--text-primary); font-weight: 700;">👤 Inspector / Monitor Name:</label>
                 <input type="text" name="monitor_name" class="glass-input" style="padding: 15px;" required
-                    placeholder="{% if is_ar %}اكتب اسمك هنا...{% else %}Type your name here...{% endif %}"
+                    placeholder="Type your name here..."
                     value="{{ session.get('monitor_name', '') }}">
             </div>
 
             <!-- Submit Button -->
             <button type="submit" class="btn-primary"
                 style="width: 100%; font-size: 18px; margin-top: 20px; padding: 15px;">
-                🚀 {% if is_ar %}بدء الفحص{% else %}Start Check{% endif %}
+                🚀 Start Check
             </button>
         </form>
 
         <!-- Admin Login Link -->
         <div style="margin-top: 30px; text-align: center;">
             <a href="/admin_login" style="color: #6c757d; text-decoration: none; font-size: 14px; font-weight: 600;">🔒
-                {% if is_ar %}دخول الإدارة والصيانة{% else %}Admin & Maintenance Login{% endif %}</a>
+                Admin & Maintenance Login</a>
         </div>
     </div>
 
@@ -240,8 +232,8 @@
             const selectedArea = document.getElementById('selected_area_input').value;
             if (!selectedArea) {
                 e.preventDefault();
-                showModal('⚠️ {% if is_ar %}تنبيه{% else %}Alert{% endif %}', '{% if is_ar %}يرجى اختيار منطقة أولاً بالضغط على صورتها.{% else %}Please select an area first by clicking on its image.{% endif %}', [
-                    { text: '{% if is_ar %}حسناً{% else %}OK{% endif %}', type: 'primary' }
+                showModal('⚠️ Alert', 'Please select an area first by clicking on its image.', [
+                    { text: 'OK', type: 'primary' }
                 ]);
                 return;
             }
@@ -256,25 +248,25 @@
                         let inspectorsStr = data.active_inspectors.join(' و ');
                         
                         if (data.active_inspectors.length > 0) {
-                            let msg = `{% if is_ar %}يوجد فحص فعال حالياً لهذه المنطقة بواسطة (${inspectorsStr})\n\nهل تريد الانضمام للفحص الحالي؟{% else %}There is an active inspection by (${inspectorsStr})\n\nDo you want to join?{% endif %}`;
-                            showModal('👥 {% if is_ar %}جلسة نشطة{% else %}Active Session{% endif %}', msg, [
-                                { text: '{% if is_ar %}نعم، دخول{% else %}Yes, Join{% endif %}', type: 'success', onClick: () => form.submit() },
-                                { text: '{% if is_ar %}إلغاء{% else %}Cancel{% endif %}', type: 'secondary' }
+                            let msg = `There is an active inspection by (${inspectorsStr})\n\nDo you want to join?`;
+                            showModal('👥 Active Session', msg, [
+                                { text: 'Yes, Join', type: 'success', onClick: () => form.submit() },
+                                { text: 'Cancel', type: 'secondary' }
                             ]);
                         } else {
                             let completedCount = data.completed_games.length;
-                            let msg = `{% if is_ar %}يوجد فحص سابق غير مكتمل لهذه المنطقة وتم حفظ بيانات (${completedCount}) لعبة بواسطة زملائك.\n\nماذا تريد أن تفعل؟{% else %}There is an incomplete inspection with (${completedCount}) saved games by colleagues.\n\nWhat do you want to do?{% endif %}`;
+                            let msg = `There is an incomplete inspection with (${completedCount}) saved games by colleagues.\n\nWhat do you want to do?`;
                             
-                            showModal('⚠️ {% if is_ar %}تنبيه استكمال{% else %}Resume Alert{% endif %}', msg, [
-                                { text: '{% if is_ar %}استكمال معهم{% else %}Resume{% endif %}', type: 'success', onClick: () => form.submit() },
-                                { text: '{% if is_ar %}مسح الجلسة والبدء من الصفر{% else %}Reset completely{% endif %}', type: 'danger', onClick: () => {
-                                    let confirmMsg = `{% if is_ar %}أنت على وشك مسح شغل زملائك بالكامل ولن تتمكن من استرجاع البيانات! هل أنت متأكد؟{% else %}You are about to delete your colleagues' work! Are you sure?{% endif %}`;
-                                    showModal('❌ {% if is_ar %}تحذير نهائي{% else %}Final Warning{% endif %}', confirmMsg, [
-                                        { text: '{% if is_ar %}نعم، امسح كل شيء{% else %}Yes, Delete All{% endif %}', type: 'danger', onClick: () => {
+                            showModal('⚠️ Resume Alert', msg, [
+                                { text: 'Resume', type: 'success', onClick: () => form.submit() },
+                                { text: 'Reset completely', type: 'danger', onClick: () => {
+                                    let confirmMsg = `You are about to delete your colleagues' work! Are you sure?`;
+                                    showModal('❌ Final Warning', confirmMsg, [
+                                        { text: 'Yes, Delete All', type: 'danger', onClick: () => {
                                             form.action = '/reset_and_start';
                                             form.submit();
                                         }},
-                                        { text: '{% if is_ar %}تراجع عن المسح{% else %}Cancel Reset{% endif %}', type: 'primary' }
+                                        { text: 'Cancel Reset', type: 'primary' }
                                     ]);
                                 }}
                             ]);

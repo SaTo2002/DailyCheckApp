@@ -2,10 +2,10 @@
   لوحة تحكم الإدارة والداشبورد (dashboard.html)
 ============================================================================== -->
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{% if is_ar %}لوحة الإدارة - الداشبورد والتقارير{% else %}Admin Dashboard & Reports{% endif %}</title>
+    <title>Admin Dashboard & Reports</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <style>
@@ -46,7 +46,7 @@
     <div class="ambient-blob blob-pink"></div>
 
     <!-- Theme Toggle -->
-    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}">
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
         🌓
     </div>
 
@@ -54,35 +54,33 @@
     <!-- Header & Permissions -->
     <div class="header d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 15px;">
         <div>
-            <h1 style="color: var(--brand-blue);">📊 {% if is_ar %}لوحة تحكم الإدارة والتقارير{% else %}Admin Dashboard & Inspection Reports{% endif %}</h1>
-            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">{% if is_ar %}متابعة نتائج الفحص اليومي والتحليلات والأعطال{% else %}Track daily inspection results, analytics, and issue breakdowns{% endif %}</p>
+            <h1 style="color: var(--brand-blue);">📊 Admin Dashboard & Inspection Reports</h1>
+            <p style="color: var(--text-secondary); margin: 4px 0 0 0; font-size: 14px;">Track daily inspection results, analytics, and issue breakdowns</p>
         </div>
         <div class="header-btns" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
-            {% if is_ar %}
-            <a href="/set_language/en" class="btn-outline">🌐 English</a>
-            {% else %}
-            <a href="/set_language/ar" class="btn-outline">🌐 العربية</a>
-            {% endif %}
+            
+            
             
             {% if session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games') or session.get('is_master_admin') %}
-                <a href="/manage_system" class="btn-primary">⚙️ {% if is_ar %}إدارة النظام{% else %}System Management{% endif %}</a>
+                <a href="/manage_system" class="btn-primary">⚙️ System Management</a>
             {% endif %}
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
-                <a href="/manage_users" class="btn-primary" style="background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3);">👥 {% if is_ar %}إدارة الحسابات{% else %}User Accounts{% endif %}</a>
-                <a href="/manage_emails" class="btn-primary" style="background: var(--brand-orange); box-shadow: 0 4px 15px rgba(240,158,37,0.3);">📧 {% if is_ar %}القائمة البريدية{% else %}Email List{% endif %}</a>
+                <a href="/manage_users" class="btn-primary" style="background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3);">👥 User Accounts</a>
+                <a href="/manage_emails" class="btn-primary" style="background: var(--brand-orange); box-shadow: 0 4px 15px rgba(240,158,37,0.3);">📧 Email List</a>
+                <a href="/system_logs" class="btn-primary" style="background: var(--brand-purple, #6f42c1); box-shadow: 0 4px 15px rgba(111,66,193,0.3);">📝 System Logs</a>
             {% endif %}
-            <a href="/admin_logout" class="btn-secondary" style="background: var(--danger); box-shadow: 0 4px 15px rgba(220,53,69,0.3);">{% if is_ar %}خروج 🔒{% else %}Logout 🔒{% endif %}</a>
+            <a href="/admin_logout" class="btn-secondary" style="background: var(--danger); box-shadow: 0 4px 15px rgba(220,53,69,0.3);">Logout 🔒</a>
         </div>
     </div>
 
     <!-- Filter & Search Bar -->
     <div class="glass-card mb-4">
-        <h3 style="color: var(--brand-pink);">🔍 {% if is_ar %}فلترة وبحث التقارير{% else %}Filter & Search Reports{% endif %}</h3>
+        <h3 style="color: var(--brand-pink);">🔍 Filter & Search Reports</h3>
         <form method="GET" action="/dashboard" class="filter-form">
             <div class="filter-group">
-                <label>{% if is_ar %}المنطقة:{% else %}Area:{% endif %}</label>
+                <label>Area:</label>
                 <select name="area" class="glass-input">
-                    <option value="">{% if is_ar %}جميع المناطق{% else %}All Areas{% endif %}</option>
+                    <option value="">All Areas</option>
                     {% for area in areas %}
                         <option value="{{ area }}" {% if area == selected_area %}selected{% endif %}>{{ area }}</option>
                     {% endfor %}
@@ -90,9 +88,9 @@
             </div>
             
             <div class="filter-group">
-                <label>{% if is_ar %}الموظف الفاحص:{% else %}Inspector (Monitor):{% endif %}</label>
+                <label>Inspector (Monitor):</label>
                 <select name="monitor_name" class="glass-input">
-                    <option value="">{% if is_ar %}جميع الموظفين{% else %}All Inspectors{% endif %}</option>
+                    <option value="">All Inspectors</option>
                     {% for monitor in monitors %}
                         <option value="{{ monitor }}" {% if monitor == selected_monitor %}selected{% endif %}>{{ monitor }}</option>
                     {% endfor %}
@@ -100,32 +98,32 @@
             </div>
 
             <div class="filter-group">
-                <label>{% if is_ar %}حالة التقرير:{% else %}Inspection Status:{% endif %}</label>
+                <label>Inspection Status:</label>
                 <select name="status_filter" class="glass-input">
-                    <option value="">{% if is_ar %}جميع الحالات{% else %}All Statuses{% endif %}</option>
-                    <option value="ok" {% if status_filter == 'ok' %}selected{% endif %}>✅ {% if is_ar %}سليم بالكامل{% else %}Completely OK{% endif %}</option>
-                    <option value="has_issues" {% if status_filter == 'has_issues' %}selected{% endif %}>❌ {% if is_ar %}يحتوي على أعطال/مشاكل{% else %}Contains Issues/NOK{% endif %}</option>
+                    <option value="">All Statuses</option>
+                    <option value="ok" {% if status_filter == 'ok' %}selected{% endif %}>✅ Completely OK</option>
+                    <option value="has_issues" {% if status_filter == 'has_issues' %}selected{% endif %}>❌ Contains Issues/NOK</option>
                 </select>
             </div>
 
             <div class="filter-group">
-                <label>{% if is_ar %}من تاريخ:{% else %}From Date:{% endif %}</label>
+                <label>From Date:</label>
                 <input type="date" name="start_date" value="{{ start_date }}" class="glass-input">
             </div>
 
             <div class="filter-group">
-                <label>{% if is_ar %}إلى تاريخ:{% else %}To Date:{% endif %}</label>
+                <label>To Date:</label>
                 <input type="date" name="end_date" value="{{ end_date }}" class="glass-input">
             </div>
 
             <div class="filter-group">
-                <label>{% if is_ar %}بحث بالتقارير:{% else %}Text Search:{% endif %}</label>
-                <input type="text" name="search" value="{{ search_query }}" class="glass-input" placeholder="{% if is_ar %}اسم اللعبة، الملاحظات...{% else %}Game name, note...{% endif %}">
+                <label>Text Search:</label>
+                <input type="text" name="search" value="{{ search_query }}" class="glass-input" placeholder="Game name, note...">
             </div>
 
             <div class="filter-actions" style="display: flex; gap: 8px; margin-top: 5px;">
-                <button type="submit" class="btn-primary" style="padding: 12px 18px; white-space: nowrap;">{% if is_ar %}تطبيق الفلتر 🎯{% else %}Apply Filter 🎯{% endif %}</button>
-                <a href="/dashboard" class="btn-outline" style="padding: 12px 18px; white-space: nowrap; text-align: center; display: inline-block; box-sizing: border-box;" title="Reset Filter">{% if is_ar %}إعادة ضبط ✖{% else %}Reset ✖{% endif %}</a>
+                <button type="submit" class="btn-primary" style="padding: 12px 18px; white-space: nowrap;">Apply Filter 🎯</button>
+                <a href="/dashboard" class="btn-outline" style="padding: 12px 18px; white-space: nowrap; text-align: center; display: inline-block; box-sizing: border-box;" title="Reset Filter">Reset ✖</a>
             </div>
         </form>
     </div>
@@ -137,25 +135,25 @@
                 <!-- Report Card Header -->
                 <div class="report-header" style="padding: 18px 22px;">
                     <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-                        <h2 style="margin: 0; font-size: 18px; font-weight: 800;">{% if is_ar %}المنطقة:{% else %}Area:{% endif %} {{ report.area_id }}</h2>
+                        <h2 style="margin: 0; font-size: 18px; font-weight: 800;">Area: {{ report.area_id }}</h2>
                         {% if report.has_issues %}
-                            <span class="badge badge-danger">❌ {% if is_ar %}أعطال ({{ report.issue_checks_count }}){% else %}Issues ({{ report.issue_checks_count }}){% endif %}</span>
+                            <span class="badge badge-danger">❌ Issues ({{ report.issue_checks_count }})</span>
                         {% else %}
-                            <span class="badge badge-success">✅ {% if is_ar %}سليم بالكامل{% else %}Completely OK{% endif %}</span>
+                            <span class="badge badge-success">✅ Completely OK</span>
                         {% endif %}
-                        <span style="color: var(--text-secondary); font-size: 14px;">{% if is_ar %}الموظف:{% else %}Inspector:{% endif %} <strong style="color: var(--text-primary);">{{ report.monitor_name }}</strong></span>
+                        <span style="color: var(--text-secondary); font-size: 14px;">Inspector: <strong style="color: var(--text-primary);">{{ report.monitor_name }}</strong></span>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 12px;">
                         <span class="badge badge-info">{{ report.timestamp }}</span>
                         
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <a href="/download_pdf/{{ session_id }}?view=1" target="_blank" class="btn-primary btn-sm">👁️ {% if is_ar %}عرض PDF{% else %}View PDF{% endif %}</a>
-                            <a href="/download_pdf/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-pink); box-shadow: 0 4px 10px rgba(228,0,108,0.3);">📥 {% if is_ar %}تحميل PDF{% else %}Download PDF{% endif %}</a>
+                            <a href="/download_pdf/{{ session_id }}?view=1" target="_blank" class="btn-primary btn-sm">👁️ View PDF</a>
+                            <a href="/download_pdf/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-pink); box-shadow: 0 4px 10px rgba(228,0,108,0.3);">📥 Download PDF</a>
 
-                            <a href="/print_report/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--success); box-shadow: 0 4px 10px rgba(40,167,69,0.3);">🖨️ {% if is_ar %}تقرير الويب{% else %}Web Report{% endif %}</a>
-                            <form action="/delete_report/{{ session_id }}" method="POST" onsubmit="return confirmForm(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}تأكيد حذف هذا التقرير نهائياً؟{% else %}Are you sure you want to delete this report?{% endif %}');" style="margin: 0;">
-                                <button type="submit" class="btn-secondary btn-sm" style="background: var(--danger); box-shadow: 0 4px 10px rgba(220,53,69,0.3);">🗑️ {% if is_ar %}حذف{% else %}Delete{% endif %}</button>
+                            <a href="/print_report/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--success); box-shadow: 0 4px 10px rgba(40,167,69,0.3);">🖨️ Web Report</a>
+                            <form action="/delete_report/{{ session_id }}" method="POST" onsubmit="return confirmForm(event, this, 'Confirm Deletion', 'Are you sure you want to delete this report?');" style="margin: 0;">
+                                <button type="submit" class="btn-secondary btn-sm" style="background: var(--danger); box-shadow: 0 4px 10px rgba(220,53,69,0.3);">🗑️ Delete</button>
                             </form>
                         </div>
                     </div>
@@ -164,7 +162,7 @@
         {% endfor %}
     {% else %}
         <div class="glass-card text-center" style="padding: 40px; color: var(--text-secondary);">
-            <h3>🔍 {% if is_ar %}لا توجد تقارير مسجلة تطابق خيارات البحث الحالية.{% else %}No reports recorded matching current search filters.{% endif %}</h3>
+            <h3>🔍 No reports recorded matching current search filters.</h3>
         </div>
     {% endif %}
 </div>

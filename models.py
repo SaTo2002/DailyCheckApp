@@ -102,3 +102,31 @@ class DailySession(db.Model):
     game_locks = db.Column(db.Text, default='{}')                       # أقفال الألعاب لمنع التضارب (JSON)
     created_at = db.Column(db.DateTime, default=db.func.now())
     updated_at = db.Column(db.DateTime, default=db.func.now(), onupdate=db.func.now())
+
+# ------------------------------------------------------------------------------
+# 7. سجل النظام (System Logs - Audit Trail)
+# ------------------------------------------------------------------------------
+class SystemLog(db.Model):
+    __tablename__ = 'system_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)                        # المعرف الفريد
+    timestamp = db.Column(db.DateTime, default=db.func.now())           # وقت الحدث
+    level = db.Column(db.String(20), default='INFO')                    # نوع الحدث (INFO, WARNING, DANGER)
+    user_name = db.Column(db.String(100), nullable=False)               # اسم المستخدم أو المفتش
+    action = db.Column(db.String(100), nullable=False)                  # الحدث نفسه (تسجيل دخول، بدء جلسة، كسر قفل...)
+    details = db.Column(db.Text, nullable=True)                         # تفاصيل إضافية (أرقام التعريف، المسميات...)
+
+def log_system_event(user_name, action, details=None, level='INFO'):
+    """دالة مساعدة لتسجيل أي حركة في قاعدة البيانات بسهولة"""
+    try:
+        log = SystemLog(
+            user_name=user_name,
+            action=action,
+            details=details,
+            level=level
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print(f"Error logging system event: {e}")
+        db.session.rollback()

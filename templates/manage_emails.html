@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}إدارة القائمة البريدية - جرافيتي كود{% else %}Email Receivers Management - Gravity Code{% endif %}</title>
+    <title>Email Receivers Management - Gravity Code</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
     <script>
@@ -35,7 +35,7 @@
     <div class="ambient-blob blob-pink"></div>
 
     <!-- Theme Toggle -->
-    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}">
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
         🌓
     </div>
 
@@ -43,36 +43,36 @@
         
         <!-- Header -->
         <div class="d-flex justify-content-between align-items-center mb-4" style="flex-wrap: wrap; gap: 15px;">
-            <h2 style="margin: 0; color: var(--brand-blue);">📧 {% if is_ar %}إدارة القائمة البريدية{% else %}Email Receivers{% endif %}</h2>
+            <h2 style="margin: 0; color: var(--brand-blue);">📧 Email Receivers</h2>
             <div class="d-flex gap-2 align-items-center">
-                <a href="/dashboard" class="btn-outline">{% if is_ar %}العودة للوحة التحكم{% else %}Back to Dashboard{% endif %}</a>
+                <a href="/dashboard" class="btn-outline">Back to Dashboard</a>
             </div>
         </div>
 
         <!-- Info Box -->
         <div class="note-box glass-card" style="padding: 16px;">
-            📌 <strong style="color: var(--brand-blue);">{% if is_ar %}ملاحظة:{% else %}Note:{% endif %}</strong> {% if is_ar %}جميع الإيميلات المفعلة هنا سيتم إرسال نسخة من تقرير الـ PDF إليها فور الانتهاء من الفحص بنجاح.{% else %}All active emails here will receive a copy of the PDF report immediately upon successful inspection.{% endif %}
+            📌 <strong style="color: var(--brand-blue);">Note:</strong> All active emails here will receive a copy of the PDF report immediately upon successful inspection.
         </div>
 
         <!-- 1. Add New Email Form -->
         <div class="glass-card mb-4" style="border-top: 4px solid var(--brand-pink);">
-            <h3 style="margin-top: 0; color: var(--brand-pink);">➕ {% if is_ar %}إضافة بريد إلكتروني جديد{% else %}Add New Email{% endif %}</h3>
+            <h3 style="margin-top: 0; color: var(--brand-pink);">➕ Add New Email</h3>
             <form action="/add_email" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
                     <div>
-                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</label>
-                        <input type="text" name="name" required class="glass-input" placeholder="{% if is_ar %}مثال: مدير الفرع{% else %}e.g., Branch Manager{% endif %}">
+                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">Name / Position</label>
+                        <input type="text" name="name" required class="glass-input" placeholder="e.g., Branch Manager">
                     </div>
                     
                     <div>
-                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">{% if is_ar %}البريد الإلكتروني (Email){% else %}Email Address{% endif %}</label>
+                        <label style="display: block; font-weight: 700; margin-bottom: 8px; color: var(--text-secondary);">Email Address</label>
                         <input type="email" name="email" required class="glass-input" placeholder="manager@example.com">
                     </div>
                 </div>
                 
                 <div>
                     <button type="submit" class="btn-primary" style="padding: 12px 24px;">
-                        ➕ {% if is_ar %}إضافة للقائمة{% else %}Add to List{% endif %}
+                        ➕ Add to List
                     </button>
                 </div>
             </form>
@@ -80,15 +80,15 @@
 
         <!-- 2. Registered Emails Table -->
         <div class="glass-card" style="border-top: 4px solid var(--brand-blue);">
-            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--brand-blue);">📋 {% if is_ar %}القائمة الحالية{% else %}Current List{% endif %}</h3>
+            <h3 style="margin-top: 0; margin-bottom: 20px; color: var(--brand-blue);">📋 Current List</h3>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th>{% if is_ar %}الاسم / المنصب{% else %}Name / Position{% endif %}</th>
-                            <th>{% if is_ar %}الإيميل{% else %}Email{% endif %}</th>
-                            <th>{% if is_ar %}الحالة{% else %}Status{% endif %}</th>
-                            <th>{% if is_ar %}إجراءات{% else %}Actions{% endif %}</th>
+                            <th>Name / Position</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -98,9 +98,9 @@
                             <td style="color: var(--text-secondary);">{{ rcv.email }}</td>
                             <td>
                                 {% if rcv.is_active %}
-                                    <span class="badge badge-active">{% if is_ar %}مفعل{% else %}Active{% endif %}</span>
+                                    <span class="badge badge-active">Active</span>
                                 {% else %}
-                                    <span class="badge badge-inactive">{% if is_ar %}معطل{% else %}Inactive{% endif %}</span>
+                                    <span class="badge badge-inactive">Inactive</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -108,16 +108,16 @@
                                     <!-- Toggle Status -->
                                     <a href="/toggle_email/{{ rcv.id }}" class="btn-primary {{ 'btn-toggle-active' if rcv.is_active else 'btn-toggle-inactive' }}" style="padding: 8px 12px; font-size: 13px;">
                                         {% if rcv.is_active %}
-                                            {% if is_ar %}تعطيل ⏸️{% else %}Disable ⏸️{% endif %}
+                                            Disable ⏸️
                                         {% else %}
-                                            {% if is_ar %}تفعيل ▶️{% else %}Enable ▶️{% endif %}
+                                            Enable ▶️
                                         {% endif %}
                                     </a>
 
                                     <!-- Delete -->
-                                    <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirmForm(event, this, '{% if is_ar %}⚠️ تأكيد الحذف{% else %}Confirm Deletion{% endif %}', '{% if is_ar %}هل أنت متأكد من مسح هذا الإيميل نهائياً؟{% else %}Are you sure you want to permanently delete this email?{% endif %}');">
+                                    <form action="/delete_email/{{ rcv.id }}" method="POST" style="margin: 0;" onsubmit="return confirmForm(event, this, 'Confirm Deletion', 'Are you sure you want to permanently delete this email?');">
                                         <button type="submit" class="btn-secondary" style="background: var(--danger); padding: 8px 12px; font-size: 13px; box-shadow: 0 4px 10px rgba(220,53,69,0.3);">
-                                            {% if is_ar %}حذف 🗑️{% else %}Delete 🗑️{% endif %}
+                                            Delete 🗑️
                                         </button>
                                     </form>
                                 </div>
@@ -126,7 +126,7 @@
                         {% else %}
                         <tr>
                             <td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">
-                                <h3>{% if is_ar %}لا يوجد إيميلات مسجلة حالياً.{% else %}No emails registered currently.{% endif %}</h3>
+                                <h3>No emails registered currently.</h3>
                             </td>
                         </tr>
                         {% endfor %}

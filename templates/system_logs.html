@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Activity Logs</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark-mode');
+            if (document.documentElement.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', 'Inter', sans-serif; background: var(--bg-gradient); background-color: var(--bg-main); margin: 0; padding: 20px; color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--surface-glass); padding: 30px; border-radius: 12px; box-shadow: var(--glass-shadow); border: 1px solid var(--surface-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+        
+        h2 { border-bottom: 2px solid var(--surface-border); padding-bottom: 15px; color: var(--brand-blue); display: flex; align-items: center; justify-content: space-between; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--surface-border); }
+        th { background-color: rgba(31, 162, 224, 0.05); color: var(--brand-blue); font-weight: bold; }
+        tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+        html:not(.dark-mode) tr:hover { background-color: rgba(0, 0, 0, 0.02); }
+        
+        .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; text-align: center;}
+        .badge-info { background-color: rgba(31, 162, 224, 0.15); color: var(--brand-blue); border: 1px solid var(--brand-blue); }
+        .badge-warning { background-color: rgba(240, 158, 37, 0.15); color: var(--brand-orange); border: 1px solid var(--brand-orange); }
+        .badge-danger { background-color: rgba(220, 53, 69, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        .badge-secondary { background-color: rgba(108, 117, 125, 0.15); color: var(--text-primary); border: 1px solid var(--text-secondary); }
+        
+        .btn-outline { display: inline-block; padding: 8px 16px; border: 2px solid var(--brand-blue); color: var(--brand-blue); text-decoration: none; border-radius: 6px; font-weight: bold; transition: all 0.3s; }
+        .btn-outline:hover { background: var(--brand-blue); color: white; }
+        
+        .search-box { width: 100%; max-width: 400px; padding: 12px; border: 1px solid var(--surface-border); border-radius: 8px; background: var(--input-bg); color: var(--text-primary); margin-bottom: 20px; outline: none; }
+        .search-box:focus { border-color: var(--brand-blue); }
+        
+        .timestamp-ltr { direction: ltr; display: inline-block; text-align: left; }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+        🌓
+    </div>
+
+<div class="container" style="position: relative; z-index: 1;">
+    <h2>
+        <span>📝 System Activity Logs</span>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn-outline">Back to Dashboard</a>
+    </h2>
+    <p style="color: var(--text-secondary); margin-bottom: 30px;">Track all system actions and modifications.</p>
+
+    <input type="text" id="searchInput" class="search-box" placeholder="Search logs (name, action, details)..." onkeyup="filterTable()">
+
+    <div style="overflow-x: auto;">
+        <table id="logsTable">
+            <thead>
+                <tr style="text-align: left;">
+                    <th style="text-align: left;">ID</th>
+                    <th style="text-align: left;">Timestamp</th>
+                    <th style="text-align: left;">User</th>
+                    <th style="text-align: left;">Action / Event</th>
+                    <th style="text-align: left;">Details</th>
+                </tr>
+            </thead>
+            <tbody style="text-align: left;">
+                {% for log in logs %}
+                <tr>
+                    <td style="text-align: left;">{{ log.id }}</td>
+                    <td style="text-align: left;"><span class="timestamp-ltr">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</span></td>
+                    <td style="text-align: left;">
+                        <span class="badge badge-secondary">{{ log.user_name }}</span>
+                    </td>
+                    <td style="text-align: left;">
+                        {% if log.level == 'INFO' %}
+                            <span class="badge badge-info">{{ log.action }}</span>
+                        {% elif log.level == 'WARNING' %}
+                            <span class="badge badge-warning">{{ log.action }}</span>
+                        {% elif log.level == 'DANGER' %}
+                            <span class="badge badge-danger">{{ log.action }}</span>
+                        {% else %}
+                            <span class="badge badge-secondary">{{ log.action }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: var(--text-secondary); font-size: 14px; text-align: left;">{{ log.details or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 30px;">No logs found yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    var input, filter, table, tr, td, i, j, txtValue;
+    input = document.getElementById("searchInput");
+    filter = input.value.toUpperCase();
+    table = document.getElementById("logsTable");
+    tr = table.getElementsByTagName("tr");
+    
+    for (i = 1; i < tr.length; i++) {
+        tr[i].style.display = "none"; 
+        td = tr[i].getElementsByTagName("td");
+        for (j = 0; j < td.length; j++) {
+            if (td[j]) {
+                txtValue = td[j].textContent || td[j].innerText;
+                if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                    break;
+                }
+            }
+        }
+    }
+}
+</script>
+</body>
+</html>

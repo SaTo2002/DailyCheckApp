@@ -10,7 +10,7 @@ import uuid
 import time
 from flask import Blueprint, render_template, request, session, redirect, url_for, current_app
 from extensions import db, UPLOAD_FOLDER
-from models import Area, GameModel, GameReport, DailySession
+from models import Area, GameModel, GameReport, DailySession, SystemLog, log_system_event
 from datetime import date
 # إنشاء Blueprint للمراقب
 monitor_bp = Blueprint('monitor', __name__)
@@ -55,11 +55,12 @@ def home():
 
 
 
-    # عند إرسال نموذج دخول المونيتور
     if request.method == 'POST':
-        session['monitor_name'] = request.form.get('monitor_name')
+        monitor_name = request.form.get('monitor_name')
+        session['monitor_name'] = monitor_name
         selected_area = request.form.get('area')
         session['area_id'] = selected_area 
+        log_system_event(monitor_name, 'Monitor Area Login', details=f"Entered Area ID {selected_area}", level='INFO')
         return redirect(url_for('monitor.show_games', area_id=selected_area))
     
     areas = Area.query.order_by(Area.sort_order.asc(), Area.id.asc()).all()
@@ -77,21 +78,14 @@ def reset_and_start():
     if ds:
         ds.status = 'abandoned'
         db.session.commit()
+        log_system_event(monitor_name, 'Cancel Old Session & Start New', details=f"Area ID {selected_area}", level='WARNING')
+    else:
+        log_system_event(monitor_name, 'Monitor Area Login', details=f"Entered Area ID {selected_area}", level='INFO')
         
     return redirect(url_for('monitor.show_games', area_id=selected_area))
 
 # ------------------------------------------------------------------------------
-# 1.5. تغيير لغة النظام (English / العربية)
-# ------------------------------------------------------------------------------
-@monitor_bp.route('/set_language/<lang>')
-def set_language(lang):
-    if lang in ['en', 'ar']:
-        session['lang'] = lang
-    referrer = request.referrer or url_for('monitor.home')
-    return redirect(referrer)
-
-# ------------------------------------------------------------------------------
-# 2. عرض قائمة الألعاب التابعة للمنطقة المختارة بترتيبها المخصص (GET)
+# 2. عرض قائمة الألعاب التابعة for Area المختارة بترتيبها المخصص (GET)
 # ------------------------------------------------------------------------------
 @monitor_bp.route('/games/<area_id>')
 def show_games(area_id):
@@ -159,9 +153,18 @@ def show_games(area_id):
     if len(games) == 1 and not all_completed and not cancel_flag:
         return redirect(url_for('monitor.check_game', game_id=games[0].id))
         
-    return render_template('games.html', area_name=area.name, games=games, monitor_name=monitor_name, 
-                           completed_games=completed, all_completed=all_completed,
-                           active_inspectors=active_inspectors, game_locks=game_locks, ds_id=ds.id)
+    return render_template(
+        'games.html', 
+        games=games, 
+        area_name=area.name, 
+        completed_games=completed,
+        game_data=game_data,
+        game_locks=game_locks,
+        monitor_name=monitor_name,
+        all_completed=all_completed,
+        active_inspectors=active_inspectors,
+        ds_id=ds.id
+    )
 
 # ------------------------------------------------------------------------------
 # 3. صفحة فحص لعبة معينة (نموذج الأسئلة والخريطة والصور) (GET & POST)
@@ -229,6 +232,12 @@ def check_game(game_id):
     next_game_id = _get_next_game_id(area_id, game_id)
     saved_data = game_data.get(str(game_id), {})
     
+    # Restrict editing to the original inspector who saved it
+    if saved_data:
+        original_inspector = saved_data.get('inspector_name')
+        if original_inspector and original_inspector != monitor_name:
+            return "Sorry, this game was already inspected by another monitor and you cannot edit it."
+            
     area_games_count = GameModel.query.filter_by(area_id=area_id).count() if area_id else 0
     single_game_mode = (area_games_count == 1)
         
@@ -241,19 +250,23 @@ def check_game(game_id):
         old_map_path = saved_data.get('map_drawing', '')
         current_answers['map_drawing'] = _process_map_drawing(request.form.get('map_drawing', ''), game, old_map_path)
 
+        is_edit = str(game_id) in game_data
         game_data[str(game_id)] = current_answers
         ds.game_data = json.dumps(game_data, ensure_ascii=False)
         
+        # تحرير القفل فوراً بعد حفظ الإجابات لتسريع العمل
         try:
             game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
-        except Exception:
-            game_locks = {}
-            
-        if str(game_id) in game_locks:
-            del game_locks[str(game_id)]
+            if str(game_id) in game_locks:
+                del game_locks[str(game_id)]
             ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+        except Exception:
+            pass
             
         db.session.commit()
+        
+        log_msg = 'Edit Game Inspection' if is_edit else 'Submit Game Inspection'
+        log_system_event(monitor_name, log_msg, details=f"Game: {game.name}", level='INFO')
         
         user_action = request.form.get('action')
         if user_action == 'submit_report':
@@ -271,9 +284,12 @@ def check_game(game_id):
         
     # Prevent entry if locked by someone else (Unless override is requested)
     override = request.args.get('override')
-    if str(game_id) in game_locks and game_locks[str(game_id)] != monitor_name and override != '1':
-        return redirect(url_for('monitor.show_games', area_id=area_id))
-        
+    if str(game_id) in game_locks and game_locks[str(game_id)] != monitor_name:
+        if override != '1':
+            return redirect(url_for('monitor.show_games', area_id=area_id))
+        else:
+            log_system_event(monitor_name, 'Override Game Lock', details=f"لعبة {game.name} - Locked previously by {game_locks[str(game_id)]}", level='WARNING')
+            
     # Clear any existing locks for THIS user on OTHER games
     keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name and k != str(game_id)]
     for k in keys_to_delete:
@@ -417,6 +433,8 @@ def submit_report():
     db.session.commit()
     
     # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية
+    log_system_event(monitor_name, 'Generate Area Report', details=f"Area: {area.name}، Games inspected: {len(completed_games)}", level='INFO')
+
     import subprocess
     import sys
     cmd = [
@@ -464,6 +482,7 @@ def cancel_area():
         if ds:
             if reset_all == '1':
                 ds.status = 'abandoned'
+                log_system_event(monitor_name or 'Unknown', 'Cancel Area Inspection (Reset)', details=f"Area ID: {area_id}", level='WARNING')
             elif monitor_name:
                 try:
                     active_inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []

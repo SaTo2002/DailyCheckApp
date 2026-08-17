@@ -5,12 +5,12 @@
 ============================================================================== -->
 <!DOCTYPE html>
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}فحص لعبة:{% else %}Check Game:{% endif %} {{ game.name }}</title>
+    <title>Check Game: {{ game.name }}</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <!-- CSS -->
     <link rel="stylesheet" href="/static/css/style.css">
@@ -119,31 +119,28 @@
     <div class="ambient-blob blob-pink"></div>
 
     <!-- Theme Toggle -->
-    <div class="theme-toggle-btn" onclick="toggleTheme()" title="{% if is_ar %}تغيير المظهر{% else %}Toggle Theme{% endif %}" style="z-index: 9999;">
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme" style="z-index: 9999;">
         🌓
     </div>
 
     <!-- Language Switcher Bar -->
     <div style="max-width: 600px; margin: 15px auto 0 auto; display: flex; justify-content: flex-end;">
-        {% if is_ar %}
-        <a href="/set_language/en" class="lang-switch-btn" title="Switch to English">🌐 English</a>
-        {% else %}
-        <a href="/set_language/ar" class="lang-switch-btn" title="التحويل للغة العربية">🌐 العربية</a>
-        {% endif %}
+        
+        
     </div>
 
     <div class="monitor-container" style="margin-top: 10px; padding-bottom: 80px;">
         <!-- Header & Title -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h1 class="monitor-title" style="margin: 0; font-size: 20px;">
-                {% if is_ar %}فحص:{% else %}Check:{% endif %} <span style="color: var(--success);">{{ game.name }}</span>
+                Check: <span style="color: var(--success);">{{ game.name }}</span>
             </h1>
             {% if single_game_mode %}
-                <a href="/cancel_area" onclick="return confirmLink(event, this, '{% if is_ar %}⚠️ تأكيد{% else %}Confirm{% endif %}', '{% if is_ar %}⚠️ هل أنت متأكد من إلغاء الفحص؟ سيتم مسح أي بيانات غير مرسلة!{% else %}⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!{% endif %}');"
-                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
+                <a href="/cancel_area" onclick="return confirmLink(event, this, 'Confirm', '⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!');"
+                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 Cancel</a>
             {% else %}
                 <a href="/games/{{ session.get('area_id') }}?cancel=1"
-                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 {% if is_ar %}إلغاء{% else %}Cancel{% endif %}</a>
+                    style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 Cancel</a>
             {% endif %}
         </div>
 
@@ -153,7 +150,7 @@
 
             <!-- 1. Interactive Map Drawing Section -->
             {% if game.has_map %}
-            <div class="section-header">🗺️ {% if is_ar %}تحديد المشكلة على الخريطة{% else %}Mark Issue on Map{% endif %} {% if game.map_mandatory %}<span
+            <div class="section-header">🗺️ Mark Issue on Map {% if game.map_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
 
             {% if game.map_image %}
@@ -162,19 +159,19 @@
                 style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; justify-content: space-between;">
                 <div style="display: flex; gap: 6px;">
                     <button type="button" class="btn-map-tool" style="background: var(--input-bg); color: var(--text-primary);"
-                        onclick="undoCanvas()">↩️ {% if is_ar %}تراجع{% else %}Undo{% endif %}</button>
+                        onclick="undoCanvas()">↩️ Undo</button>
                     <button type="button" class="btn-map-tool" style="background: #dc3545; color: white;"
-                        onclick="clearCanvas()">🗑️ {% if is_ar %}مسح الكل{% else %}Clear All{% endif %}</button>
+                        onclick="clearCanvas()">🗑️ Clear All</button>
                 </div>
                 <div style="display: flex; gap: 6px; align-items: center;">
-                    <span style="font-size: 13px; font-weight: bold; color: var(--text-primary);">{% if is_ar %}الزوم:{% else %}Zoom:{% endif %}</span>
+                    <span style="font-size: 13px; font-weight: bold; color: var(--text-primary);">Zoom:</span>
                     <button type="button" class="btn-map-tool" style="background: #0d6efd; color: white;"
-                        onclick="changeZoom(0.3)">🔍+ {% if is_ar %}تكبير{% else %}Zoom In{% endif %}</button>
+                        onclick="changeZoom(0.3)">🔍+ Zoom In</button>
                     <button type="button" class="btn-map-tool" style="background: #6c757d; color: white;"
-                        onclick="changeZoom(-0.3)">🔍- {% if is_ar %}تصغير{% else %}Zoom Out{% endif %}</button>
+                        onclick="changeZoom(-0.3)">🔍- Zoom Out</button>
                     <button type="button" class="btn-map-tool"
                         style="background: var(--surface-glass); color: var(--text-primary); border: 1px solid var(--surface-border);" onclick="resetZoom()">🔄
-                        {% if is_ar %}إعادة{% else %}Reset{% endif %}</button>
+                        Reset</button>
                 </div>
             </div>
 
@@ -190,17 +187,17 @@
             <input type="hidden" name="map_drawing" id="map_drawing_input"
                 value="{{ saved_data.get('map_drawing', '') }}">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px;">
-                <p style="color: var(--text-primary); font-size: 13px; margin: 0;">{% if is_ar %}(يمكنك التكبير بالأزرار أعلاه والتراجع عن الرسم step-by-step){% else %}(Use zoom buttons above to adjust view and draw step-by-step){% endif %}</p>
+                <p style="color: var(--text-primary); font-size: 13px; margin: 0;">(Use zoom buttons above to adjust view and draw step-by-step)</p>
                 {% if saved_data.get('map_drawing') %}
-                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px;">✅ {% if is_ar %}تم تحديد الرسم{% else %}Drawing Saved{% endif %}</span>
+                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px;">✅ Drawing Saved</span>
                 {% else %}
-                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px; display: none;">✅ {% if is_ar %}تم تحديد الرسم{% else %}Drawing Saved{% endif %}</span>
+                <span id="drawingBadge" style="color: #198754; font-weight: bold; font-size: 13px; display: none;">✅ Drawing Saved</span>
                 {% endif %}
             </div>
             {% else %}
             <div
                 style="padding: 15px; background: var(--surface-glass); color: #856404; border-radius: 8px; border: 1px solid #ffeeba; font-size: 14px;">
-                ⚠️ {% if is_ar %}تم تفعيل الخريطة لهذه اللعبة، لكن لم يتم رفع صورة الخريطة الأساسية بعد.{% else %}Map is enabled for this game, but no base map image has been uploaded yet.{% endif %}
+                ⚠️ Map is enabled for this game, but no base map image has been uploaded yet.
             </div>
             <input type="hidden" name="map_drawing" id="map_drawing_input" value="">
             {% endif %}
@@ -209,16 +206,16 @@
 
             <!-- 2. Notes / Description Section -->
             {% if game.allow_notes is not defined or game.allow_notes %}
-            <div class="section-header">📝 {% if is_ar %}ملاحظات إضافية / الوصف{% else %}Additional Notes / Description{% endif %} {% if game.notes_mandatory %}<span
+            <div class="section-header">📝 Additional Notes / Description {% if game.notes_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
-                placeholder="{% if is_ar %}اكتب أي ملاحظات أو تفاصيل عن حالة اللعبة هنا...{% else %}Write any additional notes or details about the game condition...{% endif %}" {% if game.notes_mandatory %}required{%
+                placeholder="Write any additional notes or details about the game condition..." {% if game.notes_mandatory %}required{%
                 endif %}>{{ saved_data.get('notes', '') }}</textarea>
             {% endif %}
 
             <!-- 3. Check Items -->
             {% if checks %}
-            <div class="section-header">📋 {% if is_ar %}عناصر الفحص{% else %}Check Items{% endif %}</div>
+            <div class="section-header">📋 Check Items</div>
             {% for check in checks %}
             <div class="glass-card question-card" style="margin-bottom: 16px;">
                 <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px; color: var(--text-primary);">
@@ -251,7 +248,7 @@
 
             <!-- 4. Photos Section -->
             {% if game.allow_photos %}
-            <div class="section-header">📸 {% if is_ar %}صور الأعطال والتلفيات{% else %}Attach Photos{% endif %} {% if game.requires_photo %}<span
+            <div class="section-header">📸 Attach Photos {% if game.requires_photo %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <div
                 style="background: var(--surface-glass); padding: 16px; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center;">
@@ -259,23 +256,23 @@
                     style="width: 100%; font-size: 14px;" {% if game.requires_photo and not saved_data.get('photos')
                     %}required{% endif %}>
             </div>
-            <p style="color: var(--text-primary); font-size: 13px; margin-top: 6px;">{% if is_ar %}يمكنك التقاط الصور مباشرة من الكاميرا أو اختيار أكثر من صورة.{% else %}You can capture photos directly using your camera or choose multiple images.{% endif %}</p>
+            <p style="color: var(--text-primary); font-size: 13px; margin-top: 6px;">You can capture photos directly using your camera or choose multiple images.</p>
             {% endif %}
 
             <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar" style="background: var(--surface-glass); backdrop-filter: blur(10px); border-top: 1px solid var(--surface-border);">
                 {% if single_game_mode %}
                     <button type="submit" name="action" value="submit_report" class="btn-primary" style="flex: 1.5; font-size: 16px; cursor: pointer;">
-                        📝 {% if is_ar %}إرسال التقرير النهائي{% else %}Submit Final Report{% endif %}
+                        📝 Submit Final Report
                     </button>
                 {% else %}
                     <button type="submit" name="action" value="save" class="btn-secondary" style="cursor: pointer; flex: 1;">
-                        💾 {% if is_ar %}حفظ والعودة{% else %}Save & Back{% endif %}
+                        💾 Save & Back
                     </button>
 
                     {% if next_game_id %}
                     <button type="submit" name="action" value="next" class="btn-primary" style="cursor: pointer; background: var(--success); flex: 1;">
-                        {% if is_ar %}التالي ⏭️{% else %}Next ⏭️{% endif %}
+                        Next ⏭️
                     </button>
                     {% endif %}
                 {% endif %}
@@ -481,7 +478,7 @@
             if (isMapMandatory && mapInput) {
                 if (!mapInput.value || mapInput.value === '') {
                     e.preventDefault();
-                    showModal('⚠️ {% if is_ar %}تنبيه{% else %}Alert{% endif %}', '{% if is_ar %}يرجى تحديد موقع التلف أو المشكلة على الخريطة (هذا الحقل إجباري).{% else %}Please specify the damage location on the map (this field is required).{% endif %}', [{text: '{% if is_ar %}حسناً{% else %}OK{% endif %}', type: 'primary'}]);
+                    showModal('⚠️ Alert', 'Please specify the damage location on the map (this field is required).', [{text: 'OK', type: 'primary'}]);
                 }
             }
         });

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html dir="{{ dir_attr }}" lang="{{ html_lang }}">
+<html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if is_ar %}تم إرسال التقرير بنجاح{% else %}Report Submitted Successfully{% endif %}</title>
+    <title>Report Submitted Successfully</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/monitor.css') }}">
     <style>
         body {
@@ -168,27 +168,27 @@
         </div>
 
         <h1 class="success-title">
-            {% if is_ar %}تم إرسال تقرير المنطقة بنجاح!{% else %}Area Report Submitted Successfully!{% endif %}
+            Area Report Submitted Successfully!
         </h1>
         
         <p class="success-subtitle">
-            {% if is_ar %}تم حفظ كافة البيانات والأعطال بنجاح وتوليد تقرير الإكسيل والـ PDF.{% else %}All data and issues have been successfully saved and Excel/PDF reports generated.{% endif %}
+            All data and issues have been successfully saved and Excel/PDF reports generated.
         </p>
 
         <div class="info-box">
             <div class="info-row">
-                <span class="info-label">📍 {% if is_ar %}المنطقة:{% else %}Area:{% endif %}</span>
+                <span class="info-label">📍 Area:</span>
                 <span class="info-value">{{ area_name }}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">👤 {% if is_ar %}المسؤول (المونيتور):{% else %}Monitor Name:{% endif %}</span>
+                <span class="info-label">👤 Monitor Name:</span>
                 <span class="info-value">{{ monitor_name }}</span>
             </div>
         </div>
 
         <div class="btn-group">
             <a href="/" class="btn-action btn-primary-action">
-                🏠 {% if is_ar %}العودة للصفحة الرئيسية{% else %}Back to Home{% endif %}
+                🏠 Back to Home
             </a>
         </div>
     </div>
