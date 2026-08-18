@@ -182,13 +182,37 @@ def export_report_to_excel(
 
     from openpyxl.styles import Alignment, Font
 
-    for cell_addr, notes_list in cell_notes_map.items():
+    for cell_addr in set(dynamic_note_cells.values()):
+        notes_list = cell_notes_map.get(cell_addr, [])
         cell = ws[cell_addr]
 
-        # Bullet-Point Demarcation Flow: Clearly separate distinct notes with bold bullet points (•)
+        # Check if we should hide this note section
+        is_na_or_empty = True
+        for n in notes_list:
+            if n and n.strip().upper() != "N/A":
+                is_na_or_empty = False
+                break
+
+        if is_na_or_empty:
+            cell.value = ""
+            merged_range = None
+            for merged in ws.merged_cells.ranges:
+                if cell.coordinate in merged:
+                    merged_range = merged
+                    break
+            
+            # Hide the row(s)
+            if merged_range:
+                for r in range(merged_range.min_row, merged_range.max_row + 1):
+                    ws.row_dimensions[r].hidden = True
+            else:
+                ws.row_dimensions[cell.row].hidden = True
+            continue
+
+        # If there are valid notes, write them normally
         all_paragraphs = []
         for n in notes_list:
-            if not n:
+            if not n or n.strip().upper() == "N/A":
                 continue
             lines = [line.strip() for line in n.splitlines() if line.strip()]
             if lines:
