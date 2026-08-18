@@ -38,6 +38,7 @@ def admin_login():
         if username == "admin" and check_password_hash(MASTER_ADMIN_HASH, password):
             session["is_admin"] = True
             session["admin_role"] = "admin"
+            session["admin_username"] = "Master Admin"
             session["is_master_admin"] = True
             session["can_manage_system"] = True
             session["can_view_reports"] = True
@@ -50,6 +51,7 @@ def admin_login():
             is_master = user.role == "admin"
             session["is_admin"] = True
             session["admin_role"] = user.role
+            session["admin_username"] = user.username
             session["is_master_admin"] = is_master
             session["can_view_reports"] = True  # كافة الحسابات يمكنها رؤية الداشبورد
             session["can_manage_system"] = (
@@ -73,9 +75,12 @@ def admin_login():
 # ------------------------------------------------------------------------------
 @admin_bp.route("/admin_logout")
 def admin_logout():
+    admin_name = session.get("admin_username", "Master Admin")
+    log_system_event(admin_name, "Admin Logout", level="INFO")
     for k in [
         "is_admin",
         "admin_role",
+        "admin_username",
         "is_master_admin",
         "can_manage_system",
         "can_manage_areas",
@@ -404,6 +409,7 @@ def delete_neglected(session_id):
         
     from models import DailySession
     ds = DailySession.query.get_or_404(session_id)
+    log_system_event(session.get("admin_username", "Master Admin"), "Delete Neglected Session", details=f"Deleted neglected session #{session_id} for Area ID: {ds.area_id}", level="WARNING")
     db.session.delete(ds)
     db.session.commit()
     return redirect(url_for("admin.dashboard"))
@@ -417,6 +423,7 @@ def reopen_neglected(session_id):
     from models import DailySession
     from datetime import date
     ds = DailySession.query.get_or_404(session_id)
+    log_system_event(session.get("admin_username", "Master Admin"), "Reopen Neglected Session", details=f"Reopened neglected session #{session_id} for Area ID: {ds.area_id}", level="INFO")
     # Reset status and date so it appears to monitors today
     ds.status = "in_progress"
     ds.date = date.today()
@@ -434,6 +441,7 @@ def force_complete_neglected(session_id):
     import json
     
     ds = DailySession.query.get_or_404(session_id)
+    log_system_event(session.get("admin_username", "Master Admin"), "Force Complete Neglected Session", details=f"Forced complete for session #{session_id}, Area ID: {ds.area_id}", level="WARNING")
     
     try:
         game_data = json.loads(ds.game_data) if ds.game_data else {}
@@ -591,7 +599,7 @@ def delete_report(session_id):
         return redirect(url_for("admin.admin_login"))
 
     log_system_event(
-        session.get("admin_role", "Admin"),
+        session.get("admin_username", "Master Admin"),
         "Delete Report",
         details=f"Deleted report for session: {session_id}",
         level="WARNING",
@@ -675,7 +683,7 @@ def delete_email(rcv_id):
     rcv = EmailReceiver.query.get(rcv_id)
     if rcv:
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Delete Email",
             details=f"Deleted Email: {rcv.email}",
             level="WARNING",
@@ -692,3 +700,51 @@ def system_logs():
 
     logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).all()
     return render_template("system_logs.html", logs=logs)
+
+# ------------------------------------------------------------------------------
+# 11. سجل الإيميلات (Email Logs)
+# ------------------------------------------------------------------------------
+@admin_bp.route("/email_logs")
+def email_logs():
+    if not session.get("is_admin") or not session.get("is_master_admin"):
+        return redirect(url_for("admin.dashboard"))
+        
+    from models import EmailLog
+    logs = EmailLog.query.order_by(EmailLog.id.desc()).all()
+    return render_template("email_logs.html", logs=logs)
+
+from flask import jsonify
+@admin_bp.route("/retry_failed_emails", methods=["POST"])
+def retry_failed_emails():
+    if not session.get("is_admin") or not session.get("is_master_admin"):
+        return jsonify({"success": False, "error": "Unauthorized"}), 403
+        
+    try:
+        from utils_mail import process_email_queue
+        from flask import current_app
+        import threading
+        
+        # Reset retry limits for failed emails before running
+        from models import EmailLog
+        from extensions import db
+        failed_logs = EmailLog.query.filter_by(status="failed").all()
+        count = len(failed_logs)
+        for log in failed_logs:
+            log.retry_count = 0  # reset to allow retry
+            log.last_attempt_at = None
+        db.session.commit()
+        
+        log_system_event(
+            session.get("admin_username", "Master Admin"),
+            "Retry Failed Emails",
+            details=f"Triggered manual retry for {count} failed emails",
+            level="INFO",
+        )
+        
+        # Start background thread
+        app_obj = current_app._get_current_object()
+        threading.Thread(target=process_email_queue, args=(app_obj,)).start()
+        
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500

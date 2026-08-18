@@ -79,7 +79,7 @@ def add_area():
         )
         db.session.commit()
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Add Area",
             details=f"اسم الArea: {name}",
             level="INFO",
@@ -145,7 +145,7 @@ def edit_area(area_id):
 
         db.session.commit()
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Edit Area",
             details=f"الArea: {area.name}",
             level="INFO",
@@ -165,7 +165,7 @@ def delete_area(area_id):
     area = Area.query.get_or_404(area_id)
     if area:
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Delete Area",
             details=f"حذف Area: {area.name}",
             level="WARNING",
@@ -270,7 +270,7 @@ def add_game_to_area(area_id):
         )
         db.session.commit()
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Add Game",
             details=f"اسم الGame: {name} for Area {area_id}",
             level="INFO",
@@ -337,7 +337,7 @@ def edit_game(game_id):
 
         db.session.commit()
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Edit Game",
             details=f"اسم الGame: {game.name}",
             level="INFO",
@@ -362,7 +362,7 @@ def delete_game_from_area(area_id, game_id):
     game = GameModel.query.get(game_id)
     if game:
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Delete Game",
             details=f"اسم الGame: {game.name}",
             level="WARNING",
@@ -403,7 +403,7 @@ def manage_users():
             db.session.add(user)
             db.session.commit()
             log_system_event(
-                session.get("admin_role", "Admin"),
+                session.get("admin_username", "Master Admin"),
                 "Add User",
                 details=f"Username: {username}, Role: {role}",
                 level="INFO",
@@ -427,7 +427,7 @@ def update_user_permissions(user_id):
     user.can_view_reports = True
     db.session.commit()
     log_system_event(
-        session.get("admin_role", "Admin"),
+        session.get("admin_username", "Master Admin"),
         "Edit User Permissions",
         details=f"User: {user.username}",
         level="INFO",
@@ -445,7 +445,7 @@ def delete_user(user_id):
     user = User.query.get(user_id)
     if user:
         log_system_event(
-            session.get("admin_role", "Admin"),
+            session.get("admin_username", "Master Admin"),
             "Delete User",
             details=f"حذف User: {user.username}",
             level="WARNING",

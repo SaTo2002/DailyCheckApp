@@ -177,6 +177,26 @@ def check_neglected_sessions():
         except Exception as e:
             app.logger.warning(f"Error checking neglected sessions: {e}")
 
+import threading
+import time
+from flask import current_app
+
+LAST_EMAIL_CHECK = 0
+
+@app.before_request
+def check_email_queue():
+    global LAST_EMAIL_CHECK
+    current_time = time.time()
+    # Check queue max once every 60 seconds
+    if current_time - LAST_EMAIL_CHECK > 60:
+        LAST_EMAIL_CHECK = current_time
+        try:
+            from utils_mail import process_email_queue
+            app_obj = current_app._get_current_object()
+            threading.Thread(target=process_email_queue, args=(app_obj,)).start()
+        except Exception as e:
+            app.logger.warning(f"Failed to start email queue thread: {e}")
+
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == "__main__":
     debug_mode = os.getenv("DEBUG", "False").lower() == "true"

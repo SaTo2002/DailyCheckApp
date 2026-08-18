@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Email System Logs</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark-mode');
+            if (document.documentElement.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+            } else {
+                localStorage.setItem('theme', 'light');
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Cairo', 'Inter', sans-serif; background: var(--bg-gradient); background-color: var(--bg-main); margin: 0; padding: 20px; color: var(--text-primary); min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; background: var(--surface-glass); padding: 30px; border-radius: 12px; box-shadow: var(--glass-shadow); border: 1px solid var(--surface-border); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur); }
+        
+        h2 { border-bottom: 2px solid var(--surface-border); padding-bottom: 15px; color: var(--brand-blue); display: flex; align-items: center; justify-content: space-between; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid var(--surface-border); }
+        th { background-color: rgba(31, 162, 224, 0.05); color: var(--brand-blue); font-weight: bold; }
+        tr:hover { background-color: rgba(255, 255, 255, 0.05); }
+        html:not(.dark-mode) tr:hover { background-color: rgba(0, 0, 0, 0.02); }
+        
+        .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; text-align: center;}
+        .badge-pending { background-color: rgba(240, 158, 37, 0.15); color: var(--brand-orange); border: 1px solid var(--brand-orange); }
+        .badge-sent { background-color: rgba(40, 167, 69, 0.15); color: var(--success); border: 1px solid var(--success); }
+        .badge-failed { background-color: rgba(220, 53, 69, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+        
+        .btn-outline { display: inline-block; padding: 8px 16px; border: 2px solid var(--brand-blue); color: var(--brand-blue); text-decoration: none; border-radius: 6px; font-weight: bold; transition: all 0.3s; }
+        .btn-outline:hover { background: var(--brand-blue); color: white; }
+
+        .btn-retry { display: inline-block; padding: 8px 16px; border: 2px solid var(--brand-orange); color: var(--brand-orange); background: transparent; text-decoration: none; border-radius: 6px; font-weight: bold; transition: all 0.3s; cursor: pointer; }
+        .btn-retry:hover { background: var(--brand-orange); color: white; }
+        .btn-retry:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .timestamp-ltr { direction: ltr; display: inline-block; text-align: left; }
+        
+        .error-msg { font-size: 0.85em; color: var(--danger); margin-top: 5px; background: rgba(220, 53, 69, 0.05); padding: 5px 8px; border-radius: 4px; border-left: 2px solid var(--danger); }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">🌓</div>
+
+    <div class="container" style="position: relative; z-index: 1;">
+        <h2>
+            <div>
+                <span style="font-size: 1.2em;">📬</span> Email System Logs
+                <div style="font-size: 14px; font-weight: normal; color: var(--text-secondary); margin-top: 5px;">
+                    Track all system-generated emails (Reports & Negligence Warnings).
+                </div>
+            </div>
+            <a href="/dashboard" class="btn-outline">← Back to Dashboard</a>
+        </h2>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <p style="color: var(--text-secondary); margin: 0; font-size: 14px;">
+                The system automatically retries failed emails up to 3 times with a 10-minute delay.
+            </p>
+            <button class="btn-retry" id="retryBtn" onclick="retryFailedEmails()">
+                🔄 Retry Failed Emails Now
+            </button>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Subject</th>
+                        <th>Status</th>
+                        <th>Retries</th>
+                        <th>Added At</th>
+                        <th>Last Attempt</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    {% for log in logs %}
+                    <tr>
+                        <td>#{{ log.id }}</td>
+                        <td style="font-weight: 500;">{{ log.subject }}</td>
+                        <td>
+                            {% if log.status == 'pending' %}
+                                <span class="badge badge-pending">⏳ Pending</span>
+                            {% elif log.status == 'sent' %}
+                                <span class="badge badge-sent">✅ Sent</span>
+                            {% else %}
+                                <span class="badge badge-failed">❌ Failed</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="timestamp-ltr">{{ log.retry_count }} / 3</span>
+                        </td>
+                        <td>
+                            <span class="timestamp-ltr">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') if log.created_at else '-' }}</span>
+                        </td>
+                        <td>
+                            <span class="timestamp-ltr">{{ log.last_attempt_at.strftime('%Y-%m-%d %H:%M:%S') if log.last_attempt_at else '-' }}</span>
+                        </td>
+                        <td>
+                            {% if log.error_message %}
+                                <div class="error-msg">{{ log.error_message }}</div>
+                            {% else %}
+                                <span style="color: var(--text-secondary);">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-secondary); padding: 30px;">
+                            No email logs found in the database.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function retryFailedEmails() {
+            const btn = document.getElementById('retryBtn');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 Retrying...';
+            
+            fetch("{{ url_for('admin.retry_failed_emails') }}", {
+                method: "POST"
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Retry Started',
+                        text: 'Failed emails have been queued for sending in the background. The page will reload.',
+                        confirmButtonColor: '#10b981',
+                        background: document.documentElement.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+                        color: document.documentElement.classList.contains('dark-mode') ? '#fff' : '#333'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Failed to start retry process.',
+                        background: document.documentElement.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+                        color: document.documentElement.classList.contains('dark-mode') ? '#fff' : '#333'
+                    });
+                    btn.disabled = false;
+                    btn.innerHTML = '🔄 Retry Failed Emails Now';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Network error occurred.',
+                    background: document.documentElement.classList.contains('dark-mode') ? '#1e293b' : '#fff',
+                    color: document.documentElement.classList.contains('dark-mode') ? '#fff' : '#333'
+                });
+                btn.disabled = false;
+                btn.innerHTML = '🔄 Retry Failed Emails Now';
+            });
+        }
+    </script>
+</body>
+</html>

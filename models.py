@@ -192,3 +192,21 @@ def log_system_event(user_name, action, details=None, level="INFO"):
     except Exception as e:
         print(f"Error logging system event: {e}")
         db.session.rollback()
+
+
+# ------------------------------------------------------------------------------
+# 8. سجل الإيميلات المرسلة ومحاولات الإعادة (Email Logs)
+# ------------------------------------------------------------------------------
+class EmailLog(db.Model):
+    __tablename__ = "email_logs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    subject = db.Column(db.String(255), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    receiver_emails = db.Column(db.Text, nullable=False)  # JSON list
+    attachment_path = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(50), default="pending")  # pending, sent, failed
+    error_message = db.Column(db.Text, nullable=True)
+    retry_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=db.func.now())
+    last_attempt_at = db.Column(db.DateTime, nullable=True)
