@@ -496,12 +496,60 @@
         const formElement = document.getElementById('checkForm');
         const isMapMandatory = formElement.getAttribute('data-map-mandatory') === 'true';
 
-        formElement.addEventListener('submit', function (e) {
+        let formChanged = false;
+        let isSubmitting = false;
+
+        formElement.addEventListener('input', () => { formChanged = true; });
+        if (typeof canvas !== 'undefined' && canvas) {
+            canvas.addEventListener('mouseup', () => { formChanged = true; });
+            canvas.addEventListener('touchend', () => { formChanged = true; });
+        }
+
+        window.addEventListener('beforeunload', (e) => {
+            if (formChanged && !isSubmitting) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+
+        formElement.addEventListener('submit', async function (e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return;
+            }
+
             if (isMapMandatory && mapInput) {
                 if (!mapInput.value || mapInput.value === '') {
                     e.preventDefault();
                     showModal('⚠️ Alert', 'Please specify the damage location on the map (this field is required).', [{text: 'OK', type: 'primary'}]);
+                    return;
                 }
+            }
+
+            e.preventDefault(); // Pause for network check
+            const buttons = document.querySelectorAll('.sticky-footer-bar button[type="submit"]');
+            const originalTexts = [];
+            buttons.forEach((btn, i) => {
+                originalTexts[i] = btn.innerHTML;
+                btn.innerHTML = '⏳ Checking...';
+                btn.style.pointerEvents = 'none';
+            });
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3500);
+                await fetch('/static/logo.png?t=' + Date.now(), { method: 'HEAD', signal: controller.signal });
+                clearTimeout(timeoutId);
+
+                isSubmitting = true;
+                buttons.forEach(btn => btn.innerHTML = '🚀 Saving...');
+                formElement.submit(); // Bypass listeners and submit natively
+            } catch (error) {
+                buttons.forEach((btn, i) => {
+                    btn.innerHTML = originalTexts[i];
+                    btn.style.pointerEvents = 'auto';
+                });
+                showModal('❌ Connection Error', 'Cannot reach the server. Please check your Local Network or Ngrok connection before saving to avoid losing data.', [{text: 'OK', type: 'danger'}]);
             }
         });
     </script>

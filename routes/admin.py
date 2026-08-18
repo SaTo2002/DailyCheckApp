@@ -279,6 +279,33 @@ def dashboard():
 
 
 # ------------------------------------------------------------------------------
+# API for Live Sync Dashboard
+# ------------------------------------------------------------------------------
+@admin_bp.route("/api/admin_dashboard_sync", methods=["GET"])
+def api_admin_dashboard_sync():
+    if not session.get("is_admin") or not session.get("can_view_reports"):
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+    
+    from models import GameReport, DailySession
+
+    latest_report = GameReport.query.order_by(GameReport.id.desc()).first()
+    latest_report_id = latest_report.id if latest_report else None
+    reports_count = GameReport.query.count()
+
+    latest_ns = DailySession.query.filter_by(status="in_progress").order_by(DailySession.id.desc()).first()
+    latest_ns_id = latest_ns.id if latest_ns else None
+    ns_count = DailySession.query.filter_by(status="in_progress").count()
+    
+    return jsonify({
+        "status": "ok",
+        "reports_count": reports_count,
+        "latest_report_id": latest_report_id,
+        "neglected_count": ns_count,
+        "latest_ns_id": latest_ns_id
+    })
+
+
+# ------------------------------------------------------------------------------
 # 4. طباعة التقرير المجمع for Area (GET)
 # ------------------------------------------------------------------------------
 @admin_bp.route("/print_report/<session_id>")

@@ -233,6 +233,38 @@
         const isDark = document.documentElement.classList.contains('dark-mode');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
     }
+
+    // Live Admin Sync
+    let currentReportsCount = null;
+    let currentLatestReportId = null;
+    let currentNeglectedCount = null;
+    let currentLatestNsId = null;
+
+    function fetchAdminDashboardStatus() {
+        fetch('/api/admin_dashboard_sync')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    if (currentReportsCount === null) {
+                        currentReportsCount = data.reports_count;
+                        currentLatestReportId = data.latest_report_id;
+                        currentNeglectedCount = data.neglected_count;
+                        currentLatestNsId = data.latest_ns_id;
+                    } else {
+                        if (currentReportsCount !== data.reports_count ||
+                            currentLatestReportId !== data.latest_report_id ||
+                            currentNeglectedCount !== data.neglected_count ||
+                            currentLatestNsId !== data.latest_ns_id) {
+                            window.location.reload();
+                        }
+                    }
+                }
+            })
+            .catch(e => console.log('Admin sync error:', e));
+    }
+
+    setInterval(fetchAdminDashboardStatus, 15000); // Check every 15 seconds
+    fetchAdminDashboardStatus(); // Initialize state
 </script>
 {% include 'components/modal.html' %}
 </body>
