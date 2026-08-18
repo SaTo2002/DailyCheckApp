@@ -252,7 +252,7 @@
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
                 placeholder="Write any additional notes or details about the game condition..." {% if game.notes_mandatory and not read_only %}required{%
-                endif %} {% if read_only %}disabled style="opacity:0.7; cursor:not-allowed; height:110px; resize:vertical;"{% endif %}>{{ saved_data.get('notes') or 'N/A' }}</textarea>
+                endif %} {% if read_only %}disabled style="opacity:0.7; cursor:not-allowed; height:110px; resize:vertical;"{% endif %}>{{ saved_data.get('notes', '') }}</textarea>
             {% endif %}
 
             <!-- 4. Photos Section -->

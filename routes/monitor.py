@@ -575,7 +575,7 @@ def submit_report():
                 area_id=area_name,
                 game_id=game_id_str,
                 checks_data=json.dumps(checks, ensure_ascii=False),
-                notes=data.get("notes", ""),
+                notes=data.get("notes", "").strip() or "N/A",
                 map_image_path=final_map_path,
                 photos_paths=json.dumps(data.get("photos", []), ensure_ascii=False),
             )

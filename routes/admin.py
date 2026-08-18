@@ -479,7 +479,7 @@ def force_complete_neglected(session_id):
     for game_id_or_name, data in game_data.items():
         # Clean up data keys
         checks_only = {k: v for k, v in data.items() if k not in ["notes", "photos", "inspector_name", "map_drawing"]}
-        notes = data.get("notes", "")
+        notes = data.get("notes", "").strip() or "N/A"
         photos = data.get("photos", [])
         map_drawing = data.get("map_drawing", "")
         
