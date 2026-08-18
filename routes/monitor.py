@@ -710,11 +710,15 @@ def cancel_area():
 # ------------------------------------------------------------------------------
 @monitor_bp.route("/api/session_status/<area_id>")
 def api_session_status(area_id):
+    import time
+    
     ds = DailySession.query.filter_by(
         area_id=str(area_id), date=date.today(), status="in_progress"
     ).first()
     if not ds:
         return {"status": "no_session"}
+
+    monitor_name = session.get("monitor_name")
 
     try:
         game_data = json.loads(ds.game_data) if ds.game_data else {}
@@ -733,12 +737,63 @@ def api_session_status(area_id):
     except Exception:
         active_inspectors = []
 
+    changed = False
+    now_ts = int(time.time())
+
+    # 1. Update heartbeat for current user
+    if monitor_name:
+        heartbeat_key = f"__heartbeat_{monitor_name}"
+        game_locks[heartbeat_key] = now_ts
+        changed = True
+
+    # 2. Check for stale users (inactive for more than 15 seconds)
+    stale_users = []
+    for ins in list(active_inspectors):
+        hb_key = f"__heartbeat_{ins}"
+        last_ping = game_locks.get(hb_key)
+        if last_ping is None:
+            game_locks[hb_key] = now_ts
+            changed = True
+        else:
+            try:
+                if now_ts - int(last_ping) > 15:
+                    stale_users.append(ins)
+            except:
+                pass
+
+    for su in stale_users:
+        if su in active_inspectors:
+            active_inspectors.remove(su)
+            changed = True
+        
+        keys_to_delete = [k for k, v in game_locks.items() if v == su]
+        for k in keys_to_delete:
+            del game_locks[k]
+            changed = True
+            
+        if f"__heartbeat_{su}" in game_locks:
+            del game_locks[f"__heartbeat_{su}"]
+            changed = True
+            
+        log_system_event(
+            su,
+            "Auto-Logout (Inactive)",
+            details="User closed browser or lost connection",
+            level="WARNING"
+        )
+
+    if changed:
+        ds.active_inspectors = json.dumps(active_inspectors, ensure_ascii=False)
+        ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
+        db.session.commit()
+
     completed_games = list(game_data.keys())
+    clean_locks = {k: v for k, v in game_locks.items() if not str(k).startswith("__heartbeat_")}
 
     return {
         "status": "ok",
         "completed_games": completed_games,
-        "game_locks": game_locks,
+        "game_locks": clean_locks,
         "active_inspectors": active_inspectors,
     }
 
