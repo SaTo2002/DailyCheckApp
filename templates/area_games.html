@@ -271,7 +271,7 @@
                 if (item) {
                     dragItem = item;
                     item.style.opacity = '0.5';
-                    item.style.background = '#e2e8f0';
+                    item.style.background = 'var(--surface-border, #e2e8f0)';
                 }
             });
 
@@ -279,7 +279,7 @@
                 const item = e.target.closest('li');
                 if (item) {
                     item.style.opacity = '1';
-                    item.style.background = '#fff';
+                    item.style.background = '';
                 }
                 dragItem = null;
                 updateIndexes();
