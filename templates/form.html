@@ -295,6 +295,15 @@
     </div>
 
     <script>
+        // Keep the user's heartbeat alive while they are filling the form (every 5 seconds)
+        const areaId = "{{ session.get('area_id', '') }}";
+        if (areaId) {
+            setInterval(() => {
+                fetch('/api/session_status/' + areaId)
+                    .catch(e => console.log('Heartbeat error:', e));
+            }, 5000);
+        }
+
         function toggleTheme() {
             document.documentElement.classList.toggle('dark-mode');
             const isDark = document.documentElement.classList.contains('dark-mode');

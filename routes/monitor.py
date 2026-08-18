@@ -194,12 +194,15 @@ def show_games(area_id):
 
     try:
         game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
-        keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name]
+        keys_to_delete = [k for k, v in game_locks.items() if v == monitor_name and not str(k).startswith("__heartbeat_")]
         if keys_to_delete:
             for k in keys_to_delete:
                 del game_locks[k]
             ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
             db.session.commit()
+            
+        # Filter out heartbeats for the template so JS doesn't infinitely reload
+        game_locks = {k: v for k, v in game_locks.items() if not str(k).startswith("__heartbeat_")}
     except Exception:
         game_locks = {}
 
