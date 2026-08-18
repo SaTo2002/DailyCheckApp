@@ -201,21 +201,33 @@ def export_report_to_excel(
                 break
 
         if is_na_or_empty:
-            cell.value = ""
             merged_range = None
             for merged in ws.merged_cells.ranges:
                 if cell.coordinate in merged:
                     merged_range = merged
                     break
             
+            is_visible = False
             # Hide the row(s) only if they don't intersect with map placeholders
             if merged_range:
                 for r in range(merged_range.min_row, merged_range.max_row + 1):
                     if r not in protected_rows:
                         ws.row_dimensions[r].hidden = True
+                    else:
+                        is_visible = True
             else:
                 if cell.row not in protected_rows:
                     ws.row_dimensions[cell.row].hidden = True
+                else:
+                    is_visible = True
+            
+            if is_visible:
+                cell.value = "N/A"
+                cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+                cell.font = Font(name="Arial", size=11, bold=True, color="888888")
+            else:
+                cell.value = ""
+
             continue
 
         # If there are valid notes, write them normally
