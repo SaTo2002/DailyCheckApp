@@ -182,6 +182,13 @@ def export_report_to_excel(
 
     from openpyxl.styles import Alignment, Font
 
+    protected_rows = set()
+    for from_cell, to_cell in dynamic_map_cells.values():
+        fr = int("".join(filter(str.isdigit, from_cell)))
+        tr = int("".join(filter(str.isdigit, to_cell)))
+        for r in range(fr, tr + 1):
+            protected_rows.add(r)
+
     for cell_addr in set(dynamic_note_cells.values()):
         notes_list = cell_notes_map.get(cell_addr, [])
         cell = ws[cell_addr]
@@ -201,12 +208,14 @@ def export_report_to_excel(
                     merged_range = merged
                     break
             
-            # Hide the row(s)
+            # Hide the row(s) only if they don't intersect with map placeholders
             if merged_range:
                 for r in range(merged_range.min_row, merged_range.max_row + 1):
-                    ws.row_dimensions[r].hidden = True
+                    if r not in protected_rows:
+                        ws.row_dimensions[r].hidden = True
             else:
-                ws.row_dimensions[cell.row].hidden = True
+                if cell.row not in protected_rows:
+                    ws.row_dimensions[cell.row].hidden = True
             continue
 
         # If there are valid notes, write them normally
