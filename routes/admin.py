@@ -7,7 +7,7 @@ import json
 import os
 import time
 
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
 from sqlalchemy import func
 from werkzeug.security import check_password_hash
 
@@ -402,7 +402,7 @@ def view_neglected(session_id):
     return render_template("neglected_report.html", report=report_data)
 
 
-@admin_bp.route("/delete_neglected/<int:session_id>")
+@admin_bp.route("/delete_neglected/<int:session_id>", methods=["POST"])
 def delete_neglected(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
@@ -713,7 +713,6 @@ def email_logs():
     logs = EmailLog.query.order_by(EmailLog.id.desc()).all()
     return render_template("email_logs.html", logs=logs)
 
-from flask import jsonify
 @admin_bp.route("/retry_failed_emails", methods=["POST"])
 def retry_failed_emails():
     if not session.get("is_admin") or not session.get("is_master_admin"):

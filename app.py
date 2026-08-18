@@ -14,6 +14,7 @@ load_dotenv()
 # استدعاء كائن قاعدة البيانات الامتدادي والماكينات
 from extensions import db
 from models import Area, GameModel, GameReport, User
+from sqlalchemy import text
 
 # استدعاء الـ Blueprints مباشرة من حزمة المسارات (routes)
 from routes import admin_bp, manage_bp, monitor_bp
