@@ -111,10 +111,10 @@
             {% if game_id_str in completed_games %}
             {% set original = game_data[game_id_str].get('inspector_name', '') %}
             {% if original and original != monitor_name %}
-            <!-- Completed by someone else -->
-            <a href="#" class="game-card-link game-completed" style="opacity: 0.6; cursor: not-allowed;" onclick="alert('Sorry, this game was inspected by {{ original }} and you cannot edit it.'); return false;">
+            <!-- Completed by someone else - View Only -->
+            <a href="/check/{{ game.id }}" class="game-card-link game-completed" style="opacity: 0.75; border-left: 3px solid var(--brand-orange);" title="Inspected by {{ original }} - Click to view">
                 <span>{{ game.name }}</span>
-                <span>✅ By {{ original }}</span>
+                <span style="color: var(--brand-orange);">👁️ By {{ original }}</span>
             </a>
             {% else %}
             <!-- Completed Game by ME -->
