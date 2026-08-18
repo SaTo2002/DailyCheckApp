@@ -81,7 +81,7 @@ def add_area():
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Add Area",
-            details=f"اسم الArea: {name}",
+            details=f"Area: {name}",
             level="INFO",
         )
     return redirect(url_for("manage.manage_system"))
@@ -272,7 +272,7 @@ def add_game_to_area(area_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Add Game",
-            details=f"اسم الGame: {name} for Area {area_id}",
+            details=f"Game: {name} for Area {area_id}",
             level="INFO",
         )
 
@@ -339,7 +339,7 @@ def edit_game(game_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Edit Game",
-            details=f"اسم الGame: {game.name}",
+            details=f"Game: {game.name}",
             level="INFO",
         )
         return redirect(url_for("manage.area_games", area_id=game.area_id))
@@ -364,7 +364,7 @@ def delete_game_from_area(area_id, game_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Delete Game",
-            details=f"اسم الGame: {game.name}",
+            details=f"Game: {game.name}",
             level="WARNING",
         )
         db.session.delete(game)
