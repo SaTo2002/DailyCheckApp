@@ -319,6 +319,11 @@ def check_game(game_id):
     next_game_id = _get_next_game_id(area_id, game_id)
     saved_data = game_data.get(str(game_id), {})
 
+    area_games_count = (
+        GameModel.query.filter_by(area_id=area_id).count() if area_id else 0
+    )
+    single_game_mode = area_games_count == 1
+
     # Restrict editing to the original inspector who saved it
     if saved_data:
         original_inspector = saved_data.get("inspector_name")
@@ -336,10 +341,6 @@ def check_game(game_id):
                 read_only_inspector=original_inspector,
             )
 
-    area_games_count = (
-        GameModel.query.filter_by(area_id=area_id).count() if area_id else 0
-    )
-    single_game_mode = area_games_count == 1
 
     if request.method == "POST":
         current_answers = {
