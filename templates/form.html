@@ -136,10 +136,10 @@
                 Check: <span style="color: var(--success);">{{ game.name }}</span>
             </h1>
             {% if single_game_mode %}
-                <a href="/cancel_area" onclick="return confirmLink(event, this, 'Confirm', '⚠️ Are you sure you want to cancel? Unsubmitted data will be lost!');"
+                <a href="/cancel_area" class="btn-cancel-app"
                     style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 Cancel</a>
             {% else %}
-                <a href="/games/{{ session.get('area_id') }}?cancel=1"
+                <a href="/games/{{ session.get('area_id') }}?cancel=1" class="btn-cancel-app"
                     style="color: #6c757d; text-decoration: none; font-weight: 600; font-size: 14px;">🔙 Cancel</a>
             {% endif %}
         </div>
@@ -271,7 +271,7 @@
             <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar" style="background: var(--surface-glass); backdrop-filter: blur(10px); border-top: 1px solid var(--surface-border);">
                 {% if read_only %}
-                    <a href="/games/{{ session.get('area_id') }}" class="btn-secondary" style="flex: 1; text-align: center; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <a href="/games/{{ session.get('area_id') }}" class="btn-secondary btn-cancel-app" style="flex: 1; text-align: center; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         🔙 Back to Games List
                     </a>
                 {% elif single_game_mode %}
@@ -511,6 +511,25 @@
                 e.preventDefault();
                 e.returnValue = '';
             }
+        });
+
+        // Intercept internal links to use custom modal instead of native beforeunload
+        document.querySelectorAll('.btn-cancel-app').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetUrl = this.href;
+                const msg = formChanged 
+                    ? '⚠️ You have unsaved changes. Are you sure you want to leave? Your data will be lost.' 
+                    : '⚠️ Are you sure you want to leave?';
+                
+                showModal('Confirm Exit', msg, [
+                    { text: 'Yes, Leave', type: 'danger', onClick: () => {
+                        isSubmitting = true; // disable native prompt
+                        window.location.href = targetUrl;
+                    }},
+                    { text: 'Stay', type: 'secondary' }
+                ]);
+            });
         });
 
         formElement.addEventListener('submit', async function (e) {
