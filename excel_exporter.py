@@ -346,6 +346,11 @@ def export_report_to_excel(
                                     )
                                     final_img.save(img_to_insert, "PNG")
                                     created_temp_files.append(img_to_insert)
+                                    
+                                    # Close image handles to release locks
+                                    base_img.close()
+                                    draw_img.close()
+                                    final_img.close()
                                 else:
                                     img_to_insert = img_to_use
 
@@ -354,6 +359,7 @@ def export_report_to_excel(
 
                                 src = PILImage.open(img_to_insert)
                                 src_w, src_h = src.size
+                                src.close()
 
                                 # حساب نسبة التصغير للحفاظ على الـ Aspect Ratio بدون Stretch
                                 scale = min(cell_w / src_w, cell_h / src_h)
@@ -384,6 +390,7 @@ def export_report_to_excel(
         # Ensure target output directory exists
         os.makedirs(os.path.dirname(output_xlsx_path), exist_ok=True)
         wb.save(output_xlsx_path)
+        wb.close()
         return output_xlsx_path
     finally:
         # Clean up temporary composite image files after saving Excel report
