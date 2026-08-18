@@ -111,10 +111,21 @@
             {% if game_id_str in completed_games %}
             {% set original = game_data[game_id_str].get('inspector_name', '') %}
             {% if original and original != monitor_name %}
-            <!-- Completed by someone else - View Only -->
-            <a href="/check/{{ game.id }}" class="game-card-link game-completed" style="opacity: 0.75; border-left: 3px solid var(--brand-orange);" title="Inspected by {{ original }} - Click to view">
-                <span>{{ game.name }}</span>
-                <span style="color: var(--brand-orange);">👁️ By {{ original }}</span>
+            <!-- Completed by someone else - View Only (Premium Style) -->
+            <a href="/check/{{ game.id }}" class="game-card-link" style="
+                background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(139, 92, 246, 0.06));
+                border: 1.5px solid rgba(139, 92, 246, 0.35);
+                box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1);
+                transition: all 0.25s ease;
+            " title="Inspected by {{ original }} – Click to view results"
+            onmouseover="this.style.borderColor='rgba(139,92,246,0.7)'; this.style.boxShadow='0 4px 20px rgba(99,102,241,0.2)'; this.style.transform='translateY(-1px)';"
+            onmouseout="this.style.borderColor='rgba(139,92,246,0.35)'; this.style.boxShadow='0 2px 12px rgba(99,102,241,0.1)'; this.style.transform='translateY(0)';">
+                <span style="color: var(--text-primary); font-weight: 600;">{{ game.name }}</span>
+                <span style="display: flex; align-items: center; gap: 6px; color: #a78bfa; font-size: 13px; font-weight: 600; white-space: nowrap;">
+                    <span style="background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); padding: 2px 9px; border-radius: 12px; display:flex; align-items:center; gap:4px;">
+                        👁️ {{ original }}
+                    </span>
+                </span>
             </a>
             {% else %}
             <!-- Completed Game by ME -->
