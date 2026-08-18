@@ -666,6 +666,16 @@ def cancel_area():
                     level="WARNING",
                 )
             elif monitor_name:
+                if request.path == "/cancel_area":
+                    area_obj = Area.query.get(area_id)
+                    area_name = area_obj.name if area_obj else area_id
+                    log_system_event(
+                        monitor_name,
+                        "Save Progress & Exit",
+                        details=f"Exited Area: {area_name}",
+                        level="INFO",
+                    )
+
                 try:
                     active_inspectors = (
                         json.loads(ds.active_inspectors) if ds.active_inspectors else []
@@ -738,6 +748,14 @@ def api_session_status(area_id):
 # ------------------------------------------------------------------------------
 @monitor_bp.route("/logout")
 def logout():
+    monitor_name = session.get("monitor_name")
+    if monitor_name:
+        log_system_event(
+            monitor_name,
+            "Monitor Logout",
+            details="-",
+            level="INFO",
+        )
     cancel_area()
     session.clear()
     return redirect(url_for("monitor.home"))
