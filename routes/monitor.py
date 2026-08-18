@@ -323,7 +323,18 @@ def check_game(game_id):
     if saved_data:
         original_inspector = saved_data.get("inspector_name")
         if original_inspector and original_inspector != monitor_name:
-            return "Sorry, this game was already inspected by another monitor and you cannot edit it."
+            # Allow viewing but not editing - render read-only view
+            return render_template(
+                "form.html",
+                game=game,
+                checks=game_checks,
+                next_game_id=next_game_id,
+                saved_data=saved_data,
+                game_id=game_id,
+                single_game_mode=single_game_mode,
+                read_only=True,
+                read_only_inspector=original_inspector,
+            )
 
     area_games_count = (
         GameModel.query.filter_by(area_id=area_id).count() if area_id else 0

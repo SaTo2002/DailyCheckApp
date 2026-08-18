@@ -144,7 +144,16 @@
             {% endif %}
         </div>
 
-        <!-- Form -->
+        {% if read_only %}
+        <!-- READ-ONLY BANNER -->
+        <div style="background: rgba(240, 158, 37, 0.12); border: 2px solid var(--brand-orange); border-radius: 12px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 22px;">👁️</span>
+            <div>
+                <strong style="color: var(--brand-orange); font-size: 15px;">View Only Mode</strong>
+                <div style="color: var(--text-secondary); font-size: 13px; margin-top: 2px;">This game was already inspected by <strong style="color: var(--text-primary);">{{ read_only_inspector }}</strong>. You can view the results but cannot make changes.</div>
+            </div>
+        </div>
+        {% endif %}
         <form action="/check/{{ game_id }}" method="POST" id="checkForm" enctype="multipart/form-data"
             data-map-mandatory="{{ 'true' if game.map_mandatory else 'false' }}">
 
@@ -209,8 +218,8 @@
             <div class="section-header">📝 Additional Notes / Description {% if game.notes_mandatory %}<span
                     style="color: #dc3545;">*</span>{% endif %}</div>
             <textarea name="notes" class="touch-input" dir="auto" style="height: 110px; resize: vertical; unicode-bidi: plaintext; text-align: start;"
-                placeholder="Write any additional notes or details about the game condition..." {% if game.notes_mandatory %}required{%
-                endif %}>{{ saved_data.get('notes', '') }}</textarea>
+                placeholder="Write any additional notes or details about the game condition..." {% if game.notes_mandatory and not read_only %}required{%
+                endif %} {% if read_only %}disabled style="opacity:0.7; cursor:not-allowed; height:110px; resize:vertical;"{% endif %}>{{ saved_data.get('notes', '') }}</textarea>
             {% endif %}
 
             <!-- 3. Check Items -->
@@ -261,7 +270,11 @@
 
             <!-- Sticky Footer Bar -->
             <div class="sticky-footer-bar" style="background: var(--surface-glass); backdrop-filter: blur(10px); border-top: 1px solid var(--surface-border);">
-                {% if single_game_mode %}
+                {% if read_only %}
+                    <a href="/games/{{ session.get('area_id') }}" class="btn-secondary" style="flex: 1; text-align: center; font-size: 15px; text-decoration: none; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        🔙 Back to Games List
+                    </a>
+                {% elif single_game_mode %}
                     <button type="submit" name="action" value="submit_report" class="btn-primary" style="flex: 1.5; font-size: 16px; cursor: pointer;">
                         📝 Submit Final Report
                     </button>
