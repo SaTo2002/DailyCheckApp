@@ -1,26 +1,27 @@
 import os
 import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 
 def send_notification_emails(pdf_path, area_name, date_str, receiver_emails):
     """
     Sends an email to a list of receivers with the generated PDF attached.
     """
-    mail_username = os.getenv('MAIL_USERNAME')
-    mail_password = os.getenv('MAIL_PASSWORD')
-    
+    mail_username = os.getenv("MAIL_USERNAME")
+    mail_password = os.getenv("MAIL_PASSWORD")
+
     if not mail_username or not mail_password:
         print("Mail credentials not found in .env")
         return False
-        
+
     if not receiver_emails:
         print("No active receivers found.")
         return False
 
     subject = f"تقرير فحص جديد - منطقة: {area_name} ({date_str})"
-    
+
     body = f"""
     مرحباً،
     
@@ -31,22 +32,24 @@ def send_notification_emails(pdf_path, area_name, date_str, receiver_emails):
     مع تحيات،
     نظام المراقبة والفحص اليومي
     """
-    
+
     msg = MIMEMultipart()
-    msg['From'] = mail_username
-    msg['To'] = ", ".join(receiver_emails)
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-    
+    msg["From"] = mail_username
+    msg["To"] = ", ".join(receiver_emails)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
     # Attach the PDF
     if os.path.exists(pdf_path):
         with open(pdf_path, "rb") as f:
             attach_part = MIMEApplication(f.read(), Name=os.path.basename(pdf_path))
-        attach_part['Content-Disposition'] = f'attachment; filename="{os.path.basename(pdf_path)}"'
+        attach_part["Content-Disposition"] = (
+            f'attachment; filename="{os.path.basename(pdf_path)}"'
+        )
         msg.attach(attach_part)
-    
+
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP("smtp.gmail.com", 587)
         server.starttls()
         server.login(mail_username, mail_password)
         server.send_message(msg)
@@ -54,4 +57,50 @@ def send_notification_emails(pdf_path, area_name, date_str, receiver_emails):
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
+        return False
+
+def send_negligence_email(area_name, date_str, inspectors_str, completed_count, total_count, receiver_emails):
+    """
+    Sends an email to a list of receivers warning them about a neglected session.
+    """
+    mail_username = os.getenv("MAIL_USERNAME")
+    mail_password = os.getenv("MAIL_PASSWORD")
+
+    if not mail_username or not mail_password or not receiver_emails:
+        return False
+
+    subject = f"🚨 تنبيه إهمال فحص - منطقة: {area_name} ({date_str})"
+
+    body = f"""
+    تحذير إداري،
+    
+    تم رصد جلسة فحص مهملة لم يتم إكمالها وإغلاقها بشكل صحيح.
+    
+    التفاصيل:
+    - المنطقة: {area_name}
+    - تاريخ الجلسة: {date_str}
+    - المفتشون المتواجدون: {inspectors_str}
+    - حالة الإنجاز: تم فحص {completed_count} من أصل {total_count} ألعاب فقط قبل ترك الجلسة.
+    
+    يرجى المتابعة مع فريق التفتيش المذكور.
+    
+    مع تحيات،
+    النظام الآلي للمراقبة
+    """
+
+    msg = MIMEMultipart()
+    msg["From"] = mail_username
+    msg["To"] = ", ".join(receiver_emails)
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(mail_username, mail_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Error sending negligence email: {e}")
         return False

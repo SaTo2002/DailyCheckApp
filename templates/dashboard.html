@@ -128,6 +128,63 @@
         </form>
     </div>
 
+    <!-- Neglected Sessions List -->
+    {% if neglected_sessions %}
+    <div class="glass-card mb-4" style="border: 2px solid var(--brand-orange); background: rgba(255, 152, 0, 0.05);">
+        <h3 style="color: var(--brand-orange); display: flex; align-items: center; gap: 8px;">
+            ⚠️ Neglected Sessions (Incomplete)
+        </h3>
+        <p style="color: var(--text-secondary); font-size: 14px; margin-top: -10px; margin-bottom: 15px;">
+            These sessions were left open without completion or were abandoned by another inspector.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px;">
+            {% for ns in neglected_sessions %}
+            <div class="report-card" style="border-top-color: var(--brand-orange); border-radius: 12px; background: var(--surface); padding: 15px; box-shadow: 0 4px 15px var(--shadow-color);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 16px; color: var(--text-primary);">{{ ns.area_name }}</h4>
+                        <span style="font-size: 12px; color: var(--text-secondary);">{{ ns.date }}</span>
+                    </div>
+                    {% if ns.reported %}
+                        <span class="badge" style="background: rgba(220, 53, 69, 0.1); color: var(--danger); border: 1px solid var(--danger);">Reported via Email 📧</span>
+                    {% else %}
+                        <span class="badge" style="background: rgba(108, 117, 125, 0.1); color: var(--text-secondary); border: 1px solid var(--text-secondary);">Abandoned</span>
+                    {% endif %}
+                </div>
+                
+                <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    <strong>Active Inspectors:</strong> 
+                    <span style="color: var(--text-primary);">{{ ns.inspectors|join(', ') if ns.inspectors else 'Unknown' }}</span>
+                </div>
+                
+                <div style="margin-bottom: 5px; font-size: 13px; display: flex; justify-content: space-between;">
+                    <span>Progress:</span>
+                    <strong>{{ ns.completed_count }} / {{ ns.total_count }} games</strong>
+                </div>
+                <div style="width: 100%; background: var(--surface-border); border-radius: 10px; height: 8px; overflow: hidden; margin-bottom: 12px;">
+                    <div style="height: 100%; background: var(--brand-orange); width: {{ ns.progress_pct }}%;"></div>
+                </div>
+                
+                <div style="text-align: left; display: flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end;">
+                    <a href="/view_neglected/{{ ns.session_id }}" target="_blank" class="btn" style="background: rgba(255, 152, 0, 0.1); color: var(--brand-orange); border: 1px solid var(--brand-orange); padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="View collected data">
+                        👁️
+                    </a>
+                    <a href="/force_complete_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(40, 167, 69, 0.1); color: #28a745; border: 1px solid #28a745; padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Force Submit as Official Report" onclick="return confirm('Are you sure you want to convert this into an official report? Missing games will be marked as N/A.')">
+                        ✅ Force Complete
+                    </a>
+                    <a href="/reopen_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd; border: 1px solid #0d6efd; padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Reopen session for inspectors today" onclick="return confirm('Re-open this session for inspectors to continue working on it today?')">
+                        🔄 Reopen
+                    </a>
+                    <a href="/delete_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(220, 53, 69, 0.1); color: #dc3545; border: 1px solid #dc3545; padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Delete this session forever" onclick="return confirm('Permanently delete this neglected session? This action cannot be undone.')">
+                        🗑️ Delete
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Reports Cards List -->
     {% if reports %}
         {% for session_id, report in reports.items() %}
