@@ -181,8 +181,13 @@ input:not([type="checkbox"]):not([type="radio"]), select, textarea {
     transition: all var(--transition-fast);
 }
 .btn-outline:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.3);
     border-color: var(--brand-blue);
+    color: var(--brand-blue);
+}
+
+html.dark-mode .btn-outline:hover {
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* Inputs */
@@ -238,6 +243,16 @@ p {
 .theme-toggle-btn:hover {
     transform: scale(1.1) rotate(15deg);
 }
+
+/* Badges */
+.badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+.badge-success { background: rgba(40, 167, 69, 0.15); color: var(--success); border: 1px solid var(--success); }
+.badge-danger { background: rgba(220, 53, 69, 0.15); color: var(--danger); border: 1px solid var(--danger); }
+.badge-info { background: rgba(31, 162, 224, 0.15); color: var(--info); border: 1px solid var(--info); }
+
+html.dark-mode .badge-success { background: rgba(52, 208, 88, 0.15); color: #8deb9d; border-color: rgba(52, 208, 88, 0.4); }
+html.dark-mode .badge-danger { background: rgba(255, 85, 85, 0.15); color: #ff9999; border-color: rgba(255, 85, 85, 0.4); }
+html.dark-mode .badge-info { background: rgba(31, 162, 224, 0.15); color: #76cbf5; border-color: rgba(31, 162, 224, 0.4); }
 
 /* Utility Classes */
 .text-center { text-align: center; }

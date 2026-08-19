@@ -20,10 +20,6 @@
         
         .report-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
         
-        .badge { display: inline-block; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
-        .badge-success { background: rgba(40, 167, 69, 0.2); color: var(--success); border: 1px solid var(--success); }
-        .badge-danger { background: rgba(220, 53, 69, 0.2); color: var(--danger); border: 1px solid var(--danger); }
-        .badge-info { background: rgba(31, 162, 224, 0.2); color: var(--brand-blue); border: 1px solid var(--brand-blue); }
 
         .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 6px; font-weight: bold; text-decoration: none; display: inline-block; border: none; cursor: pointer;}
         
@@ -73,21 +69,21 @@
             
             
             {% if session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games') or session.get('is_master_admin') %}
-                <a href="/manage_system" class="btn-primary" style="text-decoration: none; display: inline-block;">⚙️ System Management</a>
+                <a href="/manage_system" class="btn-outline" style="text-decoration: none; display: inline-block;">⚙️ System Management</a>
             {% endif %}
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
-                <a href="/manage_users" class="btn-primary" style="background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3); text-decoration: none; display: inline-block;">👥 User Accounts</a>
-                <a href="/manage_emails" class="btn-primary" style="background: var(--brand-orange); box-shadow: 0 4px 15px rgba(240,158,37,0.3); text-decoration: none; display: inline-block;">📧 Email List</a>
-                <a href="/system_logs" class="btn-primary" style="background: var(--brand-purple, #6f42c1); box-shadow: 0 4px 15px rgba(111,66,193,0.3); text-decoration: none; display: inline-block;">📝 System Logs</a>
-                <a href="/email_logs" class="btn-primary" style="background: #0ea5e9; box-shadow: 0 4px 15px rgba(14,165,233,0.3); text-decoration: none; display: inline-block;">📬 Email Logs</a>
+                <a href="/manage_users" class="btn-outline" style="text-decoration: none; display: inline-block;">👥 User Accounts</a>
+                <a href="/manage_emails" class="btn-outline" style="text-decoration: none; display: inline-block;">📧 Email List</a>
+                <a href="/system_logs" class="btn-outline" style="text-decoration: none; display: inline-block;">📝 System Logs</a>
+                <a href="/email_logs" class="btn-outline" style="text-decoration: none; display: inline-block;">📬 Email Logs</a>
             {% endif %}
             {% if session.get('admin_role') %}
-                <a href="{{ url_for('admin.profile') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">👤 Profile</a>
+                <a href="{{ url_for('admin.profile') }}" class="btn-outline" style="text-decoration: none; display: inline-block;">👤 Profile</a>
                 {% if session.get('admin_role') not in ['Admin', 'Supervisor'] %}
-                <a href="{{ url_for('admin.pending_approvals') }}" class="btn-primary" style="background: #f39c12; box-shadow: 0 4px 15px rgba(243,156,18,0.3); text-decoration: none; display: inline-block;">⏳ Pending Approvals</a>
+                <a href="{{ url_for('admin.pending_approvals') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">⏳ Pending Approvals</a>
                 {% endif %}
             {% endif %}
-            <a href="/admin_logout" class="btn-primary" style="background: var(--danger); box-shadow: 0 4px 15px rgba(220,53,69,0.3); text-decoration: none; display: inline-block;">Logout 🔒</a>
+            <a href="/admin_logout" class="btn-outline" style="text-decoration: none; display: inline-block; color: var(--danger); border-color: var(--danger);">Logout 🔒</a>
         </div>
     </div>
 
@@ -190,7 +186,7 @@
                     <a href="/force_complete_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(40, 167, 69, 0.1); color: #28a745; border: 1px solid #28a745; padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Force Submit as Official Report" onclick="return confirm('Are you sure you want to convert this into an official report? Missing games will be marked as N/A.')">
                         ✅ Force Complete
                     </a>
-                    <a href="/reopen_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(13, 110, 253, 0.1); color: #0d6efd; border: 1px solid #0d6efd; padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Reopen session for inspectors today" onclick="return confirm('Re-open this session for inspectors to continue working on it today?')">
+                    <a href="/reopen_neglected/{{ ns.session_id }}" class="btn" style="background: rgba(31, 162, 224, 0.1); color: var(--brand-blue); border: 1px solid var(--brand-blue); padding: 6px 12px; font-size: 12px; border-radius: 6px; text-decoration: none; display: inline-flex; align-items: center; gap: 5px;" title="Reopen session for inspectors today" onclick="return confirm('Re-open this session for inspectors to continue working on it today?')">
                         🔄 Reopen
                     </a>
                     <form action="/delete_neglected/{{ ns.session_id }}" method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete this neglected session? This action cannot be undone.')">

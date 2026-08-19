@@ -4,17 +4,17 @@
    ============================================================================== */
 
 :root {
-    --primary: #0d6efd;
-    --primary-hover: #0b5ed7;
-    --success: #198754;
-    --success-hover: #157347;
-    --danger: #dc3545;
-    --danger-hover: #bb2d3b;
+    --primary: var(--brand-blue, #1fa2e0);
+    --primary-hover: #198cc4;
+    --success: var(--success, #28a745);
+    --success-hover: #218838;
+    --danger: var(--danger, #dc3545);
+    --danger-hover: #c82333;
     --warning: #ffc107;
-    --bg-color: var(--bg-main, #f4f6f9);
-    --card-bg: var(--surface-glass, #ffffff);
-    --text-color: var(--text-primary, #212529);
-    --text-muted: var(--text-secondary, #6c757d);
+    --bg-color: var(--bg-main);
+    --card-bg: var(--surface-glass);
+    --text-color: var(--text-primary);
+    --text-muted: var(--text-secondary);
     --border-radius: 12px;
     --box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }

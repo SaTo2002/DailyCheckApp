@@ -62,10 +62,10 @@
 {% endwith %}
 
 {% if not session.get('signature_name') %}
-<div class="glass-card" style="padding: 20px; border-left: 4px solid #f39c12; margin-bottom: 20px;">
-    <h3 style="color: #f39c12; margin-top: 0;">⚠️ Signature Not Set</h3>
+<div class="glass-card" style="padding: 20px; border-left: 4px solid var(--brand-orange); margin-bottom: 20px;">
+    <h3 style="color: var(--brand-orange); margin-top: 0;">⚠️ Signature Not Set</h3>
     <p style="color: var(--text-secondary); font-size: 14px;">You must set your official signature name in your profile before you can approve reports.</p>
-    <a href="{{ url_for('admin.profile') }}" class="btn-primary btn-sm" style="background: #f39c12;">Go to Profile</a>
+    <a href="{{ url_for('admin.profile') }}" class="btn-primary btn-sm" style="background: var(--brand-orange);">Go to Profile</a>
 </div>
 {% endif %}
 
