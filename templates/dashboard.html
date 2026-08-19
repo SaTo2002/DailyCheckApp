@@ -74,6 +74,8 @@
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
                 <a href="/manage_users" class="btn-outline" style="text-decoration: none; display: inline-block;">👥 User Accounts</a>
                 <a href="/manage_emails" class="btn-outline" style="text-decoration: none; display: inline-block;">📧 Email List</a>
+            {% endif %}
+            {% if session.get('can_view_logs') %}
                 <a href="/system_logs" class="btn-outline" style="text-decoration: none; display: inline-block;">📝 System Logs</a>
                 <a href="/email_logs" class="btn-outline" style="text-decoration: none; display: inline-block;">📬 Email Logs</a>
             {% endif %}
@@ -227,10 +229,12 @@
                             <a href="/download_pdf/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-pink); box-shadow: 0 4px 10px rgba(228,0,108,0.3);">📥 Download PDF</a>
 
                             <a href="/print_report/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--success); box-shadow: 0 4px 10px rgba(40,167,69,0.3);">🖨️ Web Report</a>
+                            {% if session.get('can_delete_reports') %}
                             <form action="/delete_report/{{ session_id }}" method="POST" onsubmit="return confirmForm(event, this, 'Confirm Deletion', 'Are you sure you want to delete this report?');" style="margin: 0;">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                 <button type="submit" class="btn-secondary btn-sm" style="background: var(--danger); box-shadow: 0 4px 10px rgba(220,53,69,0.3);">🗑️ Delete</button>
                             </form>
+                            {% endif %}
                         </div>
                     </div>
                 </div>

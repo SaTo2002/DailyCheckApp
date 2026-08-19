@@ -110,12 +110,21 @@
                     </div>
                 </div>
 
-                <!-- Manage System Permission Checkbox -->
+                <!-- Permission Checkboxes -->
                 <div>
                     <label style="font-weight: bold; display: block; margin-bottom: 8px;">Permission Settings:</label>
-                    <div class="checkbox-group">
+                    <div class="checkbox-group" style="flex-wrap: wrap;">
                         <label class="checkbox-label">
-                            <input type="checkbox" name="can_manage_system" value="1"> ⚙️ Allow System Management (Add/Edit/Delete Areas & Games)
+                            <input type="checkbox" name="can_manage_areas" id="add_manage_areas" value="1"> 🗺️ Allow Manage Areas
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_manage_games" id="add_manage_games" value="1"> 🎮 Allow Manage Games
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_delete_reports" value="1"> 🗑️ Allow Deleting Reports (PDFs)
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="can_view_logs" value="1"> 📜 Allow Viewing Logs
                         </label>
                     </div>
                 </div>
@@ -157,9 +166,20 @@
                     <td>
                         <form action="/update_user_permissions/{{ user.id }}" method="POST" style="display: flex; gap: 10px; align-items: center; margin: 0;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <label class="checkbox-label" style="font-size: 14px;">
-                                <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> Allow System Edit
-                            </label>
+                            <div style="display: flex; flex-direction: column; gap: 5px; margin-inline-end: 10px;">
+                                <label class="checkbox-label" style="font-size: 13px;">
+                                    <input type="checkbox" name="can_manage_areas" id="edit_manage_areas_{{ user.id }}" value="1" {% if user.can_manage_areas %}checked{% endif %}> Manage Areas
+                                </label>
+                                <label class="checkbox-label" style="font-size: 13px;">
+                                    <input type="checkbox" name="can_manage_games" id="edit_manage_games_{{ user.id }}" value="1" {% if user.can_manage_games %}checked{% endif %}> Manage Games
+                                </label>
+                                <label class="checkbox-label" style="font-size: 13px;">
+                                    <input type="checkbox" name="can_delete_reports" value="1" {% if user.can_delete_reports %}checked{% endif %}> Delete Reports
+                                </label>
+                                <label class="checkbox-label" style="font-size: 13px;">
+                                    <input type="checkbox" name="can_view_logs" value="1" {% if user.can_view_logs %}checked{% endif %}> View Logs
+                                </label>
+                            </div>
                             <select name="role" style="padding: 4px; font-size: 13px; width: 140px;">
                                 <option value="Team Leader" {% if user.role == 'Team Leader' %}selected{% endif %}>Team Leader</option>
                                 <option value="Maintenance Team Leader" {% if user.role == 'Maintenance Team Leader' %}selected{% endif %}>Maintenance Team Leader</option>
@@ -191,6 +211,37 @@
             const isDark = document.documentElement.classList.contains('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Add User Form logic
+            const addManageAreas = document.getElementById('add_manage_areas');
+            const addManageGames = document.getElementById('add_manage_games');
+            
+            if(addManageGames && addManageAreas) {
+                addManageGames.addEventListener('change', function() {
+                    if(this.checked) addManageAreas.checked = true;
+                });
+                addManageAreas.addEventListener('change', function() {
+                    if(!this.checked) addManageGames.checked = false;
+                });
+            }
+            
+            // Edit User Forms logic
+            document.querySelectorAll('input[name="can_manage_games"]').forEach(function(gamesCheckbox) {
+                if(gamesCheckbox.id && gamesCheckbox.id.startsWith('edit_manage_games_')) {
+                    const userId = gamesCheckbox.id.split('_').pop();
+                    const areasCheckbox = document.getElementById('edit_manage_areas_' + userId);
+                    if(areasCheckbox) {
+                        gamesCheckbox.addEventListener('change', function() {
+                            if(this.checked) areasCheckbox.checked = true;
+                        });
+                        areasCheckbox.addEventListener('change', function() {
+                            if(!this.checked) gamesCheckbox.checked = false;
+                        });
+                    }
+                }
+            });
+        });
     </script>
     
     {% include 'components/modal.html' %}

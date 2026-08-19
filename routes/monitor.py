@@ -402,7 +402,7 @@ def check_game(game_id):
             log_system_event(
                 monitor_name,
                 "Override Game Lock",
-                details=f"لعبة {game.name} - Locked previously by {game_locks[str(game_id)]}",
+                details=f"Game: {game.name} - Locked previously by {game_locks[str(game_id)]}",
                 level="WARNING",
             )
 
@@ -623,7 +623,7 @@ def submit_report():
     log_system_event(
         monitor_name,
         "Generate Area Report",
-        details=f"Area: {area.name}، Games inspected: {len(completed_games)}",
+        details=f"Area: {area.name}, Games inspected: {len(completed_games)}",
         level="INFO",
     )
 

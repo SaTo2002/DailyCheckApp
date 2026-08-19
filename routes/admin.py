@@ -6,8 +6,18 @@
 import json
 import os
 import time
+from datetime import date, datetime
 
-from flask import Blueprint, jsonify, redirect, render_template, request, session, url_for
+from flask import (
+    Blueprint,
+    flash,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from sqlalchemy import func
 from werkzeug.security import check_password_hash
 
@@ -30,6 +40,9 @@ admin_bp = Blueprint("admin", __name__)
 # ------------------------------------------------------------------------------
 @admin_bp.route("/admin_login", methods=["GET", "POST"])
 def admin_login():
+    if session.get("is_admin"):
+        return redirect(url_for("admin.dashboard"))
+
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
@@ -42,6 +55,8 @@ def admin_login():
             session["is_master_admin"] = True
             session["can_manage_system"] = True
             session["can_view_reports"] = True
+            session["can_delete_reports"] = True
+            session["can_view_logs"] = True
             log_system_event("Master Admin", "Admin Login", level="INFO")
             return redirect(url_for("admin.dashboard"))
 
@@ -52,7 +67,9 @@ def admin_login():
             session["is_admin"] = True
             session["admin_username"] = user.username
             session["admin_role"] = user.role
-            session["signature_name"] = getattr(user, "signature_name", "") or user.username
+            session["signature_name"] = (
+                getattr(user, "signature_name", "") or user.username
+            )
             session["is_master_admin"] = is_master
             session["can_view_reports"] = True  # كافة الحسابات يمكنها رؤية الداشبورد
             session["can_manage_system"] = (
@@ -60,6 +77,12 @@ def admin_login():
                 or bool(getattr(user, "can_manage_system", False))
                 or bool(getattr(user, "can_manage_areas", False))
                 or bool(getattr(user, "can_manage_games", False))
+            )
+            session["can_delete_reports"] = is_master or bool(
+                getattr(user, "can_delete_reports", False)
+            )
+            session["can_view_logs"] = is_master or bool(
+                getattr(user, "can_view_logs", False)
             )
 
             log_system_event(username, "Admin Login", level="INFO")
@@ -87,6 +110,8 @@ def admin_logout():
         "can_manage_areas",
         "can_manage_games",
         "can_view_reports",
+        "can_delete_reports",
+        "can_view_logs",
     ]:
         session.pop(k, None)
     return redirect(url_for("monitor.home"))
@@ -147,16 +172,19 @@ def dashboard():
     ]
 
     from models import ReportApproval
+
     all_approvals = ReportApproval.query.all()
     approvals_by_session = {}
     for a in all_approvals:
         if a.session_id not in approvals_by_session:
             approvals_by_session[a.session_id] = []
-        approvals_by_session[a.session_id].append({
-            "admin_name": a.admin_name,
-            "role": a.role,
-            "timestamp": a.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-        })
+        approvals_by_session[a.session_id].append(
+            {
+                "admin_name": a.admin_name,
+                "role": a.role,
+                "timestamp": a.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        )
 
     # تجميع التقارير حسب session_id وحساب الإحصائيات
     grouped_reports = {}
@@ -239,52 +267,66 @@ def dashboard():
 
     # جلب الجلسات المهملة لعرضها في قسم خاص
     # (الجلسات التي تم تعيينها كـ abandoned سواء يدوياً أو تلقائياً بواسطة قبل الطلب)
-    from models import DailySession, Area
-    from datetime import date
-    
+
+    from models import Area, DailySession
+
     neglected_sessions = []
     # نجلب الجلسات المهجورة، وخصوصا التي تم التبليغ عنها أو المهجورة بشكل عام (بدون تقارير)
-    abandoned = DailySession.query.filter_by(status="abandoned").order_by(DailySession.date.desc()).limit(20).all()
+    abandoned = (
+        DailySession.query.filter_by(status="abandoned")
+        .order_by(DailySession.date.desc())
+        .limit(20)
+        .all()
+    )
     for ds in abandoned:
         # تأكد أنها لا تمتلك تقارير مكتملة في grouped_reports
         # (رغم أن المهجورة لا تُكتمل أبداً)
         area = Area.query.get(ds.area_id)
-        
+
         try:
-            inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []
-        except:
+            inspectors = (
+                json.loads(ds.active_inspectors) if ds.active_inspectors else []
+            )
+        except Exception:
             inspectors = []
-            
+
         try:
             game_data = json.loads(ds.game_data) if ds.game_data else {}
-        except:
+        except Exception:
             game_data = {}
-            
+
         total_count = GameModel.query.filter_by(area_id=ds.area_id).count()
         completed_count = len(game_data)
-        
+
         # إذا كانت الجلسة فارغة تماماً (لم يتم فحص أي لعبة)، نقوم بحذفها ولا نعرضها
         if completed_count == 0:
             db.session.delete(ds)
             db.session.commit()
             continue
 
-        progress_pct = int((completed_count / total_count * 100) if total_count > 0 else 0)
-        
-        neglected_sessions.append({
-            "session_id": ds.id,
-            "area_name": area.name if area else ds.area_id,
-            "date": ds.date.strftime("%Y-%m-%d"),
-            "inspectors": inspectors,
-            "progress_pct": progress_pct,
-            "completed_count": completed_count,
-            "total_count": total_count,
-            "reported": ds.negligence_reported
-        })
+        progress_pct = int(
+            (completed_count / total_count * 100) if total_count > 0 else 0
+        )
+
+        neglected_sessions.append(
+            {
+                "session_id": ds.id,
+                "area_name": area.name if area else ds.area_id,
+                "date": ds.date.strftime("%Y-%m-%d"),
+                "inspectors": inspectors,
+                "progress_pct": progress_pct,
+                "completed_count": completed_count,
+                "total_count": total_count,
+                "reported": ds.negligence_reported,
+            }
+        )
 
     # Check if the admin needs to set their signature
     needs_signature = False
-    if session.get("admin_role") and session.get("admin_role") not in ["Admin", "Supervisor"]:
+    if session.get("admin_role") and session.get("admin_role") not in [
+        "Admin",
+        "Supervisor",
+    ]:
         if not session.get("signature_name"):
             needs_signature = True
 
@@ -302,7 +344,7 @@ def dashboard():
         selected_monitor=selected_monitor,
         status_filter=status_filter,
         search_query=search_query,
-        needs_signature=needs_signature
+        needs_signature=needs_signature,
     )
 
 
@@ -313,20 +355,23 @@ def dashboard():
 def profile():
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-    from models import User
+    
+
     admin_username = session.get("admin_username")
     user = User.query.filter_by(username=admin_username).first()
-    
+
     if not user:
         if admin_username == "Master Admin" or session.get("is_master_admin"):
+
             class DummyUser:
                 username = "Master Admin"
                 role = "admin"
                 signature_name = session.get("signature_name", "")
+
             user = DummyUser()
         else:
             return redirect(url_for("admin.admin_login"))
-        
+
     if request.method == "POST":
         signature_name = request.form.get("signature_name", "").strip()
         if signature_name:
@@ -335,7 +380,7 @@ def profile():
                 db.session.commit()
             session["signature_name"] = signature_name
         return redirect(url_for("admin.profile"))
-        
+
     return render_template("profile.html", user=user)
 
 
@@ -346,38 +391,47 @@ def profile():
 def pending_approvals():
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-    
+
     admin_role = session.get("admin_role")
     admin_username = session.get("admin_username")
-    
+
     if not admin_role or admin_role in ["Admin", "Supervisor"]:
         return redirect(url_for("admin.dashboard"))
-        
+
     from models import GameReport, ReportApproval
-        
-    all_reports = GameReport.query.order_by(GameReport.timestamp.desc()).limit(200).all()
+
+    all_reports = (
+        GameReport.query.order_by(GameReport.timestamp.desc()).limit(200).all()
+    )
     pending_reports = []
     seen_sessions = set()
-    
-    from datetime import datetime
+
+    time
+
     today = datetime.now().date()
-    
+
     for report in all_reports:
         if report.session_id in seen_sessions:
             continue
         seen_sessions.add(report.session_id)
-        
+
         approvals = ReportApproval.query.filter_by(session_id=report.session_id).all()
         report.approvals = approvals
-        
-        already_signed_by_me = any(app.admin_username == admin_username for app in approvals)
+
+        already_signed_by_me = any(
+            app.admin_username == admin_username for app in approvals
+        )
         if already_signed_by_me:
             continue
-            
+
         if admin_role == "Team Leader":
-            tl_approvals = [app for app in approvals if app.role in ["Team Leader AM", "Team Leader PM"]]
+            tl_approvals = [
+                app
+                for app in approvals
+                if app.role in ["Team Leader AM", "Team Leader PM"]
+            ]
             report_date = report.timestamp.date()
-            
+
             if not tl_approvals:
                 pending_reports.append(report)
             else:
@@ -389,7 +443,7 @@ def pending_approvals():
             role_signed = any(app.role == admin_role for app in approvals)
             if not role_signed:
                 pending_reports.append(report)
-                
+
     return render_template("pending_approvals.html", pending_reports=pending_reports)
 
 
@@ -400,24 +454,30 @@ def pending_approvals():
 def api_admin_dashboard_sync():
     if not session.get("is_admin") or not session.get("can_view_reports"):
         return jsonify({"status": "error", "message": "Unauthorized"}), 401
-    
-    from models import GameReport, DailySession
+
+    from models import DailySession, GameReport
 
     latest_report = GameReport.query.order_by(GameReport.id.desc()).first()
     latest_report_id = latest_report.id if latest_report else None
     reports_count = GameReport.query.count()
 
-    latest_ns = DailySession.query.filter_by(status="in_progress").order_by(DailySession.id.desc()).first()
+    latest_ns = (
+        DailySession.query.filter_by(status="in_progress")
+        .order_by(DailySession.id.desc())
+        .first()
+    )
     latest_ns_id = latest_ns.id if latest_ns else None
     ns_count = DailySession.query.filter_by(status="in_progress").count()
-    
-    return jsonify({
-        "status": "ok",
-        "reports_count": reports_count,
-        "latest_report_id": latest_report_id,
-        "neglected_count": ns_count,
-        "latest_ns_id": latest_ns_id
-    })
+
+    return jsonify(
+        {
+            "status": "ok",
+            "reports_count": reports_count,
+            "latest_report_id": latest_report_id,
+            "neglected_count": ns_count,
+            "latest_ns_id": latest_ns_id,
+        }
+    )
 
 
 # ------------------------------------------------------------------------------
@@ -479,32 +539,40 @@ def print_report(session_id):
         )
     return render_template("print_report.html", report=report_data)
 
+
 @admin_bp.route("/view_neglected/<int:session_id>")
 def view_neglected(session_id):
     if not session.get("is_admin") or not session.get("can_view_reports"):
         return redirect(url_for("admin.admin_login"))
-        
-    from models import DailySession, Area
+
     import json
-    
+
+    from models import Area, DailySession
+
     ds = DailySession.query.get_or_404(session_id)
     area = Area.query.get(ds.area_id)
-    
+
     report_data = {
         "session_id": session_id,
-        "monitor_name": " / ".join(json.loads(ds.active_inspectors)) if ds.active_inspectors else "Unknown",
+        "monitor_name": (
+            " / ".join(json.loads(ds.active_inspectors))
+            if ds.active_inspectors
+            else "Unknown"
+        ),
         "area_id": area.name if area else ds.area_id,
         "timestamp": ds.date.strftime("%Y-%m-%d") + " (Incomplete)",
         "games": [],
     }
-    
+
     try:
         game_data = json.loads(ds.game_data) if ds.game_data else {}
     except Exception:
         game_data = {}
-        
+
     for game_id, checks in game_data.items():
-        game_model = GameModel.query.filter((GameModel.id == game_id) | (GameModel.name == game_id)).first()
+        game_model = GameModel.query.filter(
+            (GameModel.id == game_id) | (GameModel.name == game_id)
+        ).first()
         actual_check_names = (
             [c["name"] for c in json.loads(game_model.checks)]
             if game_model and game_model.checks
@@ -525,7 +593,7 @@ def view_neglected(session_id):
                     mapped_checks[k] = v
             elif k not in ["notes", "photos", "inspector_name", "map_drawing"]:
                 mapped_checks[k] = v
-                
+
         report_data["games"].append(
             {
                 "game_id": game_model.name if game_model else game_id,
@@ -540,7 +608,7 @@ def view_neglected(session_id):
                 "photos": checks.get("photos", []),
             }
         )
-        
+
     return render_template("neglected_report.html", report=report_data)
 
 
@@ -548,10 +616,16 @@ def view_neglected(session_id):
 def delete_neglected(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-        
+
     from models import DailySession
+
     ds = DailySession.query.get_or_404(session_id)
-    log_system_event(session.get("admin_username", "Master Admin"), "Delete Neglected Session", details=f"Deleted neglected session #{session_id} for Area ID: {ds.area_id}", level="WARNING")
+    log_system_event(
+        session.get("admin_username", "Master Admin"),
+        "Delete Neglected Session",
+        details=f"Deleted neglected session #{session_id} for Area ID: {ds.area_id}",
+        level="WARNING",
+    )
     db.session.delete(ds)
     db.session.commit()
     return redirect(url_for("admin.dashboard"))
@@ -561,11 +635,16 @@ def delete_neglected(session_id):
 def reopen_neglected(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-        
+
     from models import DailySession
-    from datetime import date
+
     ds = DailySession.query.get_or_404(session_id)
-    log_system_event(session.get("admin_username", "Master Admin"), "Reopen Neglected Session", details=f"Reopened neglected session #{session_id} for Area ID: {ds.area_id}", level="INFO")
+    log_system_event(
+        session.get("admin_username", "Master Admin"),
+        "Reopen Neglected Session",
+        details=f"Reopened neglected session #{session_id} for Area ID: {ds.area_id}",
+        level="INFO",
+    )
     # Reset status and date so it appears to monitors today
     ds.status = "in_progress"
     ds.date = date.today()
@@ -578,18 +657,24 @@ def reopen_neglected(session_id):
 def force_complete_neglected(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-        
-    from models import DailySession, GameReport, GameModel, Area
+
     import json
-    
+
+    from models import DailySession, GameModel, GameReport
+
     ds = DailySession.query.get_or_404(session_id)
-    log_system_event(session.get("admin_username", "Master Admin"), "Force Complete Neglected Session", details=f"Forced complete for session #{session_id}, Area ID: {ds.area_id}", level="WARNING")
-    
+    log_system_event(
+        session.get("admin_username", "Master Admin"),
+        "Force Complete Neglected Session",
+        details=f"Forced complete for session #{session_id}, Area ID: {ds.area_id}",
+        level="WARNING",
+    )
+
     try:
         game_data = json.loads(ds.game_data) if ds.game_data else {}
     except Exception:
         game_data = {}
-        
+
     area_games = GameModel.query.filter_by(area_id=ds.area_id).all()
     monitor_name = "الإدارة (إجبار إنهاء)"
     if ds.active_inspectors:
@@ -597,7 +682,7 @@ def force_complete_neglected(session_id):
             inspectors = json.loads(ds.active_inspectors)
             if inspectors:
                 monitor_name = " / ".join(inspectors)
-        except:
+        except Exception:
             pass
 
     for game in area_games:
@@ -606,32 +691,39 @@ def force_complete_neglected(session_id):
             # Create a missing entry
             try:
                 checks = json.loads(game.checks) if game.checks else []
-            except:
+            except Exception:
                 checks = []
-            
+
             missing_checks = {}
             for i, _ in enumerate(checks):
                 missing_checks[f"check_{i+1}"] = "N/A"
             missing_checks["notes"] = "لم يتم الفحص (تم الإنهاء بواسطة الإدارة)"
             missing_checks["photos"] = []
             missing_checks["map_drawing"] = ""
-            
+
             game_data[game_key] = missing_checks
 
     import uuid
+
     report_uuid = uuid.uuid4().hex
 
     for game_id_or_name, data in game_data.items():
         # Clean up data keys
-        checks_only = {k: v for k, v in data.items() if k not in ["notes", "photos", "inspector_name", "map_drawing"]}
+        checks_only = {
+            k: v
+            for k, v in data.items()
+            if k not in ["notes", "photos", "inspector_name", "map_drawing"]
+        }
         notes = data.get("notes", "").strip() or "N/A"
         photos = data.get("photos", [])
         map_drawing = data.get("map_drawing", "")
-        
+
         # Determine actual game ID string
-        game_model = GameModel.query.filter((GameModel.id == game_id_or_name) | (GameModel.name == game_id_or_name)).first()
+        game_model = GameModel.query.filter(
+            (GameModel.id == game_id_or_name) | (GameModel.name == game_id_or_name)
+        ).first()
         final_game_id = game_model.name if game_model else game_id_or_name
-        
+
         report = GameReport(
             session_id=report_uuid,
             monitor_name=monitor_name,
@@ -640,20 +732,21 @@ def force_complete_neglected(session_id):
             checks_data=json.dumps(checks_only, ensure_ascii=False),
             photos_paths=json.dumps(photos, ensure_ascii=False),
             map_image_path=map_drawing,
-            notes=notes
+            notes=notes,
         )
         db.session.add(report)
-        
+
     ds.status = "completed"
     db.session.commit()
-    
+
     # Generate PDF
     try:
         from pdf_generator import generate_pdf_report
+
         generate_pdf_report(report_uuid)
     except Exception as e:
         print(f"Error generating PDF: {e}")
-        
+
     return redirect(url_for("admin.dashboard"))
 
 
@@ -742,6 +835,9 @@ def download_pdf(session_id):
 def delete_report(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
+    if not session.get("can_delete_reports"):
+        flash("عذراً، لا تملك صلاحية حذف التقارير.", "danger")
+        return redirect(url_for("admin.dashboard"))
 
     log_system_event(
         session.get("admin_username", "Master Admin"),
@@ -840,55 +936,65 @@ def delete_email(rcv_id):
 
 @admin_bp.route("/system_logs")
 def system_logs():
-    if not session.get("is_admin") or not session.get("is_master_admin"):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+    if not session.get("is_master_admin") and not session.get("can_view_logs"):
         return redirect(url_for("admin.dashboard"))
 
     logs = SystemLog.query.order_by(SystemLog.timestamp.desc()).all()
     return render_template("system_logs.html", logs=logs)
+
 
 # ------------------------------------------------------------------------------
 # 11. سجل الإيميلات (Email Logs)
 # ------------------------------------------------------------------------------
 @admin_bp.route("/email_logs")
 def email_logs():
-    if not session.get("is_admin") or not session.get("is_master_admin"):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+    if not session.get("is_master_admin") and not session.get("can_view_logs"):
         return redirect(url_for("admin.dashboard"))
-        
+
     from models import EmailLog
+
     logs = EmailLog.query.order_by(EmailLog.id.desc()).all()
     return render_template("email_logs.html", logs=logs)
+
 
 @admin_bp.route("/retry_failed_emails", methods=["POST"])
 def retry_failed_emails():
     if not session.get("is_admin") or not session.get("is_master_admin"):
         return jsonify({"success": False, "error": "Unauthorized"}), 403
-        
+
     try:
-        from utils_mail import process_email_queue
-        from flask import current_app
         import threading
-        
+
+        from flask import current_app
+
+        from extensions import db
+
         # Reset retry limits for failed emails before running
         from models import EmailLog
-        from extensions import db
+        from utils_mail import process_email_queue
+
         failed_logs = EmailLog.query.filter_by(status="failed").all()
         count = len(failed_logs)
         for log in failed_logs:
             log.retry_count = 0  # reset to allow retry
             log.last_attempt_at = None
         db.session.commit()
-        
+
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Retry Failed Emails",
             details=f"Triggered manual retry for {count} failed emails",
             level="INFO",
         )
-        
+
         # Start background thread
         app_obj = current_app._get_current_object()
         threading.Thread(target=process_email_queue, args=(app_obj,)).start()
-        
+
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -901,18 +1007,21 @@ def retry_failed_emails():
 def approve_report(session_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-        
-    from models import ReportApproval, User
-    
+
+    from models import ReportApproval
+
     admin_username = session.get("admin_username")
     admin_name = session.get("signature_name")
     role = session.get("admin_role")
     source = request.form.get("source", "dashboard")
-    
+
     if not admin_name:
-        flash("You must set your signature name in your profile before approving.", "danger")
+        flash(
+            "You must set your signature name in your profile before approving.",
+            "danger",
+        )
         return redirect(url_for("admin.profile"))
-    
+
     # If Supervisor or Admin, they don't sign Excel, but shouldn't really be approving anyway.
     if role in ["Supervisor", "Admin"]:
         flash("You do not have a signing role.", "danger")
@@ -920,10 +1029,12 @@ def approve_report(session_id):
     if role == "Team Leader":
         shift = request.form.get("shift", "AM")
         role = f"Team Leader {shift}"
-        
+
     if admin_name and role:
         # Check if already approved by this exact username on this report
-        existing = ReportApproval.query.filter_by(session_id=session_id, admin_username=admin_username).first()
+        existing = ReportApproval.query.filter_by(
+            session_id=session_id, admin_username=admin_username
+        ).first()
         if existing:
             flash("You have already approved this report.", "warning")
             if source == "pending":
@@ -934,15 +1045,16 @@ def approve_report(session_id):
             session_id=session_id,
             admin_username=admin_username,
             admin_name=admin_name,
-            role=role
+            role=role,
         )
         db.session.add(new_app)
         db.session.commit()
-        
+
         # Regenerate PDF in background to include new signature
+        import os
         import subprocess
         import sys
-        import os
+
         cmd = [
             sys.executable,
             "-c",
@@ -951,5 +1063,5 @@ def approve_report(session_id):
         subprocess.Popen(
             cmd, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
         )
-        
+
     return redirect(url_for("admin.dashboard"))

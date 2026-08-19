@@ -37,6 +37,12 @@ class User(db.Model):
     can_view_reports = db.Column(
         db.Boolean, default=True
     )  # صلاحية رؤية الداشبورد والتقارير (متاحة للجميع)
+    can_delete_reports = db.Column(
+        db.Boolean, default=False
+    )  # صلاحية حذف التقارير ومسح الـ PDF
+    can_view_logs = db.Column(
+        db.Boolean, default=False
+    )  # صلاحية رؤية سجلات النظام والإيميلات
 
 
 # ------------------------------------------------------------------------------

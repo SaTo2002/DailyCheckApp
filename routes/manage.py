@@ -147,7 +147,7 @@ def edit_area(area_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Edit Area",
-            details=f"الArea: {area.name}",
+            details=f"Edit Area: {area.name}",
             level="INFO",
         )
         return redirect(url_for("manage.manage_system"))
@@ -167,7 +167,7 @@ def delete_area(area_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Delete Area",
-            details=f"حذف Area: {area.name}",
+            details=f"Delete Area: {area.name}",
             level="WARNING",
         )
         db.session.delete(area)
@@ -388,7 +388,15 @@ def manage_users():
         username = request.form.get("username")
         password = request.form.get("password")
         role = request.form.get("role", "Team Leader")
-        can_manage_system = bool(request.form.get("can_manage_system"))
+        can_manage_areas = bool(request.form.get("can_manage_areas"))
+        can_manage_games = bool(request.form.get("can_manage_games"))
+        can_delete_reports = bool(request.form.get("can_delete_reports"))
+        can_view_logs = bool(request.form.get("can_view_logs"))
+        can_manage_system = can_manage_areas or can_manage_games
+
+        if username and username.lower() == "admin":
+            flash("Error: The username 'admin' is reserved for the Master Admin.", "danger")
+            return redirect(url_for("manage.manage_users"))
 
         if username and password:
             existing_user = User.query.filter_by(username=username).first()
@@ -401,9 +409,11 @@ def manage_users():
                 password_hash=generate_password_hash(password),
                 role=role,
                 can_manage_system=can_manage_system,
-                can_manage_areas=can_manage_system,
-                can_manage_games=can_manage_system,
+                can_manage_areas=can_manage_areas,
+                can_manage_games=can_manage_games,
                 can_view_reports=True,
+                can_delete_reports=can_delete_reports,
+                can_view_logs=can_view_logs,
             )
             db.session.add(user)
             db.session.commit()
@@ -426,16 +436,22 @@ def update_user_permissions(user_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
     user = User.query.get_or_404(user_id)
-    can_manage_system = bool(request.form.get("can_manage_system"))
+    can_manage_areas = bool(request.form.get("can_manage_areas"))
+    can_manage_games = bool(request.form.get("can_manage_games"))
+    can_delete_reports = bool(request.form.get("can_delete_reports"))
+    can_view_logs = bool(request.form.get("can_view_logs"))
+    can_manage_system = can_manage_areas or can_manage_games
     role = request.form.get("role")
     
     if role:
         user.role = role
         
     user.can_manage_system = can_manage_system
-    user.can_manage_areas = can_manage_system
-    user.can_manage_games = can_manage_system
+    user.can_manage_areas = can_manage_areas
+    user.can_manage_games = can_manage_games
     user.can_view_reports = True
+    user.can_delete_reports = can_delete_reports
+    user.can_view_logs = can_view_logs
     db.session.commit()
     log_system_event(
         session.get("admin_username", "Master Admin"),
@@ -458,7 +474,7 @@ def delete_user(user_id):
         log_system_event(
             session.get("admin_username", "Master Admin"),
             "Delete User",
-            details=f"حذف User: {user.username}",
+            details=f"Delete User: {user.username}",
             level="WARNING",
         )
         db.session.delete(user)
