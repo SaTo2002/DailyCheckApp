@@ -48,6 +48,7 @@ def export_report_to_excel(
     date_str,
     output_xlsx_path,
     orientation="portrait",
+    approvals=None,
 ):
     """
     Fills local Excel template file directly using openpyxl, populates values and issue map images,
@@ -90,7 +91,13 @@ def export_report_to_excel(
             clean_txt = " ".join(str(cell_val).strip().split()).lower()
             section_map[current_sec][clean_txt] = r
 
-    # 2.5 Scan sheet for Tags ([MAP:*] and [NOTE:*])
+    # 2.4 Pre-process approvals for signatures
+    approvals_map = {}
+    if approvals:
+        for app in approvals:
+            approvals_map[app.role.lower().strip()] = app.admin_name
+
+    # 2.5 Scan sheet for Tags ([MAP:*], [NOTE:*], and [SIG:*])
     dynamic_map_cells = {}
     dynamic_note_cells = {}
 
@@ -100,6 +107,48 @@ def export_report_to_excel(
         for cell in row:
             if cell.value and isinstance(cell.value, str):
                 val = cell.value.strip()
+                # Handle signature tags embedded in text (e.g. "Signature: [SIG:monitor]")
+                if "[sig:" in val.lower():
+                    from openpyxl.cell.rich_text import TextBlock, CellRichText
+                    from openpyxl.cell.text import InlineFont
+                    
+                    parts = re.split(r"(\s*\[SIG:.*?\])", val, flags=re.IGNORECASE)
+                    rich_text_elements = []
+                    has_signature = False
+                    new_val_plain = ""
+                    
+                    blue_font = InlineFont(rFont='Arial', sz=12, b=True, i=True, color='000000FF')
+                    default_font = InlineFont(rFont='Arial', sz=11, b=True)
+                    
+                    for part in parts:
+                        if part.lower().strip().startswith("[sig:"):
+                            m = re.search(r"\[SIG:(.*?)\]", part, flags=re.IGNORECASE)
+                            if m:
+                                sig_role = m.group(1).strip().lower()
+                                target_val = ""
+                                if sig_role == "monitor":
+                                    target_val = monitor_name
+                                elif sig_role in approvals_map:
+                                    target_val = approvals_map[sig_role]
+                                
+                                if target_val:
+                                    has_signature = True
+                                    sig_text = f" {target_val}"
+                                    rich_text_elements.append(TextBlock(font=blue_font, text=sig_text))
+                                    new_val_plain += sig_text
+                        else:
+                            if part:
+                                rich_text_elements.append(TextBlock(font=default_font, text=part))
+                                new_val_plain += part
+
+                    if has_signature:
+                        cell.value = CellRichText(*rich_text_elements)
+                    else:
+                        cell.value = new_val_plain
+                        
+                    # Also update val for subsequent logic to skip correctly
+                    val = new_val_plain
+
                 if val.startswith("[MAP:") and val.endswith("]"):
                     game_tag = val[5:-1].strip().lower()
 
@@ -133,6 +182,8 @@ def export_report_to_excel(
                         r"\[date\]", date_str, new_val, flags=re.IGNORECASE
                     )
                     cell.value = new_val
+
+    # Note: Text Signatures Injection is now handled inline above.
 
     # 3. Fill Checkmarks (Col G: OK, Col H: NOK) per exact section
     for game_name, game_checks in checks_dict.items():

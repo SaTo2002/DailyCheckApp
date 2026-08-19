@@ -7,7 +7,7 @@ import json
 import os
 import uuid
 
-from flask import Blueprint, redirect, render_template, request, session, url_for
+from flask import Blueprint, redirect, render_template, request, session, url_for, flash
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 
@@ -391,6 +391,11 @@ def manage_users():
         can_manage_system = bool(request.form.get("can_manage_system"))
 
         if username and password:
+            existing_user = User.query.filter_by(username=username).first()
+            if existing_user:
+                flash(f"Error: Username '{username}' already exists!", "danger")
+                return redirect(url_for("manage.manage_users"))
+                
             user = User(
                 username=username,
                 password_hash=generate_password_hash(password),
@@ -408,6 +413,7 @@ def manage_users():
                 details=f"Username: {username}, Role: {role}",
                 level="INFO",
             )
+            flash(f"User '{username}' created successfully!", "success")
             return redirect(url_for("manage.manage_users"))
     return render_template("manage_users.html", users=User.query.all())
 
@@ -421,6 +427,11 @@ def update_user_permissions(user_id):
         return redirect(url_for("admin.admin_login"))
     user = User.query.get_or_404(user_id)
     can_manage_system = bool(request.form.get("can_manage_system"))
+    role = request.form.get("role")
+    
+    if role:
+        user.role = role
+        
     user.can_manage_system = can_manage_system
     user.can_manage_areas = can_manage_system
     user.can_manage_games = can_manage_system

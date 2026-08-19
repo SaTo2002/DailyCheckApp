@@ -5,6 +5,7 @@
 <html dir="ltr" lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard & Reports</title>
     <link rel="icon" href="/static/logo.png" type="image/png">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -27,9 +28,19 @@
         .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 6px; font-weight: bold; text-decoration: none; display: inline-block; border: none; cursor: pointer;}
         
         @media (max-width: 768px) {
-            .header-btns { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; width: 100%; }
-            .report-header { flex-direction: column; align-items: stretch; text-align: start; }
-            .report-header > div:last-child { justify-content: space-between; border-top: 1px solid var(--surface-border); padding-top: 10px; margin-top: 10px;}
+            .header-btns { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; }
+            .header-btns a { flex: 1 1 auto; text-align: center; font-size: 13px; padding: 10px 12px; margin: 0 !important; }
+            .report-header { flex-direction: column; align-items: stretch; text-align: start; gap: 10px; }
+            .report-header > div:last-child { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; border-top: 1px solid var(--surface-border); padding-top: 10px; margin-top: 5px; width: 100%; }
+            .report-header > div:last-child a, .report-header > div:last-child form { flex: 1 1 auto; margin: 0 !important; }
+            .report-header > div:last-child button { width: 100%; }
+            
+            .d-flex.justify-content-between.align-items-center.mt-3 { flex-wrap: wrap; gap: 8px; justify-content: stretch !important; }
+            .d-flex.justify-content-between.align-items-center.mt-3 a, .d-flex.justify-content-between.align-items-center.mt-3 form { flex: 1 1 auto; }
+            .d-flex.justify-content-between.align-items-center.mt-3 button { width: 100%; }
+            
+            h1 { font-size: 20px; text-align: center; }
+            p { text-align: center; }
         }
     </style>
     <script>
@@ -62,15 +73,21 @@
             
             
             {% if session.get('can_manage_system') or session.get('can_manage_areas') or session.get('can_manage_games') or session.get('is_master_admin') %}
-                <a href="/manage_system" class="btn-primary">⚙️ System Management</a>
+                <a href="/manage_system" class="btn-primary" style="text-decoration: none; display: inline-block;">⚙️ System Management</a>
             {% endif %}
             {% if session.get('is_master_admin') or session.get('admin_role') == 'admin' %}
-                <a href="/manage_users" class="btn-primary" style="background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3);">👥 User Accounts</a>
-                <a href="/manage_emails" class="btn-primary" style="background: var(--brand-orange); box-shadow: 0 4px 15px rgba(240,158,37,0.3);">📧 Email List</a>
-                <a href="/system_logs" class="btn-primary" style="background: var(--brand-purple, #6f42c1); box-shadow: 0 4px 15px rgba(111,66,193,0.3);">📝 System Logs</a>
-                <a href="/email_logs" class="btn-primary" style="background: #0ea5e9; box-shadow: 0 4px 15px rgba(14,165,233,0.3);">📬 Email Logs</a>
+                <a href="/manage_users" class="btn-primary" style="background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3); text-decoration: none; display: inline-block;">👥 User Accounts</a>
+                <a href="/manage_emails" class="btn-primary" style="background: var(--brand-orange); box-shadow: 0 4px 15px rgba(240,158,37,0.3); text-decoration: none; display: inline-block;">📧 Email List</a>
+                <a href="/system_logs" class="btn-primary" style="background: var(--brand-purple, #6f42c1); box-shadow: 0 4px 15px rgba(111,66,193,0.3); text-decoration: none; display: inline-block;">📝 System Logs</a>
+                <a href="/email_logs" class="btn-primary" style="background: #0ea5e9; box-shadow: 0 4px 15px rgba(14,165,233,0.3); text-decoration: none; display: inline-block;">📬 Email Logs</a>
             {% endif %}
-            <a href="/admin_logout" class="btn-secondary" style="background: var(--danger); box-shadow: 0 4px 15px rgba(220,53,69,0.3);">Logout 🔒</a>
+            {% if session.get('admin_role') %}
+                <a href="{{ url_for('admin.profile') }}" class="btn-secondary" style="text-decoration: none; display: inline-block;">👤 Profile</a>
+                {% if session.get('admin_role') not in ['Admin', 'Supervisor'] %}
+                <a href="{{ url_for('admin.pending_approvals') }}" class="btn-primary" style="background: #f39c12; box-shadow: 0 4px 15px rgba(243,156,18,0.3); text-decoration: none; display: inline-block;">⏳ Pending Approvals</a>
+                {% endif %}
+            {% endif %}
+            <a href="/admin_logout" class="btn-primary" style="background: var(--danger); box-shadow: 0 4px 15px rgba(220,53,69,0.3); text-decoration: none; display: inline-block;">Logout 🔒</a>
         </div>
     </div>
 

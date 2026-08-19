@@ -156,8 +156,8 @@
         <!-- 3. Final Report Submission (For Main Inspector only) -->
         <div style="text-align: center; margin-top: 25px;">
             {% if all_completed %}
-            <form action="/submit_report" method="POST"
-                onsubmit="const btn=this.querySelector('button'); setTimeout(() => { btn.disabled=true; }, 50); btn.innerHTML='⚡ Sending Report...';">
+            <form action="/submit_report" method="GET"
+                onsubmit="const btn=this.querySelector('button'); setTimeout(() => { btn.disabled=true; }, 50); btn.innerHTML='⚡ Processing...';">
                 <button type="submit" class="btn-touch btn-success-touch"
                     style="width: 100%; font-size: 18px; padding: 16px; cursor: pointer;">
                     Submit Final Report 🚀
@@ -176,7 +176,7 @@
 
         <!-- 4. Save Progress and Exit (For F.O and Lounge) -->
         <div style="display: flex; flex-direction: column; gap: 12px;">
-            <a href="/cancel_area" class="btn-touch"
+            <a href="/submit_report?exit=1" class="btn-touch"
                 style="background: var(--surface-glass); border: 2px solid var(--brand-blue); color: var(--text-primary); font-size: 16px; font-weight: bold; text-decoration: none; text-align: center; display: block;">
                 Save Progress & Exit 💾
             </a>

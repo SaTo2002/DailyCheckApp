@@ -533,6 +533,37 @@ def submit_report():
         return redirect(url_for("monitor.show_games", area_id=area_id))
 
     try:
+        active_inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else [monitor_name]
+    except Exception:
+        active_inspectors = [monitor_name]
+
+    if request.method == "GET":
+        try:
+            saved_sigs = json.loads(ds.monitor_signatures) if ds.monitor_signatures else {}
+        except Exception:
+            saved_sigs = {}
+        is_exit = request.args.get("exit") == "1"
+        return render_template("finalize_report.html", area=area, inspectors=active_inspectors, saved_sigs=saved_sigs, is_exit=is_exit)
+
+    # POST Method Handling
+    is_exit = request.form.get("is_exit") == "1"
+    
+    try:
+        signatures = json.loads(ds.monitor_signatures) if ds.monitor_signatures else {}
+    except Exception:
+        signatures = {}
+        
+    for inspector in active_inspectors:
+        sig = request.form.get(f"signature_{inspector}", "").strip()
+        if sig:
+            signatures[inspector] = sig
+    ds.monitor_signatures = json.dumps(signatures, ensure_ascii=False)
+    db.session.commit()
+    
+    if is_exit:
+        return redirect(url_for("monitor.cancel_area"))
+
+    try:
         game_data = json.loads(ds.game_data) if ds.game_data else {}
     except Exception:
         game_data = {}
@@ -581,6 +612,7 @@ def submit_report():
                 notes=data.get("notes", "").strip() or "N/A",
                 map_image_path=final_map_path,
                 photos_paths=json.dumps(data.get("photos", []), ensure_ascii=False),
+                monitor_signatures=ds.monitor_signatures,
             )
         )
 

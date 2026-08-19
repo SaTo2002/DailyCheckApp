@@ -20,6 +20,9 @@ class User(db.Model):
     role = db.Column(
         db.String(50), nullable=False
     )  # المسمى الوظيفي (Team Leader / Maintenance / Supervisor)
+    signature_name = db.Column(
+        db.String(150), nullable=True
+    )  # الاسم الحقيقي المستخدم في التوقيع الإلكتروني
 
     # صلاحيات الحساب
     can_manage_system = db.Column(
@@ -118,6 +121,9 @@ class GameReport(db.Model):
     pdf_file_path = db.Column(
         db.String(255), nullable=True
     )  # المسار المخزن المباشر لملف الـ PDF المتولد
+    monitor_signatures = db.Column(
+        db.Text, nullable=True
+    )  # توقيعات الموظفين المكتوبة بصيغة JSON
     timestamp = db.Column(db.DateTime, default=db.func.now())  # تاريخ ووقت حفظ التقرير
 
 
@@ -154,6 +160,7 @@ class DailySession(db.Model):
     )  # قائمة المفتشين المتواجدين (JSON)
     game_data = db.Column(db.Text, default="{}")  # داتا الألعاب المكتملة وحالتها (JSON)
     game_locks = db.Column(db.Text, default="{}")  # أقفال الألعاب لمنع التضارب (JSON)
+    monitor_signatures = db.Column(db.Text, default="{}")  # توقيعات المفتشين المكتوبة (JSON)
     negligence_reported = db.Column(
         db.Boolean, default=False
     )  # هل تم تبليغ الإدارة عن الإهمال
@@ -210,3 +217,17 @@ class EmailLog(db.Model):
     retry_count = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=db.func.now())
     last_attempt_at = db.Column(db.DateTime, nullable=True)
+
+
+# ------------------------------------------------------------------------------
+# 9. جدول اعتمادات الإدارة للتقارير (Report Approvals)
+# ------------------------------------------------------------------------------
+class ReportApproval(db.Model):
+    __tablename__ = "report_approvals"
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.String(100), nullable=False) # يربط بالتقرير
+    admin_username = db.Column(db.String(100), nullable=False) # يوزرنيم المدير
+    admin_name = db.Column(db.String(150), nullable=False) # اسم التوقيع المكتوب
+    role = db.Column(db.String(50), nullable=False) # المنصب عند التوقيع (مثال: Team Leader AM)
+    timestamp = db.Column(db.DateTime, default=db.func.now())

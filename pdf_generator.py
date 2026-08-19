@@ -34,8 +34,14 @@ def generate_report_excel_and_pdf(session_id):
     )
     monitor_name = main_monitor_name
 
+    monitor_signatures_dict = json_loads(reports[0].monitor_signatures) if getattr(reports[0], 'monitor_signatures', None) else {}
+    monitor_signature_text = monitor_signatures_dict.get(monitor_name, monitor_name)
+
     ts = reports[0].timestamp
     date_str = ts.strftime("%Y-%m-%d")
+
+    from models import ReportApproval
+    approvals = ReportApproval.query.filter_by(session_id=session_id).all()
 
     game_checks = {}
     game_notes = {}
@@ -133,7 +139,7 @@ def generate_report_excel_and_pdf(session_id):
 
     export_report_to_excel(
         report_session_id=session_id,
-        monitor_name=monitor_name,
+        monitor_name=monitor_signature_text,
         area_name=area_name,
         checks_dict=game_checks,
         game_notes_dict=game_notes,
@@ -141,6 +147,7 @@ def generate_report_excel_and_pdf(session_id):
         date_str=date_str,
         output_xlsx_path=xlsx_path,
         orientation=orientation,
+        approvals=approvals,
     )
 
     # 2. تحويل ملف الـ Excel إلى PDF — يحاول Windows أولاً ثم Linux fallback

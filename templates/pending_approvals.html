@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Approvals</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+    <style>
+        .report-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .report-actions { display: flex; gap: 8px; align-items: center; }
+        .approval-form { display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.03); padding: 10px; border-radius: 6px; }
+        .dark-mode .approval-form { background: rgba(255,255,255,0.03); }
+        
+        @media (max-width: 768px) {
+            .container > div:first-child { flex-direction: column; gap: 12px; align-items: stretch; text-align: center; }
+            .report-header { flex-direction: column; align-items: stretch; gap: 10px; text-align: start; }
+            .report-actions { flex-wrap: wrap; justify-content: stretch; }
+            .report-actions a { flex: 1 1 auto; text-align: center; }
+            .approval-form { flex-direction: column; align-items: stretch; }
+            .approval-form select { width: 100%; margin: 0 !important; }
+            .approval-form button { width: 100%; margin: 0 !important; }
+            .approval-form > div { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+        🌓
+    </div>
+
+<div class="container" style="max-width: 1100px; margin: 40px auto; padding: 20px; position: relative; z-index: 1;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>⏳ Pending Approvals</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">Back to Dashboard</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div style="margin-bottom: 20px;">
+            {% for category, message in messages %}
+                <div style="padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 10px; 
+                            background: {% if category == 'success' %}rgba(40, 167, 69, 0.1){% else %}rgba(220, 53, 69, 0.1){% endif %};
+                            color: {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};
+                            border: 1px solid {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+{% if not session.get('signature_name') %}
+<div class="glass-card" style="padding: 20px; border-left: 4px solid #f39c12; margin-bottom: 20px;">
+    <h3 style="color: #f39c12; margin-top: 0;">⚠️ Signature Not Set</h3>
+    <p style="color: var(--text-secondary); font-size: 14px;">You must set your official signature name in your profile before you can approve reports.</p>
+    <a href="{{ url_for('admin.profile') }}" class="btn-primary btn-sm" style="background: #f39c12;">Go to Profile</a>
+</div>
+{% endif %}
+
+<div style="display: flex; flex-direction: column; gap: 20px;">
+    {% if pending_reports %}
+        {% for report in pending_reports %}
+            <div class="glass-card" style="padding: 20px; border-top: 4px solid var(--brand-pink);">
+                <div class="report-header">
+                    <div>
+                        <h4 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 16px;">Area: {{ report.area_id }}</h4>
+                        <div style="font-size: 13px; color: var(--text-secondary);">
+                            Inspector: <span style="color: var(--text-primary); font-weight: bold;">{{ report.monitor_name }}</span>
+                        </div>
+                    </div>
+                    <div class="report-actions">
+                        <span style="font-size: 11px; background: rgba(0,0,0,0.2); padding: 4px 10px; border-radius: 4px; color: var(--text-secondary);">
+                            {{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </span>
+                        {% if report.pdf_file_path %}
+                            <a href="{{ url_for('admin.download_pdf', session_id=report.session_id) }}?view=1" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-blue);">👁️ View PDF</a>
+                        {% endif %}
+                        <a href="/print_report/{{ report.session_id }}" target="_blank" class="btn-primary btn-sm" style="background: #28a745;">🌍 Web Report</a>
+                    </div>
+                </div>
+
+                <!-- Approval Form -->
+                <div style="width: 100%; border-top: 1px solid var(--surface-border); margin-top: 15px; padding-top: 15px;">
+                    <form action="{{ url_for('admin.approve_report', session_id=report.session_id) }}" method="POST" class="approval-form">
+                        <input type="hidden" name="source" value="pending">
+                        
+                        <div style="font-size: 13px; color: var(--text-primary);">
+                            Signing as: <strong>{{ session.get('signature_name', 'Not set') }}</strong>
+                        </div>
+                        
+                        {% if session.get('admin_role') == 'Team Leader' %}
+                        {% set signed_roles = report.approvals | map(attribute='role') | list %}
+                        {% if 'Team Leader AM' in signed_roles %}
+                            <input type="hidden" name="shift" value="PM">
+                            <span style="font-size: 13px; margin-left: 10px; color: var(--brand-blue); font-weight: bold;">(PM Shift)</span>
+                        {% elif 'Team Leader PM' in signed_roles %}
+                            <input type="hidden" name="shift" value="AM">
+                            <span style="font-size: 13px; margin-left: 10px; color: var(--brand-blue); font-weight: bold;">(AM Shift)</span>
+                        {% else %}
+                            <select name="shift" required style="padding: 6px; border-radius: 4px; border: 1px solid var(--surface-border); font-size: 13px; margin-left: 10px;">
+                                <option value="AM">AM Shift</option>
+                                <option value="PM">PM Shift</option>
+                            </select>
+                        {% endif %}
+                        {% endif %}
+                        
+                        <button type="submit" class="btn-primary btn-sm" style="background: var(--brand-purple); box-shadow: 0 4px 10px rgba(111,66,193,0.3); margin-left: auto;" {% if not session.get('signature_name') %}disabled{% endif %}>✅ Approve Report</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="glass-card text-center" style="padding: 40px; color: var(--text-secondary);">
+            <h3>✅ All caught up!</h3>
+            <p>You have no pending reports to approve at the moment.</p>
+        </div>
+    {% endif %}
+</div>
+<script>
+    function toggleTheme() {
+        const doc = document.documentElement;
+        if(doc.classList.contains('dark-mode')) {
+            doc.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+        } else {
+            doc.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+</script>
+</body>
+</html>

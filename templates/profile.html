@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Ambient Blobs -->
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Theme">
+        🌓
+    </div>
+
+<div class="container" style="max-width: 800px; margin: 40px auto; padding: 20px; position: relative; z-index: 1;">
+    <h2>👤 My Profile</h2>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-secondary">Back to Dashboard</a>
+</div>
+
+<div class="glass-card" style="max-width: 600px; margin: 0 auto; padding: 30px;">
+    <h3 style="margin-bottom: 20px; color: var(--text-primary); border-bottom: 1px solid var(--surface-border); padding-bottom: 10px;">
+        Profile Settings
+    </h3>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div style="margin-bottom: 20px;">
+                {% for category, message in messages %}
+                    <div style="padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 10px; 
+                                background: {% if category == 'success' %}rgba(40, 167, 69, 0.1){% else %}rgba(220, 53, 69, 0.1){% endif %};
+                                color: {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};
+                                border: 1px solid {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('admin.profile') }}" style="display: flex; flex-direction: column; gap: 15px;">
+        <div>
+            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Username</label>
+            <input type="text" value="{{ user.username }}" disabled style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: rgba(0,0,0,0.05); color: var(--text-secondary); font-size: 14px;">
+        </div>
+        
+        <div>
+            <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Role</label>
+            <input type="text" value="{{ user.role }}" disabled style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: rgba(0,0,0,0.05); color: var(--text-secondary); font-size: 14px;">
+        </div>
+
+        <div>
+            <label style="display: block; font-size: 13px; color: var(--text-primary); font-weight: bold; margin-bottom: 5px;">Signature Name (Official Full Name)</label>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 0; margin-bottom: 8px;">
+                This name will be automatically used when you approve reports. It will appear on the final Excel/PDF files.
+            </p>
+            <input type="text" name="signature_name" value="{{ user.signature_name or '' }}" placeholder="e.g. Ahmed Mahmoud" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--brand-blue); background: var(--surface-bg); color: var(--text-primary); font-size: 14px;">
+        </div>
+
+        <div style="margin-top: 10px;">
+            <button type="submit" class="btn-primary" style="width: 100%;">💾 Save Profile</button>
+        </div>
+    </form>
+</div>
+<script>
+    function toggleTheme() {
+        const doc = document.documentElement;
+        if(doc.classList.contains('dark-mode')) {
+            doc.classList.remove('dark-mode');
+            localStorage.setItem('theme', 'light');
+        } else {
+            doc.classList.add('dark-mode');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+</script>
+</body>
+</html>

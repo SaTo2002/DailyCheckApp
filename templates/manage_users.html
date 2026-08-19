@@ -14,7 +14,7 @@
         th { background-color: var(--surface-glass); color: var(--text-primary); }
         .checkbox-group { display: flex; gap: 15px; align-items: center; background: var(--surface-glass); padding: 12px; border: 1px solid var(--surface-border); border-radius: 5px; }
         .checkbox-label { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; font-weight: bold; }
-        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; }
+        .badge { padding: 4px 8px; border-radius: 4px; color: white; font-size: 12px; font-weight: bold; display: inline-block; white-space: nowrap; text-align: center; }
         .badge-admin { background: #dc3545; }
         .badge-role { background: #17a2b8; }
         .note-box { background: var(--surface-glass); border-inline-start: 4px solid #17a2b8; padding: 10px 15px; margin-bottom: 15px; border-radius: 4px; font-size: 14px; color: var(--text-primary); }
@@ -68,6 +68,21 @@
             📌 <strong>Note:</strong> All registered accounts can automatically view inspection reports on the dashboard. You can specify which accounts are permitted to manage and edit the system (Areas & Games).
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 20px;">
+                    {% for category, message in messages %}
+                        <div style="padding: 10px; border-radius: 6px; font-size: 14px; margin-bottom: 10px; 
+                                    background: {% if category == 'success' %}rgba(40, 167, 69, 0.1){% else %}rgba(220, 53, 69, 0.1){% endif %};
+                                    color: {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};
+                                    border: 1px solid {% if category == 'success' %}#28a745{% else %}#dc3545{% endif %};">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <!-- 1. Add New User Form -->
         <div style="background: var(--surface-glass); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--surface-border);">
             <h3 style="margin-top: 0; color: #007bff;">➕ Add New User</h3>
@@ -85,8 +100,11 @@
                         <label>Role:</label>
                         <select name="role" required>
                             <option value="Team Leader">Team Leader</option>
-                            <option value="Maintenance">Maintenance</option>
+                            <option value="Maintenance Team Leader">Maintenance Team Leader</option>
+                            <option value="Maintenance Supervisor">Maintenance Supervisor</option>
+                            <option value="Operation Manager">Operation Manager</option>
                             <option value="Supervisor">Supervisor</option>
+                            <option value="Admin">Admin</option>
                         </select>
                     </div>
                 </div>
@@ -140,6 +158,14 @@
                             <label class="checkbox-label" style="font-size: 14px;">
                                 <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> Allow System Edit
                             </label>
+                            <select name="role" style="padding: 4px; font-size: 13px; width: 140px;">
+                                <option value="Team Leader" {% if user.role == 'Team Leader' %}selected{% endif %}>Team Leader</option>
+                                <option value="Maintenance Team Leader" {% if user.role == 'Maintenance Team Leader' %}selected{% endif %}>Maintenance Team Leader</option>
+                                <option value="Maintenance Supervisor" {% if user.role == 'Maintenance Supervisor' %}selected{% endif %}>Maintenance Supervisor</option>
+                                <option value="Operation Manager" {% if user.role == 'Operation Manager' %}selected{% endif %}>Operation Manager</option>
+                                <option value="Supervisor" {% if user.role == 'Supervisor' %}selected{% endif %}>Supervisor</option>
+                                <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                            </select>
                             <button type="submit" style="background: #007bff; color: white; border: none; padding: 4px 10px; border-radius: 3px; cursor: pointer; font-size: 13px;">Save 💾</button>
                         </form>
                     </td>

@@ -50,8 +50,9 @@ def admin_login():
         if user and check_password_hash(user.password_hash, password):
             is_master = user.role == "admin"
             session["is_admin"] = True
-            session["admin_role"] = user.role
             session["admin_username"] = user.username
+            session["admin_role"] = user.role
+            session["signature_name"] = getattr(user, "signature_name", "") or user.username
             session["is_master_admin"] = is_master
             session["can_view_reports"] = True  # كافة الحسابات يمكنها رؤية الداشبورد
             session["can_manage_system"] = (
@@ -145,6 +146,18 @@ def dashboard():
         r[0] for r in db.session.query(GameReport.monitor_name).distinct().all() if r[0]
     ]
 
+    from models import ReportApproval
+    all_approvals = ReportApproval.query.all()
+    approvals_by_session = {}
+    for a in all_approvals:
+        if a.session_id not in approvals_by_session:
+            approvals_by_session[a.session_id] = []
+        approvals_by_session[a.session_id].append({
+            "admin_name": a.admin_name,
+            "role": a.role,
+            "timestamp": a.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+        })
+
     # تجميع التقارير حسب session_id وحساب الإحصائيات
     grouped_reports = {}
     total_issues_count = 0
@@ -161,6 +174,7 @@ def dashboard():
                 "has_issues": False,
                 "total_checks_count": 0,
                 "issue_checks_count": 0,
+                "approvals": approvals_by_session.get(r.session_id, []),
             }
         elif r.pdf_file_path and not grouped_reports[r.session_id]["pdf_file_path"]:
             grouped_reports[r.session_id]["pdf_file_path"] = r.pdf_file_path
@@ -248,6 +262,13 @@ def dashboard():
             
         total_count = GameModel.query.filter_by(area_id=ds.area_id).count()
         completed_count = len(game_data)
+        
+        # إذا كانت الجلسة فارغة تماماً (لم يتم فحص أي لعبة)، نقوم بحذفها ولا نعرضها
+        if completed_count == 0:
+            db.session.delete(ds)
+            db.session.commit()
+            continue
+
         progress_pct = int((completed_count / total_count * 100) if total_count > 0 else 0)
         
         neglected_sessions.append({
@@ -260,6 +281,12 @@ def dashboard():
             "total_count": total_count,
             "reported": ds.negligence_reported
         })
+
+    # Check if the admin needs to set their signature
+    needs_signature = False
+    if session.get("admin_role") and session.get("admin_role") not in ["Admin", "Supervisor"]:
+        if not session.get("signature_name"):
+            needs_signature = True
 
     return render_template(
         "dashboard.html",
@@ -275,7 +302,95 @@ def dashboard():
         selected_monitor=selected_monitor,
         status_filter=status_filter,
         search_query=search_query,
+        needs_signature=needs_signature
     )
+
+
+# ------------------------------------------------------------------------------
+# Profile
+# ------------------------------------------------------------------------------
+@admin_bp.route("/profile", methods=["GET", "POST"])
+def profile():
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+    from models import User
+    admin_username = session.get("admin_username")
+    user = User.query.filter_by(username=admin_username).first()
+    
+    if not user:
+        if admin_username == "Master Admin" or session.get("is_master_admin"):
+            class DummyUser:
+                username = "Master Admin"
+                role = "admin"
+                signature_name = session.get("signature_name", "")
+            user = DummyUser()
+        else:
+            return redirect(url_for("admin.admin_login"))
+        
+    if request.method == "POST":
+        signature_name = request.form.get("signature_name", "").strip()
+        if signature_name:
+            if hasattr(user, "id"):  # If it's a real database user
+                user.signature_name = signature_name
+                db.session.commit()
+            session["signature_name"] = signature_name
+        return redirect(url_for("admin.profile"))
+        
+    return render_template("profile.html", user=user)
+
+
+# ------------------------------------------------------------------------------
+# Pending Approvals
+# ------------------------------------------------------------------------------
+@admin_bp.route("/pending_approvals")
+def pending_approvals():
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+    
+    admin_role = session.get("admin_role")
+    admin_username = session.get("admin_username")
+    
+    if not admin_role or admin_role in ["Admin", "Supervisor"]:
+        return redirect(url_for("admin.dashboard"))
+        
+    from models import GameReport, ReportApproval
+        
+    all_reports = GameReport.query.order_by(GameReport.timestamp.desc()).limit(200).all()
+    pending_reports = []
+    seen_sessions = set()
+    
+    from datetime import datetime
+    today = datetime.now().date()
+    
+    for report in all_reports:
+        if report.session_id in seen_sessions:
+            continue
+        seen_sessions.add(report.session_id)
+        
+        approvals = ReportApproval.query.filter_by(session_id=report.session_id).all()
+        report.approvals = approvals
+        
+        already_signed_by_me = any(app.admin_username == admin_username for app in approvals)
+        if already_signed_by_me:
+            continue
+            
+        if admin_role == "Team Leader":
+            tl_approvals = [app for app in approvals if app.role in ["Team Leader AM", "Team Leader PM"]]
+            report_date = report.timestamp.date()
+            
+            if not tl_approvals:
+                pending_reports.append(report)
+            else:
+                if report_date == today:
+                    pending_reports.append(report)
+                else:
+                    continue
+        else:
+            role_signed = any(app.role == admin_role for app in approvals)
+            if not role_signed:
+                pending_reports.append(report)
+                
+    return render_template("pending_approvals.html", pending_reports=pending_reports)
 
 
 # ------------------------------------------------------------------------------
@@ -774,3 +889,64 @@ def retry_failed_emails():
         return jsonify({"success": True})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ------------------------------------------------------------------------------
+# 12. اعتماد التقرير من قبل الإدارة (POST)
+# ------------------------------------------------------------------------------
+@admin_bp.route("/approve_report/<session_id>", methods=["POST"])
+def approve_report(session_id):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+        
+    from models import ReportApproval, User
+    
+    admin_username = session.get("admin_username")
+    admin_name = session.get("signature_name")
+    role = session.get("admin_role")
+    source = request.form.get("source", "dashboard")
+    
+    if not admin_name:
+        flash("You must set your signature name in your profile before approving.", "danger")
+        return redirect(url_for("admin.profile"))
+    
+    # If Supervisor or Admin, they don't sign Excel, but shouldn't really be approving anyway.
+    if role in ["Supervisor", "Admin"]:
+        flash("You do not have a signing role.", "danger")
+        return redirect(url_for("admin.dashboard"))
+    if role == "Team Leader":
+        shift = request.form.get("shift", "AM")
+        role = f"Team Leader {shift}"
+        
+    if admin_name and role:
+        # Check if already approved by this exact username on this report
+        existing = ReportApproval.query.filter_by(session_id=session_id, admin_username=admin_username).first()
+        if existing:
+            flash("You have already approved this report.", "warning")
+            if source == "pending":
+                return redirect(url_for("admin.pending_approvals"))
+            return redirect(url_for("admin.dashboard"))
+
+        new_app = ReportApproval(
+            session_id=session_id,
+            admin_username=admin_username,
+            admin_name=admin_name,
+            role=role
+        )
+        db.session.add(new_app)
+        db.session.commit()
+        
+        # Regenerate PDF in background to include new signature
+        import subprocess
+        import sys
+        import os
+        cmd = [
+            sys.executable,
+            "-c",
+            f"from dotenv import load_dotenv; load_dotenv(); from app import app; app.app_context().push(); from pdf_generator import generate_report_excel_and_pdf; generate_report_excel_and_pdf('{session_id}')",
+        ]
+        subprocess.Popen(
+            cmd, creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+        )
+        
+    return redirect(url_for("admin.dashboard"))

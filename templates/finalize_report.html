@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if is_exit %}Save Progress & Exit{% else %}Finalize Report{% endif %} - {{ area.name }}</title>
+    <link rel="icon" href="/static/logo.png" type="image/png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body { font-family: Arial, sans-serif; background-color: var(--surface-bg); margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: var(--surface-glass); padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border: 1px solid var(--surface-border); }
+        h2 { margin-top: 0; color: var(--text-primary); text-align: center; }
+        .info-text { text-align: center; color: var(--text-secondary); margin-bottom: 25px; line-height: 1.5; }
+        .inspector-card { background: rgba(0, 0, 0, 0.03); border: 1px solid var(--surface-border); padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .dark-mode .inspector-card { background: rgba(255, 255, 255, 0.05); }
+        .inspector-name { font-weight: bold; color: var(--brand-blue); margin-bottom: 8px; display: block; font-size: 16px; }
+        input[type="text"] { width: 100%; padding: 12px; border: 1px solid var(--surface-border); border-radius: 6px; font-size: 15px; box-sizing: border-box; background: var(--surface-bg); color: var(--text-primary); }
+        input[type="text"]:focus { outline: none; border-color: var(--brand-blue); }
+        .btn-submit { width: 100%; background: var(--success); color: white; border: none; padding: 14px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+        .btn-submit:hover { filter: brightness(1.1); }
+        .btn-cancel { width: 100%; background: transparent; color: var(--text-secondary); border: 1px solid var(--surface-border); padding: 12px; font-size: 16px; border-radius: 8px; cursor: pointer; margin-top: 10px; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
+    </style>
+    <script>
+        if(localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark-mode');
+        }
+    </script>
+</head>
+<body>
+    <div class="ambient-blob blob-blue"></div>
+    <div class="ambient-blob blob-pink"></div>
+
+    <div class="container">
+        <h2>{% if is_exit %}💾 Save Progress & Sign{% else %}📝 Sign & Submit Report{% endif %}</h2>
+        <div class="info-text">
+            {% if is_exit %}
+            You are about to save your progress and exit. Please type your <strong>full official name</strong> below to save your signature for the work done so far.
+            {% else %}
+            Please have each inspector type their <strong>full official name</strong> to electronically sign and finalize the inspection report for <strong>{{ area.name }}</strong>.
+            {% endif %}
+        </div>
+
+        <form method="POST" action="/submit_report">
+            <input type="hidden" name="is_exit" value="{% if is_exit %}1{% else %}0{% endif %}">
+            {% for inspector in inspectors %}
+            <div class="inspector-card">
+                <span class="inspector-name">👤 {{ inspector }}</span>
+                <input type="text" name="signature_{{ inspector }}" placeholder="Type your full name to sign" value="{{ saved_sigs.get(inspector, '') }}" required>
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn-submit">{% if is_exit %}💾 Save Signature & Exit{% else %}✅ Confirm & Submit Report{% endif %}</button>
+            <a href="/games/{{ area.id }}" class="btn-cancel">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>
