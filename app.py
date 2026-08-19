@@ -56,6 +56,10 @@ app.register_blueprint(monitor_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(manage_bp)
 
+# 4.5 إعداد حماية CSRF
+from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+
 
 # 5. تهيئة جداول قاعدة البيانات والترحيل التلقائي للأعمدة الجديدة (Migrations)
 with app.app_context():
@@ -181,22 +185,17 @@ def check_neglected_sessions():
 import threading
 import time
 from flask import current_app
+from apscheduler.schedulers.background import BackgroundScheduler
 
-LAST_EMAIL_CHECK = 0
+def start_email_scheduler():
+    from utils_mail import process_email_queue
+    scheduler = BackgroundScheduler()
+    # Run every 60 seconds
+    # app.app_context() is required inside the thread, so we pass app
+    scheduler.add_job(func=process_email_queue, args=[app], trigger="interval", seconds=60)
+    scheduler.start()
 
-@app.before_request
-def check_email_queue():
-    global LAST_EMAIL_CHECK
-    current_time = time.time()
-    # Check queue max once every 60 seconds
-    if current_time - LAST_EMAIL_CHECK > 60:
-        LAST_EMAIL_CHECK = current_time
-        try:
-            from utils_mail import process_email_queue
-            app_obj = current_app._get_current_object()
-            threading.Thread(target=process_email_queue, args=(app_obj,)).start()
-        except Exception as e:
-            app.logger.warning(f"Failed to start email queue thread: {e}")
+start_email_scheduler()
 
 # 6. نقطة الانطلاق والتشغيل الخادم المحلي
 if __name__ == "__main__":

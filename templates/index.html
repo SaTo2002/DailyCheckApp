@@ -163,6 +163,7 @@
 
         <!-- Form -->
         <form method="POST" id="loginForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <!-- Area Grid -->
             <label class="form-label" style="color: var(--text-primary); font-weight: 700;">📍 Select Area:</label>
             <div class="area-grid">

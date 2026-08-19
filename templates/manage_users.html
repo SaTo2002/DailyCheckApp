@@ -87,6 +87,7 @@
         <div style="background: var(--surface-glass); padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid var(--surface-border);">
             <h3 style="margin-top: 0; color: #007bff;">➕ Add New User</h3>
             <form method="POST" style="display: flex; flex-direction: column; gap: 15px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="create-user-form" style="display: flex; gap: 15px; flex-wrap: wrap;">
                     <div style="flex: 1; min-width: 200px;">
                         <label>Username (used for login):</label>
@@ -155,6 +156,7 @@
                     <td><span style="color: #28a745; font-weight: bold;">✅ Available</span></td>
                     <td>
                         <form action="/update_user_permissions/{{ user.id }}" method="POST" style="display: flex; gap: 10px; align-items: center; margin: 0;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <label class="checkbox-label" style="font-size: 14px;">
                                 <input type="checkbox" name="can_manage_system" value="1" {% if user.can_manage_system or user.can_manage_areas or user.can_manage_games %}checked{% endif %}> Allow System Edit
                             </label>
@@ -171,6 +173,7 @@
                     </td>
                     <td>
                         <form action="/delete_user/{{ user.id }}" method="POST" onsubmit="return confirmForm(event, this, 'Confirm Deletion', 'Confirm deleting this account?');" style="margin: 0;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <button type="submit" style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">Delete 🗑️</button>
                         </form>
                     </td>

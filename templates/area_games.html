@@ -82,6 +82,7 @@
         <div class="glass-card">
             <h3>➕ Add New Game to Area</h3>
             <form action="/add_game_to_area/{{ area.id }}" method="POST" id="gameForm" onsubmit="prepareForm()" enctype="multipart/form-data" style="margin-top: 15px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 
                 <!-- Game Name -->
                 <div style="margin-bottom: 15px;">
@@ -124,6 +125,7 @@
             <p style="font-size: 14px; color: #666; margin-bottom: 15px;">You can <strong>Drag & Drop games ☰</strong> to reorder or use the arrow buttons (⬆️ / ⬇️) then save.</p>
             
             <form action="/update_games_order/{{ area.id }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <ul class="list-group" id="gamesOrderList" style="margin-top: 15px;">
                     {% for game in games %}
                     <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid var(--surface-border); margin-bottom: 8px; border-radius: 8px; background: var(--surface-glass); cursor: grab; transition: background 0.2s;">

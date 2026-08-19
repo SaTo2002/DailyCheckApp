@@ -156,6 +156,7 @@
         {% endif %}
         <form action="/check/{{ game_id }}" method="POST" id="checkForm" enctype="multipart/form-data"
             data-map-mandatory="{{ 'true' if game.map_mandatory else 'false' }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
             <!-- 1. Interactive Map Drawing Section -->
             {% if game.has_map %}

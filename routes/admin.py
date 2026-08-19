@@ -618,6 +618,9 @@ def force_complete_neglected(session_id):
             
             game_data[game_key] = missing_checks
 
+    import uuid
+    report_uuid = uuid.uuid4().hex
+
     for game_id_or_name, data in game_data.items():
         # Clean up data keys
         checks_only = {k: v for k, v in data.items() if k not in ["notes", "photos", "inspector_name", "map_drawing"]}
@@ -630,7 +633,7 @@ def force_complete_neglected(session_id):
         final_game_id = game_model.name if game_model else game_id_or_name
         
         report = GameReport(
-            session_id=str(session_id),
+            session_id=report_uuid,
             monitor_name=monitor_name,
             area_id=ds.area_id,
             game_id=final_game_id,
@@ -647,7 +650,7 @@ def force_complete_neglected(session_id):
     # Generate PDF
     try:
         from pdf_generator import generate_pdf_report
-        generate_pdf_report(str(session_id))
+        generate_pdf_report(report_uuid)
     except Exception as e:
         print(f"Error generating PDF: {e}")
         

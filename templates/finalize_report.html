@@ -41,6 +41,7 @@
         </div>
 
         <form method="POST" action="/submit_report">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="is_exit" value="{% if is_exit %}1{% else %}0{% endif %}">
             {% for inspector in inspectors %}
             <div class="inspector-card">

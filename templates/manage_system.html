@@ -68,6 +68,7 @@
         <div class="glass-card">
             <h3>➕ Add New Area</h3>
             <form action="/add_area" method="POST" class="add-area-form" style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="text" name="area_name" placeholder="Type area name (e.g. Main Trampoline Area)..." required style="width: 100%;">
                 
                 <div style="display: flex; flex-direction: column; gap: 6px;">
@@ -92,6 +93,7 @@
             <p style="font-size: 14px; color: #666; margin-bottom: 15px;">You can <strong>Drag & Drop areas ☰</strong> to reorder or use the arrow buttons (⬆️ / ⬇️) then save.</p>
             
             <form action="/update_areas_order" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <ul class="list-group" id="areasOrderList" style="margin-top: 15px;">
                     {% for area in areas %}
                     <li draggable="true" class="draggable-item" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; border: 1px solid var(--surface-border); margin-bottom: 8px; border-radius: 8px; background: var(--surface-glass); cursor: grab; transition: background 0.2s;">

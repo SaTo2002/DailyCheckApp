@@ -49,6 +49,7 @@
     {% endwith %}
 
     <form method="POST" action="{{ url_for('admin.profile') }}" style="display: flex; flex-direction: column; gap: 15px;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div>
             <label style="display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 5px;">Username</label>
             <input type="text" value="{{ user.username }}" disabled style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--surface-border); background: rgba(0,0,0,0.05); color: var(--text-secondary); font-size: 14px;">
