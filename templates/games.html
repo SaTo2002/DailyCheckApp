@@ -157,8 +157,8 @@
         <div style="text-align: center; margin-top: 25px;">
             {% if all_completed %}
             <form action="/submit_report" method="GET"
-                onsubmit="const btn=this.querySelector('button'); setTimeout(() =>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/> { btn.disabled=true; }, 50); btn.innerHTML='⚡ Processing...';">
+                onsubmit="const btn=this.querySelector('button'); setTimeout(() => { btn.disabled=true; }, 50); btn.innerHTML='⚡ Processing...';">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <button type="submit" class="btn-touch btn-success-touch"
                     style="width: 100%; font-size: 18px; padding: 16px; cursor: pointer;">
                     Submit Final Report 🚀
