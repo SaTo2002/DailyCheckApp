@@ -514,6 +514,7 @@
             canvas.addEventListener('touchend', () => { formChanged = true; });
         }
 
+        {% if not read_only %}
         window.addEventListener('beforeunload', (e) => {
             if (formChanged && !isSubmitting) {
                 e.preventDefault();
@@ -539,6 +540,14 @@
                 ]);
             });
         });
+        {% else %}
+        // Read-only mode: No exit confirmation needed
+        document.querySelectorAll('.btn-cancel-app').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Just allow normal navigation
+            });
+        });
+        {% endif %}
 
         if (formElement) {
             formElement.addEventListener('submit', async function (e) {
