@@ -753,7 +753,7 @@ def cancel_area():
                             active_inspectors, ensure_ascii=False
                         )
                 except Exception:
-                    pass
+                    active_inspectors = []
 
                 try:
                     game_locks = json.loads(ds.game_locks) if ds.game_locks else {}
@@ -765,6 +765,15 @@ def cancel_area():
                     ds.game_locks = json.dumps(game_locks, ensure_ascii=False)
                 except Exception:
                     pass
+                    
+                # Auto-delete session if no one is left and no games were saved
+                try:
+                    game_data_check = json.loads(ds.game_data) if ds.game_data else {}
+                except Exception:
+                    game_data_check = {}
+                    
+                if len(active_inspectors) == 0 and len(game_data_check) == 0:
+                    db.session.delete(ds)
 
             db.session.commit()
 
