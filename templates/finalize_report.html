@@ -31,9 +31,11 @@
     <div class="ambient-blob blob-pink"></div>
 
     <div class="container">
-        <h2>{% if is_exit %}💾 Save Progress & Sign{% else %}📝 Sign & Submit Report{% endif %}</h2>
+        <h2>{% if is_logout %}🚪 Sign & Logout{% elif is_exit %}💾 Save Progress & Sign{% else %}📝 Sign & Submit Report{% endif %}</h2>
         <div class="info-text">
-            {% if is_exit %}
+            {% if is_logout %}
+            You are about to log out completely. Please type your <strong>full official name</strong> below to save your signature for the work done so far.
+            {% elif is_exit %}
             You are about to save your progress and exit. Please type your <strong>full official name</strong> below to save your signature for the work done so far.
             {% else %}
             Please have each inspector type their <strong>full official name</strong> to electronically sign and finalize the inspection report for <strong>{{ area.name }}</strong>.
@@ -43,6 +45,7 @@
         <form method="POST" action="/submit_report">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="is_exit" value="{% if is_exit %}1{% else %}0{% endif %}">
+            <input type="hidden" name="is_logout" value="{% if is_logout %}1{% else %}0{% endif %}">
             {% for inspector in inspectors %}
             <div class="inspector-card">
                 <span class="inspector-name">👤 {{ inspector }}</span>
@@ -50,7 +53,7 @@
             </div>
             {% endfor %}
 
-            <button type="submit" class="btn-submit">{% if is_exit %}💾 Save Signature & Exit{% else %}✅ Confirm & Submit Report{% endif %}</button>
+            <button type="submit" class="btn-submit">{% if is_logout %}🚪 Save Signature & Logout{% elif is_exit %}💾 Save Signature & Exit{% else %}✅ Confirm & Submit Report{% endif %}</button>
             <a href="/games/{{ area.id }}" class="btn-cancel">Cancel</a>
         </form>
     </div>

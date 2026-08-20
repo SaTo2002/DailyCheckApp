@@ -518,6 +518,28 @@ def delete_photo():
 # ------------------------------------------------------------------------------
 # 6. إرسال تقرير المنطقة النهائي وحفظه نهائياً في قاعدة البيانات (GET & POST)
 # ------------------------------------------------------------------------------
+def _needs_signature(ds, monitor_name):
+    if not ds or not ds.game_data:
+        return False
+    try:
+        game_data = json.loads(ds.game_data)
+    except Exception:
+        return False
+        
+    has_saved_games = any(data.get("inspector_name") == monitor_name for data in game_data.values())
+    if not has_saved_games:
+        return False
+        
+    try:
+        signatures = json.loads(ds.monitor_signatures) if ds.monitor_signatures else {}
+    except Exception:
+        signatures = {}
+        
+    if monitor_name not in signatures or not signatures[monitor_name].strip():
+        return True
+    return False
+
+# ------------------------------------------------------------------------------
 @monitor_bp.route("/submit_report", methods=["GET", "POST"])
 def submit_report():
     if "monitor_name" not in session or "area_id" not in session:
@@ -543,10 +565,12 @@ def submit_report():
         except Exception:
             saved_sigs = {}
         is_exit = request.args.get("exit") == "1"
-        return render_template("finalize_report.html", area=area, inspectors=active_inspectors, saved_sigs=saved_sigs, is_exit=is_exit)
+        is_logout = request.args.get("logout") == "1"
+        return render_template("finalize_report.html", area=area, inspectors=active_inspectors, saved_sigs=saved_sigs, is_exit=is_exit, is_logout=is_logout)
 
     # POST Method Handling
     is_exit = request.form.get("is_exit") == "1"
+    is_logout = request.form.get("is_logout") == "1"
     
     try:
         signatures = json.loads(ds.monitor_signatures) if ds.monitor_signatures else {}
@@ -560,7 +584,9 @@ def submit_report():
     ds.monitor_signatures = json.dumps(signatures, ensure_ascii=False)
     db.session.commit()
     
-    if is_exit:
+    if is_logout:
+        return redirect(url_for("monitor.logout"))
+    elif is_exit:
         return redirect(url_for("monitor.cancel_area"))
 
     try:
@@ -687,6 +713,12 @@ def cancel_area():
         ds = DailySession.query.filter_by(
             area_id=str(area_id), date=date.today(), status="in_progress"
         ).first()
+        
+        # Enforce signature if exiting
+        if request.path == "/cancel_area" and reset_all != "1":
+            if _needs_signature(ds, monitor_name):
+                return redirect(url_for("monitor.submit_report", exit=1))
+                
         if ds:
             if reset_all == "1":
                 db.session.delete(ds)
@@ -839,6 +871,15 @@ def api_session_status(area_id):
 @monitor_bp.route("/logout")
 def logout():
     monitor_name = session.get("monitor_name")
+    area_id = session.get("area_id")
+    
+    if area_id and monitor_name:
+        ds = DailySession.query.filter_by(
+            area_id=str(area_id), date=date.today(), status="in_progress"
+        ).first()
+        if _needs_signature(ds, monitor_name):
+            return redirect(url_for("monitor.submit_report", exit=1, logout=1))
+            
     if monitor_name:
         log_system_event(
             monitor_name,
