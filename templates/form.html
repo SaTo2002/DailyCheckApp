@@ -514,40 +514,42 @@
             canvas.addEventListener('touchend', () => { formChanged = true; });
         }
 
-        {% if not read_only %}
-        window.addEventListener('beforeunload', (e) => {
-            if (formChanged && !isSubmitting) {
-                e.preventDefault();
-                e.returnValue = '';
-            }
-        });
+        const isReadOnly = {{ 'true' if read_only else 'false' }};
 
-        // Intercept internal links to use custom modal instead of native beforeunload
-        document.querySelectorAll('.btn-cancel-app').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                const targetUrl = this.href;
-                const msg = formChanged 
-                    ? '⚠️ You have unsaved changes. Are you sure you want to leave? Your data will be lost.' 
-                    : '⚠️ Are you sure you want to leave?';
-                
-                showModal('Confirm Exit', msg, [
-                    { text: 'Yes, Leave', type: 'danger', onClick: () => {
-                        isSubmitting = true; // disable native prompt
-                        window.location.href = targetUrl;
-                    }},
-                    { text: 'Stay', type: 'secondary' }
-                ]);
+        if (!isReadOnly) {
+            window.addEventListener('beforeunload', (e) => {
+                if (formChanged && !isSubmitting) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
             });
-        });
-        {% else %}
-        // Read-only mode: No exit confirmation needed
-        document.querySelectorAll('.btn-cancel-app').forEach(link => {
-            link.addEventListener('click', function(e) {
-                // Just allow normal navigation
+
+            // Intercept internal links to use custom modal instead of native beforeunload
+            document.querySelectorAll('.btn-cancel-app').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetUrl = this.href;
+                    const msg = formChanged 
+                        ? '⚠️ You have unsaved changes. Are you sure you want to leave? Your data will be lost.' 
+                        : '⚠️ Are you sure you want to leave?';
+                    
+                    showModal('Confirm Exit', msg, [
+                        { text: 'Yes, Leave', type: 'danger', onClick: () => {
+                            isSubmitting = true; // disable native prompt
+                            window.location.href = targetUrl;
+                        }},
+                        { text: 'Stay', type: 'secondary' }
+                    ]);
+                });
             });
-        });
-        {% endif %}
+        } else {
+            // Read-only mode: No exit confirmation needed
+            document.querySelectorAll('.btn-cancel-app').forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Just allow normal navigation
+                });
+            });
+        }
 
         if (formElement) {
             formElement.addEventListener('submit', async function (e) {
