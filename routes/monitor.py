@@ -90,7 +90,7 @@ def home():
         selected_area = request.form.get("area")
         session["area_id"] = selected_area
         
-        area_obj = Area.query.get(selected_area)
+        area_obj = db.session.get(Area, selected_area)
         area_name = area_obj.name if area_obj else selected_area
         
         log_system_event(
@@ -117,7 +117,7 @@ def reset_and_start():
         area_id=str(selected_area), date=date.today(), status="in_progress"
     ).first()
     
-    area_obj = Area.query.get(selected_area)
+    area_obj = db.session.get(Area, selected_area)
     area_name = area_obj.name if area_obj else selected_area
     
     if ds:
@@ -148,7 +148,7 @@ def show_games(area_id):
     if "monitor_name" not in session:
         return redirect(url_for("monitor.home"))
     monitor_name = session["monitor_name"]
-    area = Area.query.get(area_id)
+    area = db.session.get(Area, area_id)
     if not area:
         return "هذه المنطقة غير موجودة!"
 
@@ -299,7 +299,7 @@ def check_game(game_id):
         return redirect(url_for("monitor.home"))
     monitor_name = session["monitor_name"]
 
-    game = GameModel.query.get(game_id)
+    game = db.session.get(GameModel, game_id)
     if not game:
         return "هذه اللعبة غير موجودة في النظام!"
 
@@ -523,7 +523,7 @@ def submit_report():
     if "monitor_name" not in session or "area_id" not in session:
         return redirect(url_for("monitor.home"))
     monitor_name, area_id = session["monitor_name"], session["area_id"]
-    area = Area.query.get(area_id)
+    area = db.session.get(Area, area_id)
     area_name = area.name if area else "منطقة غير معروفة"
 
     ds = DailySession.query.filter_by(
@@ -691,7 +691,7 @@ def cancel_area():
             if reset_all == "1":
                 db.session.delete(ds)
                 
-                area_obj = Area.query.get(area_id)
+                area_obj = db.session.get(Area, area_id)
                 area_name = area_obj.name if area_obj else area_id
                 
                 log_system_event(
@@ -702,7 +702,7 @@ def cancel_area():
                 )
             elif monitor_name:
                 if request.path == "/cancel_area":
-                    area_obj = Area.query.get(area_id)
+                    area_obj = db.session.get(Area, area_id)
                     area_name = area_obj.name if area_obj else area_id
                     log_system_event(
                         monitor_name,

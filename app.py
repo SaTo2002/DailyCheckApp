@@ -149,7 +149,7 @@ def check_neglected_sessions():
             if neglected:
                 receivers = [r.email for r in EmailReceiver.query.filter_by(is_active=True).all()]
                 for ds in neglected:
-                    area = Area.query.get(ds.area_id)
+                    area = db.session.get(Area, ds.area_id)
                     area_name = area.name if area else ds.area_id
                     
                     try:

@@ -96,7 +96,7 @@ def update_areas_order():
         return redirect(url_for("admin.admin_login"))
     area_ids = request.form.getlist("area_ids[]")
     for idx, a_id in enumerate(area_ids, start=1):
-        area = Area.query.get(a_id)
+        area = db.session.get(Area, a_id)
         if area:
             area.sort_order = idx
     db.session.commit()
@@ -110,7 +110,7 @@ def update_areas_order():
 def edit_area(area_id):
     if not check_system_permission():
         return redirect(url_for("admin.admin_login"))
-    area = Area.query.get_or_404(area_id)
+    area = db.get_or_404(Area, area_id)
     if request.method == "POST":
         new_name = request.form.get("area_name")
         pdf_orientation = request.form.get("pdf_orientation", "portrait")
@@ -162,7 +162,7 @@ def edit_area(area_id):
 def delete_area(area_id):
     if not check_system_permission():
         return redirect(url_for("admin.admin_login"))
-    area = Area.query.get_or_404(area_id)
+    area = db.get_or_404(Area, area_id)
     if area:
         log_system_event(
             session.get("admin_username", "Master Admin"),
@@ -187,7 +187,7 @@ def delete_area(area_id):
 def area_games(area_id):
     if not check_system_permission():
         return redirect(url_for("admin.admin_login"))
-    area = Area.query.get_or_404(area_id)
+    area = db.get_or_404(Area, area_id)
     sorted_games = (
         GameModel.query.filter_by(area_id=area_id)
         .order_by(GameModel.sort_order.asc(), GameModel.id.asc())
@@ -205,7 +205,7 @@ def update_games_order(area_id):
         return redirect(url_for("admin.admin_login"))
     game_ids = request.form.getlist("game_ids[]")
     for idx, g_id in enumerate(game_ids, start=1):
-        g = GameModel.query.get(g_id)
+        g = db.session.get(GameModel, g_id)
         if g and g.area_id == area_id:
             g.sort_order = idx
     db.session.commit()
@@ -286,7 +286,7 @@ def add_game_to_area(area_id):
 def edit_game(game_id):
     if not check_system_permission():
         return redirect(url_for("admin.admin_login"))
-    game = GameModel.query.get_or_404(game_id)
+    game = db.get_or_404(GameModel, game_id)
 
     if request.method == "POST":
         game.name = request.form.get("name")
@@ -359,7 +359,7 @@ def edit_game(game_id):
 def delete_game_from_area(area_id, game_id):
     if not check_system_permission():
         return redirect(url_for("admin.admin_login"))
-    game = GameModel.query.get(game_id)
+    game = db.session.get(GameModel, game_id)
     if game:
         log_system_event(
             session.get("admin_username", "Master Admin"),
@@ -435,7 +435,7 @@ def manage_users():
 def update_user_permissions(user_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-    user = User.query.get_or_404(user_id)
+    user = db.get_or_404(User, user_id)
     can_manage_areas = bool(request.form.get("can_manage_areas"))
     can_manage_games = bool(request.form.get("can_manage_games"))
     can_delete_reports = bool(request.form.get("can_delete_reports"))
@@ -469,7 +469,7 @@ def update_user_permissions(user_id):
 def delete_user(user_id):
     if not session.get("is_admin"):
         return redirect(url_for("admin.admin_login"))
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user:
         log_system_event(
             session.get("admin_username", "Master Admin"),

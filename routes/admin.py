@@ -281,7 +281,7 @@ def dashboard():
     for ds in abandoned:
         # تأكد أنها لا تمتلك تقارير مكتملة في grouped_reports
         # (رغم أن المهجورة لا تُكتمل أبداً)
-        area = Area.query.get(ds.area_id)
+        area = db.session.get(Area, ds.area_id)
 
         try:
             inspectors = (
@@ -549,8 +549,8 @@ def view_neglected(session_id):
 
     from models import Area, DailySession
 
-    ds = DailySession.query.get_or_404(session_id)
-    area = Area.query.get(ds.area_id)
+    ds = db.get_or_404(DailySession, session_id)
+    area = db.session.get(Area, ds.area_id)
 
     report_data = {
         "session_id": session_id,
@@ -619,7 +619,7 @@ def delete_neglected(session_id):
 
     from models import DailySession
 
-    ds = DailySession.query.get_or_404(session_id)
+    ds = db.get_or_404(DailySession, session_id)
     log_system_event(
         session.get("admin_username", "Master Admin"),
         "Delete Neglected Session",
@@ -638,7 +638,7 @@ def reopen_neglected(session_id):
 
     from models import DailySession
 
-    ds = DailySession.query.get_or_404(session_id)
+    ds = db.get_or_404(DailySession, session_id)
     log_system_event(
         session.get("admin_username", "Master Admin"),
         "Reopen Neglected Session",
@@ -662,7 +662,7 @@ def force_complete_neglected(session_id):
 
     from models import DailySession, GameModel, GameReport
 
-    ds = DailySession.query.get_or_404(session_id)
+    ds = db.get_or_404(DailySession, session_id)
     log_system_event(
         session.get("admin_username", "Master Admin"),
         "Force Complete Neglected Session",
@@ -910,7 +910,7 @@ def add_email():
 def toggle_email(rcv_id):
     if not session.get("is_admin") or not session.get("can_manage_system"):
         return redirect(url_for("admin.dashboard"))
-    rcv = EmailReceiver.query.get(rcv_id)
+    rcv = db.session.get(EmailReceiver, rcv_id)
     if rcv:
         rcv.is_active = not rcv.is_active
         db.session.commit()
@@ -921,7 +921,7 @@ def toggle_email(rcv_id):
 def delete_email(rcv_id):
     if not session.get("is_admin") or not session.get("can_manage_system"):
         return redirect(url_for("admin.dashboard"))
-    rcv = EmailReceiver.query.get(rcv_id)
+    rcv = db.session.get(EmailReceiver, rcv_id)
     if rcv:
         log_system_event(
             session.get("admin_username", "Master Admin"),
