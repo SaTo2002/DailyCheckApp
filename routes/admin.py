@@ -221,6 +221,9 @@ def dashboard():
         game_has_issue = False
 
         for k, v in checks.items():
+            if k.startswith("comment_"):
+                continue
+                
             check_label = k
             if k.startswith("check_"):
                 try:

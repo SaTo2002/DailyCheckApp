@@ -346,10 +346,15 @@ def check_game(game_id):
 
 
     if request.method == "POST":
-        current_answers = {
-            f"check_{i}": request.form.get(f"check_{i}")
-            for i in range(1, len(game_checks) + 1)
-        }
+        current_answers = {}
+        for i in range(1, len(game_checks) + 1):
+            check_val = request.form.get(f"check_{i}")
+            current_answers[f"check_{i}"] = check_val
+            # Save comment only if NOK is selected to keep data clean
+            if check_val == "NOK" or check_val == "تالف/يوجد مشكلة":
+                current_answers[f"comment_{i}"] = request.form.get(f"comment_{i}", "").strip()
+            else:
+                current_answers[f"comment_{i}"] = ""
         current_answers["notes"] = request.form.get("notes", "")
         current_answers["photos"] = saved_data.get("photos", [])
         current_answers["inspector_name"] = monitor_name
@@ -573,7 +578,7 @@ def submit_report():
     for gm in area_games:
         game_id_str = str(gm.id)
         data = game_data.get(game_id_str, {})
-        checks = {k: v for k, v in data.items() if k.startswith("check_")}
+        checks = {k: v for k, v in data.items() if k.startswith("check_") or k.startswith("comment_")}
 
         actual_inspector = data.get("inspector_name", monitor_name)
 

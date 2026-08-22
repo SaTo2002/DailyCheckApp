@@ -59,18 +59,22 @@ def generate_report_excel_and_pdf(session_id):
             else []
         )
         checks_dict = {}
-        for k, v in (json_loads(r.checks_data) if r.checks_data else {}).items():
+        parsed_checks = json_loads(r.checks_data) if r.checks_data else {}
+        for k, v in parsed_checks.items():
             if k.startswith("check_"):
                 try:
+                    q_idx = int(k.split("_")[1])
                     q_title = (
-                        actual_check_names[int(k.split("_")[1]) - 1]
-                        if int(k.split("_")[1]) - 1 < len(actual_check_names)
+                        actual_check_names[q_idx - 1]
+                        if q_idx - 1 < len(actual_check_names)
                         else k
                     )
-                    checks_dict[q_title] = "OK" if (v == "سليم" or v == "OK") else "NOK"
+                    status_val = "OK" if (v == "سليم" or v == "OK") else "NOK"
+                    comment_val = parsed_checks.get(f"comment_{q_idx}", "")
+                    checks_dict[q_title] = {"status": status_val, "comment": comment_val}
                 except Exception:
-                    checks_dict[k] = v
-            else:
+                    checks_dict[k] = {"status": v, "comment": ""}
+            elif not k.startswith("comment_"):
                 checks_dict[k] = v
 
         game_checks[game_name] = checks_dict

@@ -226,22 +226,27 @@
                 <div class="pill-options">
                     <!-- Option: OK -->
                     <div class="pill-option">
-                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="OK" {%
-                            if saved_data.get('check_' ~ loop.index)=='OK' or saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if
-                            check.is_mandatory %}required{% endif %}>
+                        <input type="radio" id="check_{{ loop.index }}_ok" name="check_{{ loop.index }}" value="OK" 
+                            onchange="document.getElementById('comment_container_{{ loop.index }}').style.display='none'"
+                            {% if saved_data.get('check_' ~ loop.index)=='OK' or saved_data.get('check_' ~ loop.index)=='سليم' %}checked{% endif %} {% if check.is_mandatory %}required{% endif %}>
                         <label for="check_{{ loop.index }}_ok" class="pill-label">
                             OK
                         </label>
                     </div>
                     <!-- Option: NOK -->
                     <div class="pill-option">
-                        <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}"
-                            value="NOK" {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة'
-                            %}checked{% endif %}>
+                        <input type="radio" id="check_{{ loop.index }}_bad" name="check_{{ loop.index }}" value="NOK" 
+                            onchange="document.getElementById('comment_container_{{ loop.index }}').style.display='block'"
+                            {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة' %}checked{% endif %}>
                         <label for="check_{{ loop.index }}_bad" class="pill-label">
                             NOK
                         </label>
                     </div>
+                </div>
+                
+                <!-- NOK Comment Input (Hidden by default unless NOK is checked) -->
+                <div class="nok-comment-container" id="comment_container_{{ loop.index }}" style="display: {% if saved_data.get('check_' ~ loop.index)=='NOK' or saved_data.get('check_' ~ loop.index)=='تالف/يوجد مشكلة' %}block{% else %}none{% endif %}; margin-top: 12px;">
+                    <input type="text" name="comment_{{ loop.index }}" value="{{ saved_data.get('comment_' ~ loop.index, '') }}" class="touch-input" placeholder="Write a short comment for this issue..." style="width: 100%; font-size: 14px; padding: 10px; border-radius: 8px; border: 1px solid var(--surface-border); background: var(--input-bg); color: var(--text-primary);" {% if read_only %}disabled style="opacity:0.7;"{% endif %}>
                 </div>
             </div>
             {% endfor %}

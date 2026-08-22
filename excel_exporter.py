@@ -203,7 +203,14 @@ def export_report_to_excel(
                 global_qs.update(qd)
             matched_sec_dict = global_qs
 
-        for q_name, status in game_checks.items():
+        for q_name, check_data in game_checks.items():
+            if isinstance(check_data, dict):
+                status = check_data.get("status")
+                comment = check_data.get("comment", "")
+            else:
+                status = check_data
+                comment = ""
+                
             clean_q = " ".join(q_name.strip().split()).lower()
             if clean_q in matched_sec_dict:
                 r_idx = matched_sec_dict[clean_q]
@@ -212,6 +219,9 @@ def export_report_to_excel(
                         ws.cell(row=r_idx, column=7, value="✔")
                     elif status == "NOK":
                         ws.cell(row=r_idx, column=8, value="✔")
+                        
+                    if comment:
+                        ws.cell(row=r_idx, column=9, value=comment)
 
     # 4. Fill Comments
     cell_notes_map = {}
