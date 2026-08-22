@@ -6,9 +6,7 @@
 :root {
     --primary: var(--brand-blue, #1fa2e0);
     --primary-hover: #198cc4;
-    --success: var(--success, #28a745);
     --success-hover: #218838;
-    --danger: var(--danger, #dc3545);
     --danger-hover: #c82333;
     --warning: #ffc107;
     --bg-color: var(--bg-main);
