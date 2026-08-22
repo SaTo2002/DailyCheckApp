@@ -238,6 +238,18 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Approvals List -->
+                {% if report.approvals %}
+                <div style="padding: 0 22px 18px 22px;">
+                    <h3 style="font-size: 15px; font-weight: 700; margin-bottom: 8px; color: var(--text-primary);">✍️ Approvals:</h3>
+                    <ul style="list-style-type: none; padding-left: 0; margin: 0; font-size: 14px; color: var(--text-secondary);">
+                        {% for app in report.approvals %}
+                        <li style="margin-bottom: 4px;">• <strong>{{ app.role }}:</strong> <span style="color: var(--text-primary);">{{ app.admin_name }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
             </div>
         {% endfor %}
     {% else %}

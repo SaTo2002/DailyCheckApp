@@ -91,6 +91,18 @@
                     </div>
                 </div>
 
+                <!-- Approvals List -->
+                {% if report.approvals %}
+                <div style="padding-top: 15px; margin-top: 5px;">
+                    <h3 style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--text-primary);">✍️ Approvals:</h3>
+                    <ul style="list-style-type: none; padding-left: 0; margin: 0; font-size: 13px; color: var(--text-secondary);">
+                        {% for app in report.approvals %}
+                        <li style="margin-bottom: 3px;">• <strong>{{ app.role }}:</strong> <span style="color: var(--text-primary);">{{ app.admin_name }}</span></li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <!-- Approval Form -->
                 <div style="width: 100%; border-top: 1px solid var(--surface-border); margin-top: 15px; padding-top: 15px;">
                     <form action="{{ url_for('admin.approve_report', session_id=report.session_id) }}" method="POST" class="approval-form">
