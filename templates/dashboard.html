@@ -225,8 +225,8 @@
                         <span class="badge badge-info">{{ report.timestamp }}</span>
                         
                         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <a href="/download_pdf/{{ session_id }}?view=1" target="_blank" class="btn-primary btn-sm">👁️ View PDF</a>
-                            <a href="/download_pdf/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-pink); box-shadow: 0 4px 10px rgba(228,0,108,0.3);">📥 Download PDF</a>
+                            <a href="/download_pdf/{{ session_id }}?view=1&t={{ range(1, 999999)|random }}" target="_blank" class="btn-primary btn-sm">👁️ View PDF</a>
+                            <a href="/download_pdf/{{ session_id }}?t={{ range(1, 999999)|random }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-pink); box-shadow: 0 4px 10px rgba(228,0,108,0.3);">📥 Download PDF</a>
 
                             <a href="/print_report/{{ session_id }}" target="_blank" class="btn-primary btn-sm" style="background: var(--success); box-shadow: 0 4px 10px rgba(40,167,69,0.3);">🖨️ Web Report</a>
                             {% if session.get('can_delete_reports') %}

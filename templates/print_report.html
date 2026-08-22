@@ -53,10 +53,10 @@
 
 
     <div style="margin-bottom: 20px; text-align: center; display: flex; justify-content: center; gap: 12px;" class="no-print">
-        <a href="/download_pdf/{{ report.session_id }}?view=1" target="_blank" style="background: var(--brand-blue); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(31,162,224,0.3);">
+        <a href="/download_pdf/{{ report.session_id }}?view=1&t={{ range(1, 999999)|random }}" target="_blank" style="background: var(--brand-blue); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(31,162,224,0.3);">
             👁️ View Official Google Sheets PDF Report
         </a>
-        <a href="/download_pdf/{{ report.session_id }}" style="background: var(--brand-pink); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(228,0,108,0.3);">
+        <a href="/download_pdf/{{ report.session_id }}?t={{ range(1, 999999)|random }}" style="background: var(--brand-pink); color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 10px rgba(228,0,108,0.3);">
             📥 Download PDF Directly
         </a>
     </div>

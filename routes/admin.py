@@ -814,16 +814,24 @@ def download_pdf(session_id):
         except Exception as e:
             return f"حدث خطأ أثناء توليد ملف الـ PDF: {str(e)}", 500
 
-    # 3. إرسال الملف للمستخدم (عرض أو تحميل)
+    # 3. إرسال الملف للمستخدم (عرض أو تحميل) مع منع التخزين المؤقت (Cache)
     if pdf_file_path and os.path.exists(pdf_file_path):
-        from flask import send_file
+        from flask import send_file, make_response
 
-        return send_file(
-            pdf_file_path,
-            as_attachment=not is_view,
-            download_name=os.path.basename(pdf_file_path),
-            mimetype="application/pdf",
+        response = make_response(
+            send_file(
+                pdf_file_path,
+                as_attachment=not is_view,
+                download_name=os.path.basename(pdf_file_path),
+                mimetype="application/pdf",
+            )
         )
+        # Prevent caching on mobile browsers so updated signatures always show
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        
+        return response
     else:
         return "لم يتم العثور على ملف الـ PDF المعني.", 404
 

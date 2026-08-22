@@ -85,7 +85,7 @@
                             {{ report.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
                         </span>
                         {% if report.pdf_file_path %}
-                            <a href="{{ url_for('admin.download_pdf', session_id=report.session_id) }}?view=1" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-blue);">👁️ View PDF</a>
+                            <a href="{{ url_for('admin.download_pdf', session_id=report.session_id) }}?view=1&t={{ range(1, 999999)|random }}" target="_blank" class="btn-primary btn-sm" style="background: var(--brand-blue);">👁️ View PDF</a>
                         {% endif %}
                         <a href="/print_report/{{ report.session_id }}" target="_blank" class="btn-primary btn-sm" style="background: #28a745;">🌍 Web Report</a>
                     </div>
