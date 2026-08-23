@@ -9,13 +9,13 @@ from PIL import ImageOps
 
 # Exact template paths for each area/branch
 EXCEL_TEMPLATES = {
-    "park": os.path.join(os.path.dirname(__file__), "Exsl", "DailyCheck_Park.xlsx"),
-    "kids": os.path.join(os.path.dirname(__file__), "Exsl", "DailyCheck_Kids.xlsx"),
+    "park": os.path.join(os.path.dirname(__file__), "Excel", "DailyCheck_Park.xlsx"),
+    "kids": os.path.join(os.path.dirname(__file__), "Excel", "DailyCheck_Kids.xlsx"),
     "kickstrez": os.path.join(
-        os.path.dirname(__file__), "Exsl", "DailyCheck_Kickerz.xlsx"
+        os.path.dirname(__file__), "Excel", "DailyCheck_Kickerz.xlsx"
     ),
     "bowling": os.path.join(
-        os.path.dirname(__file__), "Exsl", "DailyCheck_Bowling.xlsx"
+        os.path.dirname(__file__), "Excel", "DailyCheck_Bowling.xlsx"
     ),
 }
 
