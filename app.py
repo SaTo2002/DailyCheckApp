@@ -135,9 +135,7 @@ with app.app_context():
 def check_neglected_sessions():
     if request.endpoint and 'static' not in request.endpoint:
         from datetime import date
-        from models import DailySession, Area, GameModel, EmailReceiver
-        from utils_mail import send_negligence_email
-        import json
+        from models import DailySession
         
         try:
             neglected = DailySession.query.filter(
@@ -147,34 +145,7 @@ def check_neglected_sessions():
             ).all()
             
             if neglected:
-                receivers = [r.email for r in EmailReceiver.query.filter_by(is_active=True).all()]
                 for ds in neglected:
-                    area = db.session.get(Area, ds.area_id)
-                    area_name = area.name if area else ds.area_id
-                    
-                    try:
-                        inspectors = json.loads(ds.active_inspectors) if ds.active_inspectors else []
-                    except:
-                        inspectors = []
-                    inspectors_str = " و ".join(inspectors) if inspectors else "غير معروف"
-                    
-                    try:
-                        game_data = json.loads(ds.game_data) if ds.game_data else {}
-                    except:
-                        game_data = {}
-                    completed_count = len(game_data)
-                    total_count = GameModel.query.filter_by(area_id=ds.area_id).count()
-                    
-                    if receivers:
-                        send_negligence_email(
-                            area_name=area_name, 
-                            date_str=ds.date.strftime("%Y-%m-%d"), 
-                            inspectors_str=inspectors_str, 
-                            completed_count=completed_count, 
-                            total_count=total_count, 
-                            receiver_emails=receivers
-                        )
-                    
                     ds.status = 'abandoned'
                     ds.negligence_reported = True
                 
