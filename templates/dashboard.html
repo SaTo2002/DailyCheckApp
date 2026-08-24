@@ -22,6 +22,56 @@
         
 
         .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 6px; font-weight: bold; text-decoration: none; display: inline-block; border: none; cursor: pointer;}
+
+        /* Tabbed Navigation Styles */
+        .tabs-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+        }
+        .tab-btn.active {
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+        }
+        .tab-btn .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeInTab 0.4s ease forwards;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeInTab {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
         
         @media (max-width: 768px) {
             .header-btns { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 8px; width: 100%; margin-top: 10px; }
@@ -135,7 +185,7 @@
 
             <div class="filter-group">
                 <label>Text Search:</label>
-                <input type="text" name="search" value="{{ search_query }}" class="glass-input" placeholder="Game name, note...">
+                <input type="text" name="search" id="live-search-input" value="{{ search_query }}" class="glass-input" placeholder="Search anything instantly..." oninput="filterCardsInstantly()">
             </div>
 
             <div class="filter-actions" style="display: flex; gap: 8px; margin-top: 5px;">
@@ -145,7 +195,23 @@
         </form>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="tabs-container">
+        <button id="btn-reports" class="tab-btn active" onclick="switchTab('reports')">
+            📄 Completed Reports
+        </button>
+        <button id="btn-neglected" class="tab-btn" onclick="switchTab('neglected')">
+            ⚠️ Neglected Sessions 
+            {% if neglected_sessions %}<span class="badge" style="background: var(--danger); color: white;">{{ neglected_sessions|length }}</span>{% endif %}
+        </button>
+        <button id="btn-abandoned" class="tab-btn" onclick="switchTab('abandoned')">
+            🗑️ Abandoned Groups 
+            {% if abandoned_split_groups %}<span class="badge" style="background: var(--brand-pink); color: white;">{{ abandoned_split_groups|length }}</span>{% endif %}
+        </button>
+    </div>
+
     <!-- Neglected Sessions List -->
+    <div id="content-neglected" class="tab-content">
     {% if neglected_sessions %}
     <div class="glass-card mb-4" style="border: 2px solid var(--brand-orange); background: rgba(255, 152, 0, 0.05);">
         <h3 style="color: var(--brand-orange); display: flex; align-items: center; gap: 8px;">
@@ -203,9 +269,15 @@
             {% endfor %}
         </div>
     </div>
+    {% else %}
+        <div class="glass-card text-center" style="padding: 40px; color: var(--text-secondary);">
+            <h3>✨ No neglected sessions currently.</h3>
+        </div>
     {% endif %}
+    </div>
 
     <!-- Abandoned Split Groups List -->
+    <div id="content-abandoned" class="tab-content">
     {% if abandoned_split_groups %}
     <div class="glass-card mb-4" style="border: 2px solid var(--brand-pink); background: rgba(228, 0, 108, 0.05);">
         <h3 style="color: var(--brand-pink); display: flex; align-items: center; gap: 8px;">
@@ -250,10 +322,17 @@
             </div>
             {% endfor %}
         </div>
+        </div>
     </div>
+    {% else %}
+        <div class="glass-card text-center" style="padding: 40px; color: var(--text-secondary);">
+            <h3>✨ No abandoned groups currently.</h3>
+        </div>
     {% endif %}
+    </div>
 
     <!-- Reports Cards List -->
+    <div id="content-reports" class="tab-content active">
     {% if reports %}
         {% for session_id, report in reports.items() %}
             <div class="glass-card report-card {% if report.has_issues %}has-issues-card{% else %}ok-card{% endif %}" id="card_{{ session_id }}" style="padding: 0;">
@@ -318,6 +397,8 @@
             <h3>🔍 No reports recorded matching current search filters.</h3>
         </div>
     {% endif %}
+    </div>
+
 </div>
 
 <script>
@@ -325,6 +406,31 @@
         document.documentElement.classList.toggle('dark-mode');
         const isDark = document.documentElement.classList.contains('dark-mode');
         localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    // Tab Switching Logic
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        document.getElementById('btn-' + tabId).classList.add('active');
+        document.getElementById('content-' + tabId).classList.add('active');
+    }
+
+    // Live Instant Search Logic
+    function filterCardsInstantly() {
+        const query = document.getElementById('live-search-input').value.toLowerCase();
+        // Target ALL elements with class 'report-card' inside the dashboard container
+        const cards = document.querySelectorAll('.report-card');
+        
+        cards.forEach(card => {
+            const text = card.innerText.toLowerCase();
+            if (text.includes(query)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
     }
 
     // Live Admin Sync
