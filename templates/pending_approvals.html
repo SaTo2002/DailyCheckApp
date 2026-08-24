@@ -75,9 +75,9 @@
             <div class="glass-card" style="padding: 20px; border-top: 4px solid var(--brand-pink);">
                 <div class="report-header">
                     <div>
-                        <h4 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 16px;">Area: {{ report.area_id }}</h4>
+                        <h4 style="margin: 0 0 10px 0; color: var(--text-primary); font-size: 16px;">Area: {{ report.display_area_id or report.area_id }}</h4>
                         <div style="font-size: 13px; color: var(--text-secondary);">
-                            Inspector: <span style="color: var(--text-primary); font-weight: bold;">{{ report.monitor_name }}</span>
+                            Inspector: <span style="color: var(--text-primary); font-weight: bold;">{{ report.display_monitor_name or report.monitor_name }}</span>
                         </div>
                     </div>
                     <div class="report-actions">

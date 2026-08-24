@@ -12,8 +12,8 @@
 <script>
     // Global Custom Modal Logic
     function showModal(title, text, buttons) {
-        document.getElementById('modalTitle').innerText = title;
-        document.getElementById('modalMessage').innerText = text;
+        document.getElementById('modalTitle').innerHTML = title;
+        document.getElementById('modalMessage').innerHTML = text;
         const btnContainer = document.getElementById('modalButtons');
         btnContainer.innerHTML = '';
         

@@ -20,7 +20,10 @@ def generate_report_excel_and_pdf(session_id):
     if not reports:
         return None, None
 
-    area_name = reports[0].area_id
+    if session_id.startswith("split_"):
+        area_name = "Park"
+    else:
+        area_name = reports[0].area_id
 
     # حساب الشخص الذي قام بأكبر عدد من الفحوصات (قاعدة الأغلبية)
     inspector_counts = {}
@@ -34,8 +37,14 @@ def generate_report_excel_and_pdf(session_id):
     )
     monitor_name = main_monitor_name
 
-    monitor_signatures_dict = json_loads(reports[0].monitor_signatures) if getattr(reports[0], 'monitor_signatures', None) else {}
-    monitor_signature_text = monitor_signatures_dict.get(monitor_name, monitor_name)
+    monitor_signatures_dict = {}
+    for r in reports:
+        if getattr(r, 'monitor_signatures', None):
+            sig_dict = json_loads(r.monitor_signatures)
+            if isinstance(sig_dict, dict):
+                monitor_signatures_dict.update(sig_dict)
+                
+    monitor_signature_text = " و ".join(list(monitor_signatures_dict.values())) if monitor_signatures_dict else monitor_name
 
     ts = reports[0].timestamp
     date_str = ts.strftime("%Y-%m-%d")
@@ -81,8 +90,11 @@ def generate_report_excel_and_pdf(session_id):
 
         # إضافة اسم المفتش الفعلي للملاحظات إذا كان مختلفاً عن المفتش الرئيسي
         final_notes = r.notes.strip() if r.notes else ""
+        if final_notes.upper() == "N/A":
+            final_notes = ""
+            
         if r.monitor_name != main_monitor_name:
-            inspector_note = f"تم الفحص بواسطة: {r.monitor_name}"
+            inspector_note = f"تم الفحص بواسطة: ({r.monitor_name})"
             final_notes = (
                 f"{inspector_note} - {final_notes}" if final_notes else inspector_note
             )
@@ -143,7 +155,7 @@ def generate_report_excel_and_pdf(session_id):
 
     export_report_to_excel(
         report_session_id=session_id,
-        monitor_name=monitor_signature_text,
+        monitor_name=main_monitor_name,
         area_name=area_name,
         checks_dict=game_checks,
         game_notes_dict=game_notes,
@@ -240,25 +252,32 @@ def generate_report_excel_and_pdf(session_id):
             db.session.commit()
             print(f"[DB] Saved pdf_file_path '{pdf_path}' for session {session_id}")
 
+            # --- Check if this is an initial generation or an approval regeneration ---
+            from models import ReportApproval
+            has_approvals = ReportApproval.query.filter_by(session_id=session_id).first() is not None
+            
             # --- Email Integration (Attachment) ---
-            from utils_mail import send_notification_emails
+            if not has_approvals:
+                from utils_mail import send_notification_emails
 
-            receivers = [
-                r.email for r in EmailReceiver.query.filter_by(is_active=True).all()
-            ]
-            if receivers:
-                print(
-                    f"Sending emails with PDF attachment to {len(receivers)} receivers..."
-                )
-                success = send_notification_emails(
-                    pdf_path, area_name, date_str, receivers
-                )
-                if success:
-                    print("Emails sent successfully!")
+                receivers = [
+                    r.email for r in EmailReceiver.query.filter_by(is_active=True).all()
+                ]
+                if receivers:
+                    print(
+                        f"Sending emails with PDF attachment to {len(receivers)} receivers..."
+                    )
+                    success = send_notification_emails(
+                        pdf_path, area_name, date_str, receivers
+                    )
+                    if success:
+                        print("Emails sent successfully!")
+                    else:
+                        print("Failed to send emails.")
                 else:
-                    print("Failed to send emails.")
+                    print("No active email receivers found. Skipping email.")
             else:
-                print("No active email receivers found. Skipping email.")
+                print("Report already has approvals. Skipping duplicate email notification.")
 
             # --- Google Drive Integration ---
             from models import log_system_event

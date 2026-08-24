@@ -192,10 +192,11 @@ def dashboard():
 
     for r in reports:
         if r.session_id not in grouped_reports:
+            is_split = r.session_id.startswith("split_")
             grouped_reports[r.session_id] = {
                 "session_id": r.session_id,
-                "monitor_name": r.monitor_name,
-                "area_id": r.area_id,
+                "monitor_name": r.monitor_name if not is_split else "",
+                "area_id": "Park & F.O & Lounge (Grouped)" if is_split else r.area_id,
                 "timestamp": r.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
                 "pdf_file_path": r.pdf_file_path if r.pdf_file_path else "",
                 "games": [],
@@ -203,9 +204,19 @@ def dashboard():
                 "total_checks_count": 0,
                 "issue_checks_count": 0,
                 "approvals": approvals_by_session.get(r.session_id, []),
+                "is_split": is_split,
+                "split_counts": {},
             }
-        elif r.pdf_file_path and not grouped_reports[r.session_id]["pdf_file_path"]:
-            grouped_reports[r.session_id]["pdf_file_path"] = r.pdf_file_path
+        else:
+            if r.pdf_file_path and not grouped_reports[r.session_id]["pdf_file_path"]:
+                grouped_reports[r.session_id]["pdf_file_path"] = r.pdf_file_path
+            
+        # Merge monitor names for split sessions by counting frequency
+        if grouped_reports[r.session_id]["is_split"]:
+            counts = grouped_reports[r.session_id]["split_counts"]
+            if r.area_id not in counts:
+                counts[r.area_id] = {}
+            counts[r.area_id][r.monitor_name] = counts[r.area_id].get(r.monitor_name, 0) + 1
 
         game_model = GameModel.query.filter(
             (GameModel.id == r.game_id) | (GameModel.name == r.game_id)
@@ -258,6 +269,15 @@ def dashboard():
             }
         )
 
+    # Convert monitor_name dicts back to strings for split sessions
+    for sid, rep in grouped_reports.items():
+        if rep.get("is_split"):
+            inspector_strings = []
+            for area_name, inspectors in rep["split_counts"].items():
+                main_inspector = max(inspectors, key=inspectors.get)
+                inspector_strings.append(f"{main_inspector} ({area_name})")
+            rep["monitor_name"] = " و ".join(inspector_strings)
+
     # فلترة حسب حالة الفحص (كل الجلسة سليمة ✅ vs بها أعطال ❌)
     if status_filter == "ok":
         grouped_reports = {
@@ -267,6 +287,16 @@ def dashboard():
         grouped_reports = {
             sid: rep for sid, rep in grouped_reports.items() if rep["has_issues"]
         }
+
+    abandoned_split_groups = {}
+    today_str = str(datetime.now().date())
+    for sid in list(grouped_reports.keys()):
+        rep = grouped_reports[sid]
+        if rep.get("is_split") and not rep.get("pdf_file_path"):
+            rep_date_str = rep["timestamp"].split(" ")[0]
+            if rep_date_str < today_str:
+                abandoned_split_groups[sid] = rep
+                del grouped_reports[sid]
 
     # جلب الجلسات المهملة لعرضها في قسم خاص
     # (الجلسات التي تم تعيينها كـ abandoned سواء يدوياً أو تلقائياً بواسطة قبل الطلب)
@@ -336,6 +366,7 @@ def dashboard():
     return render_template(
         "dashboard.html",
         reports=grouped_reports,
+        abandoned_split_groups=abandoned_split_groups,
         neglected_sessions=neglected_sessions,
         areas=areas,
         dates=dates,
@@ -414,6 +445,10 @@ def pending_approvals():
     today = datetime.now().date()
 
     for report in all_reports:
+        # Hide reports that are incomplete (waiting for group) or haven't generated their PDF yet
+        if not report.pdf_file_path:
+            continue
+            
         if report.session_id in seen_sessions:
             continue
         seen_sessions.add(report.session_id)
@@ -446,6 +481,25 @@ def pending_approvals():
             role_signed = any(app.role == admin_role for app in approvals)
             if not role_signed:
                 pending_reports.append(report)
+
+    # Format split session display names
+    for rep in pending_reports:
+        if rep.session_id.startswith("split_"):
+            rep.display_area_id = "Park & F.O & Lounge (Grouped)"
+            
+            session_reports = GameReport.query.filter_by(session_id=rep.session_id).all()
+            split_counts = {}
+            for sr in session_reports:
+                if sr.area_id not in split_counts:
+                    split_counts[sr.area_id] = {}
+                split_counts[sr.area_id][sr.monitor_name] = split_counts[sr.area_id].get(sr.monitor_name, 0) + 1
+            
+            inspector_strings = []
+            for area_name, inspectors in split_counts.items():
+                main_inspector = max(inspectors, key=inspectors.get)
+                inspector_strings.append(f"{main_inspector} ({area_name})")
+                
+            rep.display_monitor_name = " و ".join(inspector_strings)
 
     return render_template("pending_approvals.html", pending_reports=pending_reports)
 
@@ -888,6 +942,63 @@ def delete_report(session_id):
                     os.remove(os.path.join(root, file))
     except Exception:
         pass
+
+    db.session.commit()
+    return redirect(url_for("admin.dashboard"))
+
+
+@admin_bp.route("/delete_split_area/<session_id>/<area_name>", methods=["POST"])
+def delete_split_area(session_id, area_name):
+    if not session.get("is_admin"):
+        return redirect(url_for("admin.admin_login"))
+    if not session.get("can_delete_reports"):
+        flash("عذراً، لا تملك صلاحية حذف التقارير.", "danger")
+        return redirect(url_for("admin.dashboard"))
+
+    log_system_event(
+        session.get("admin_username", "Master Admin"),
+        "Delete Split Area",
+        details=f"Deleted area {area_name} from session: {session_id}",
+        level="WARNING",
+    )
+
+    from models import Area, DailySession
+    
+    # 1. Delete GameReports for this specific area
+    for r in GameReport.query.filter_by(session_id=session_id, area_id=area_name).all():
+        if r.map_image_path and os.path.exists(r.map_image_path.lstrip("/")):
+            filename = os.path.basename(r.map_image_path)
+            if (
+                not filename.startswith("base_map_")
+                and not filename.startswith("area_cover_")
+                and "/maps/" not in r.map_image_path
+            ):
+                try:
+                    os.remove(r.map_image_path.lstrip("/"))
+                except Exception:
+                    pass
+
+        if r.photos_paths:
+            try:
+                for p in json.loads(r.photos_paths):
+                    if os.path.exists(p.lstrip("/")):
+                        os.remove(p.lstrip("/"))
+            except Exception:
+                pass
+        db.session.delete(r)
+        
+    # 2. Delete the associated completed DailySession
+    try:
+        from datetime import datetime
+        date_str = session_id.split("_")[1]
+        parsed_date = datetime.strptime(date_str, "%Y%m%d").date()
+        area = Area.query.filter_by(name=area_name).first()
+        if area:
+            DailySession.query.filter_by(
+                area_id=str(area.id), date=parsed_date, status="completed"
+            ).delete(synchronize_session=False)
+    except Exception as e:
+        print(f"Failed to delete DailySession: {e}")
 
     db.session.commit()
     return redirect(url_for("admin.dashboard"))

@@ -13,6 +13,7 @@ from datetime import date
 from flask import (
     Blueprint,
     current_app,
+    flash,
     redirect,
     render_template,
     request,
@@ -151,6 +152,22 @@ def show_games(area_id):
     area = db.session.get(Area, area_id)
     if not area:
         return "هذه المنطقة غير موجودة!"
+        
+    # === NEW: Split Area Locking Logic ===
+    if area.name.lower() in ["park", "f.o", "lounge"]:
+        completed_ds = DailySession.query.filter_by(
+            area_id=str(area.id), date=date.today(), status="completed"
+        ).first()
+        if completed_ds:
+            try:
+                active_inspectors = json.loads(completed_ds.active_inspectors) if completed_ds.active_inspectors else []
+                inspector_name = ", ".join(active_inspectors) if active_inspectors else "Another Inspector"
+            except Exception:
+                inspector_name = "Another Inspector"
+                
+            colored_name = f"<span style='color: #e4006c; font-weight: 800;'>{inspector_name}</span>"
+            flash(f"The {area.name} check has already been completed by {colored_name}. Please wait for the rest of the group to finish.", "warning")
+            return redirect(url_for("monitor.home"))
 
     # 1. إغلاق الجلسات المعلقة من الأيام السابقة لنفس المنطقة
     old_sessions = DailySession.query.filter(
@@ -565,7 +582,23 @@ def submit_report():
         game_data = {}
 
     completed_games = list(game_data.keys())
-    session_id = uuid.uuid4().hex
+    
+    # === NEW: Shared session_id for split areas ===
+    is_split = area and area.name.lower() in ["park", "f.o", "lounge"]
+    if is_split:
+        split_areas_db = Area.query.filter(Area.name.in_(["Park", "F.O", "Lounge"])).all()
+        split_area_ids_for_index = [str(a.id) for a in split_areas_db]
+        
+        exported_count = DailySession.query.filter(
+            DailySession.area_id.in_(split_area_ids_for_index),
+            DailySession.date == date.today(),
+            DailySession.status == "exported"
+        ).count()
+        
+        group_index = (exported_count // len(split_area_ids_for_index)) + 1
+        session_id = f"split_{date.today().strftime('%Y%m%d')}_{group_index}"
+    else:
+        session_id = uuid.uuid4().hex
 
     # 1. جلب كافة ألعاب المنطقة لضمان تسجيل التقرير لجميع ألعاب المنطقة
     area_games = (
@@ -615,11 +648,47 @@ def submit_report():
     ds.status = "completed"
     db.session.commit()
 
+    # === NEW: Wait for all 3 split areas logic ===
+    if is_split:
+        # Get IDs of all 3 split areas
+        split_areas_db = Area.query.filter(Area.name.in_(["Park", "F.O", "Lounge"])).all()
+        split_area_ids = [str(a.id) for a in split_areas_db]
+        
+        # Count how many are completed TODAY (including the one we just saved)
+        completed_sessions = DailySession.query.filter(
+            DailySession.area_id.in_(split_area_ids),
+            DailySession.date == date.today(),
+            DailySession.status == "completed"
+        ).all()
+        
+        if len(completed_sessions) < len(split_area_ids):
+            # Not all are done. Skip PDF generation.
+            log_system_event(
+                monitor_name,
+                "Area Report Completed (Waiting for Group)",
+                details=f"Area: {area.name}, Completed {len(completed_sessions)}/{len(split_area_ids)}",
+                level="INFO",
+            )
+            games_count = len(completed_games)
+            session.pop("area_id", None)
+            
+            return render_template(
+                "report_success.html",
+                area_name=area_name,
+                monitor_name=monitor_name,
+                games_count=games_count,
+            )
+            
+        # If all 3 are done, mark them all as exported and proceed to PDF generation
+        for s in completed_sessions:
+            s.status = "exported"
+        db.session.commit()
+
     # 2. إنشاء وتصدير ملف الـ PDF تلقائياً في العملية الخلفية
     log_system_event(
         monitor_name,
         "Generate Area Report",
-        details=f"Area: {area.name}, Games inspected: {len(completed_games)}",
+        details=f"Area: {area.name} (Split Group Complete)" if is_split else f"Area: {area.name}, Games inspected: {len(completed_games)}",
         level="INFO",
     )
 
@@ -756,6 +825,26 @@ def api_session_status(area_id):
     ds = DailySession.query.filter_by(
         area_id=str(area_id), date=date.today(), status="in_progress"
     ).first()
+    
+    # === NEW: Split Area Locking Logic ===
+    area = db.session.get(Area, area_id)
+    if area and area.name.lower() in ["park", "f.o", "lounge"]:
+        completed_ds = DailySession.query.filter_by(
+            area_id=str(area_id), date=date.today(), status="completed"
+        ).first()
+        if completed_ds:
+            try:
+                active_inspectors = json.loads(completed_ds.active_inspectors) if completed_ds.active_inspectors else []
+                inspector_name = ", ".join(active_inspectors) if active_inspectors else "Another Inspector"
+            except Exception:
+                inspector_name = "Another Inspector"
+            
+            colored_name = f"<span style='color: #e4006c; font-weight: 800;'>{inspector_name}</span>"
+            return {
+                "status": "locked_split",
+                "message": f"The {area.name} check has already been completed by {colored_name}. Please wait for the other areas in the group (Park, F.O, Lounge) to finish."
+            }
+            
     if not ds:
         return {"status": "no_session"}
 

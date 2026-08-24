@@ -245,6 +245,13 @@
             fetch('/api/session_status/' + selectedArea)
                 .then(res => res.json())
                 .then(data => {
+                    if (data.status === 'locked_split') {
+                        showModal('⚠️ غير مسموح (Blocked)', data.message, [
+                            { text: 'OK', type: 'primary' }
+                        ]);
+                        return;
+                    }
+
                     if (data.status === 'ok' && (data.active_inspectors.length > 0 || data.completed_games.length > 0)) {
                         let inspectorsStr = data.active_inspectors.join(' و ');
                         
