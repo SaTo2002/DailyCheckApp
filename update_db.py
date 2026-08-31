@@ -1,5 +1,5 @@
-import models
 from app import app
+import models
 from extensions import db
 
 
